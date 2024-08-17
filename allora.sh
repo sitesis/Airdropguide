@@ -7,7 +7,7 @@ command_exists() {
 echo "Showing HCA logo..."
 wget -O loader.sh https://raw.githubusercontent.com/choir94/Airdropguide/main/loader.sh && chmod +x loader.sh && ./loader.sh
 curl -s https://raw.githubusercontent.com/choir94/Airdropguide/main/logo.sh | bash
-sleep 2
+sleep 10
 
 echo "Checking prerequisites..."
 
