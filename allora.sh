@@ -130,5 +130,6 @@ chmod +x init.config
 ./init.config
 docker-compose up -d --build
 
-echo "Setup complete. You can check your Allora point for 24 hours after finishing."
+echo "Setup complete. check Point Allora setelah 24 jam."
+echo "Join diskusi"
 echo "Subscribe: https://t.me/airdrop_node"
