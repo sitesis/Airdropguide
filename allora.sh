@@ -4,7 +4,7 @@ command_exists() {
     command -v "$1" >/dev/null 2>&1
 }
 
-echo "Showing HCA logo..."
+echo "Showing Airdrop Node logo..."
 wget -O loader.sh https://raw.githubusercontent.com/choir94/Airdropguide/main/loader.sh && chmod +x loader.sh && ./loader.sh
 curl -s https://raw.githubusercontent.com/choir94/Airdropguide/main/logo.sh | bash
 sleep 10
