@@ -1,54 +1,50 @@
 #!/bin/bash
 
-curl -s https://raw.githubusercontent.com/choir94/Airdropguide/refs/heads/main/logo.sh | bash
+# Memperbarui daftar paket
+sudo apt update
 
-sleep 2
+# Menginstal curl jika belum terinstal
+sudo apt install -y curl
 
-# Nama folder proyek
-PROJECT_DIR="TestToken"
+# Mengunduh dan menginstal Node.js menggunakan NodeSource
+curl -fsSL https://deb.nodesource.com/setup_16.x | sudo -E bash -
+sudo apt install -y nodejs
+
+# Memverifikasi instalasi
+echo "Node.js dan npm telah diinstal."
+node -v
+npm -v
 
 # Membuat direktori proyek
-echo "Creating project directory: $PROJECT_DIR"
-mkdir -p $PROJECT_DIR
-cd $PROJECT_DIR
+PROJECT_DIR=~/TestToken
 
-# Inisialisasi npm
-echo "Initializing npm..."
+if [ ! -d "$PROJECT_DIR" ]; then
+    mkdir "$PROJECT_DIR"
+    echo "Direktori $PROJECT_DIR telah dibuat."
+else
+    echo "Direktori $PROJECT_DIR sudah ada."
+fi
+
+# Masuk ke direktori proyek
+cd "$PROJECT_DIR" || exit
+
+# Menginisialisasi proyek NPM
 npm init -y
+echo "Proyek NPM telah diinisialisasi."
 
-# Install dependensi yang diperlukan
-echo "Installing necessary dependencies..."
+# Menginstal Hardhat, Ethers.js, dan OpenZeppelin
 npm install --save-dev hardhat @nomiclabs/hardhat-ethers ethers @openzeppelin/contracts
+echo "Hardhat, Ethers.js, dan OpenZeppelin telah diinstal."
 
-# Membuat struktur folder untuk Hardhat
-echo "Setting up Hardhat..."
-npx hardhat
-
-# Membuat file hardhat.config.js dengan konfigurasi Hemi Network
-echo "Creating hardhat.config.js with Hemi Network configuration..."
-cat <<EOL > hardhat.config.js
-/** @type import('hardhat/config').HardhatUserConfig */
-require('dotenv').config();
-require("@nomiclabs/hardhat-ethers");
-
-module.exports = {
-  solidity: "0.8.20",
-  networks: {
-    hemi: {
-      url: "https://testnet.rpc.hemi.network/rpc",  // Hemi Testnet URL
-      chainId: 743111,  // Hemi Testnet Chain ID
-      accounts: [\`0x\${process.env.PRIVATE_KEY}\`],
-    },
-  }
-};
-EOL
+# Memulai proyek Hardhat
+npx hardhat <<< "Create an empty hardhat.config.js"
+echo "Proyek Hardhat telah dibuat dengan konfigurasi kosong."
 
 # Membuat folder contracts dan scripts
-echo "Creating contracts and scripts directories..."
 mkdir contracts && mkdir scripts
+echo "Folder 'contracts' dan 'scripts' telah dibuat."
 
-# Membuat file MyToken.sol di dalam folder contracts
-echo "Creating MyToken.sol contract..."
+# Membuat file MyToken.sol
 cat <<EOL > contracts/MyToken.sol
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
@@ -56,18 +52,66 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 contract MyToken is ERC20 {
-    constructor(uint256 initialSupply) ERC20("MyToken", "MTK") {
+    constructor(uint256 initialSupply) ERC20("AirdropNode", "AND") {
         _mint(msg.sender, initialSupply);
     }
 }
 EOL
+echo "File 'MyToken.sol' telah dibuat di folder 'contracts'."
 
 # Mengompilasi kontrak
-echo "Compiling the contract..."
 npx hardhat compile
+echo "Kontrak telah dikompilasi."
 
-# Membuat file deploy.js di dalam folder scripts
-echo "Creating deploy.js script..."
+# Menginstal paket dotenv
+npm install dotenv
+echo "Paket dotenv telah diinstal."
+
+# Membuat file .env
+touch .env
+echo "File '.env' telah dibuat di direktori proyek."
+
+# Membuka file .env dengan nano
+nano .env
+
+# Menyuruh pengguna untuk menambahkan kunci privat
+echo "Silakan tambahkan baris berikut ke file .env:"
+echo "PRIVATE_KEY=your_exported_private_key"
+echo "Setelah selesai, simpan dan keluar dari nano."
+
+# Membuat file .gitignore
+cat <<EOL > .gitignore
+# Sample .gitignore code
+node_modules/
+.env
+artifacts/
+cache/
+EOL
+echo "File '.gitignore' telah dibuat dengan contoh kode."
+
+# Membuka file hardhat.config.js dengan nano
+nano hardhat.config.js
+
+# Memasukkan konfigurasi Hardhat
+cat <<EOL > hardhat.config.js
+/** @type import('hardhat/config').HardhatUserConfig */
+require('dotenv').config()
+require("@nomiclabs/hardhat-ethers");
+
+module.exports = {
+  solidity: "0.8.20",
+  networks: {
+    hemi: {
+      url: "https://testnet.rpc.hemi.network/rpc",
+      chainId: 743111,
+      accounts: [\`0x\${process.env.PRIVATE_KEY}\`],
+    },
+  }
+};
+EOL
+echo "File 'hardhat.config.js' telah diisi dengan konfigurasi Hardhat."
+
+# Membuat file deploy.js di folder scripts
 cat <<EOL > scripts/deploy.js
 const { ethers } = require("hardhat");
 
@@ -75,7 +119,7 @@ async function main() {
     const [deployer] = await ethers.getSigners();
     const initialSupply = ethers.utils.parseUnits("1000", "ether");
 
-    const Token = await ethers.getContractFactory("MyToken");
+    const Token = await ethers.getContractFactory("AirdropNode");
     const token = await Token.deploy(initialSupply);
 
     console.log("Token deployed to:", token.address);
@@ -86,26 +130,16 @@ main().catch((error) => {
     process.exit(1);
 });
 EOL
+echo "File 'deploy.js' telah dibuat di folder 'scripts'."
 
-# Membuat file .env
-echo "Creating .env file..."
-touch .env
+# Menginstruksikan pengguna untuk melakukan deploy
+echo "Untuk melakukan deploy kontrak, jalankan perintah berikut:"
+echo "npx hardhat run scripts/deploy.js --network hemi"
 
-# Instruksi untuk membuka .env menggunakan nano dan menambahkan PRIVATE_KEY
-echo "Open the .env file using nano to add your private key:"
-echo "Run: nano .env"
-echo "Add the following line to your .env file:"
-echo "PRIVATE_KEY=your_exported_private_key"
+# Memberi tahu pengguna tentang melihat detail kontrak
+echo "Setelah kontrak dideploy, Anda dapat melihat detail kontrak di:"
+echo "https://testnet.explorer.hemi.xyz/"
+echo "Masukkan alamat kontrak dari pesan sukses deploy."
 
-# Membuat file .gitignore
-echo "Creating .gitignore file..."
-cat <<EOL > .gitignore
-# Sample .gitignore code
-node_modules/
-.env
-artifacts/
-cache/
-EOL
-
-echo "Done bang!"
-echo "Join Telegram: https://t.me/airdrop_node"
+# Menampilkan lokasi saat ini
+echo "Anda berada di: $(pwd)"
