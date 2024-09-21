@@ -107,4 +107,5 @@ artifacts/
 cache/
 EOL
 
-echo "Project directory setup completed!"
+echo "Done bang!"
+echo "Join Telegram: https://t.me/airdrop_node"
