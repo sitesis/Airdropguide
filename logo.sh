@@ -1,10 +1,10 @@
 #!/bin/bash
 
-echo -e "\e[1;32m"
-echo -e "        LOADING"
-echo -e ""
-echo -e "                 \033[48;2;9;10;12m Airdrop Node \e[0m"
-echo -e "\e[0;37m Join Telegram Channel: \e[4;35mhttps://t.me/airdrop_node/\e[0m"
-echo -e "\e[0m"
-echo -e ""
-echo -e ""
+echo -e "\e[1;32m####################################################"
+echo -e "\e[1;34m####################################################"
+echo -e "\e[1;35m##                                               ###"
+echo -e "\e[1;36m##                AIRDROP NODE                   ###"
+echo -e "\e[1;33m## Join My Telegram: https://t.me/airdrop_node   ###"
+echo -e "\e[1;35m##                                               ###"
+echo -e "\e[1;34m####################################################"
+echo -e "\e[1;32m####################################################"
