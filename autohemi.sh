@@ -1,5 +1,9 @@
 #!/bin/bash
 
+curl -s https://raw.githubusercontent.com/choir94/Airdropguide/refs/heads/main/logo.sh | bash
+
+sleep 2
+
 # Nama folder proyek
 PROJECT_DIR="TestToken"
 
