@@ -146,7 +146,4 @@ main().catch((error) => {
 });
 EOL
 echo "File 'deploy.js' telah dibuat di folder 'scripts'."
-
-
-# Menampilkan lokasi saat ini
-cd ~/TestToken
+echo -e "${BOLD_PINK} Join airdrop node https://t.me/airdrop_node ${RESET_COLOR}"
