@@ -52,7 +52,7 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 contract MyToken is ERC20 {
-    constructor(uint256 initialSupply) ERC20("AirdropNode", "AND") {
+    constructor(uint256 initialSupply) ERC20("Mytoken", "MTK") {
         _mint(msg.sender, initialSupply);
     }
 }
@@ -119,7 +119,7 @@ async function main() {
     const [deployer] = await ethers.getSigners();
     const initialSupply = ethers.utils.parseUnits("1000", "ether");
 
-    const Token = await ethers.getContractFactory("AirdropNode");
+    const Token = await ethers.getContractFactory("MyToken");
     const token = await Token.deploy(initialSupply);
 
     console.log("Token deployed to:", token.address);
@@ -132,14 +132,6 @@ main().catch((error) => {
 EOL
 echo "File 'deploy.js' telah dibuat di folder 'scripts'."
 
-# Menginstruksikan pengguna untuk melakukan deploy
-echo "Untuk melakukan deploy kontrak, jalankan perintah berikut:"
-echo "npx hardhat run scripts/deploy.js --network hemi"
-
-# Memberi tahu pengguna tentang melihat detail kontrak
-echo "Setelah kontrak dideploy, Anda dapat melihat detail kontrak di:"
-echo "https://testnet.explorer.hemi.xyz/"
-echo "Masukkan alamat kontrak dari pesan sukses deploy."
 
 # Menampilkan lokasi saat ini
 echo "Anda berada di: $(pwd)"
