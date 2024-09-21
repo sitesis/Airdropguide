@@ -86,10 +86,24 @@ echo "Setelah selesai, simpan dan keluar dari nano."
 # Membuat file .gitignore
 cat <<EOL > .gitignore
 # Sample .gitignore code
-node_modules/
+# Node modules
+node_modules
+
+# Environment variables
 .env
-artifacts/
+
+# Coverage files
+coverage/
+coverage.json
+
+# Typechain generated files
+typechain/
+typechain-types/
+
+# Hardhat files
 cache/
+artifacts/
+
 EOL
 echo "File '.gitignore' telah dibuat dengan contoh kode."
 
@@ -135,4 +149,4 @@ echo "File 'deploy.js' telah dibuat di folder 'scripts'."
 
 
 # Menampilkan lokasi saat ini
-echo cd TestToken "Anda berada di: $(pwd)"
+cd ~/TestToken
