@@ -89,10 +89,7 @@ cache/
 EOL
 echo "File '.gitignore' telah dibuat dengan contoh kode."
 
-# Membuka file hardhat.config.js dengan nano
-nano hardhat.config.js
-
-# Memasukkan konfigurasi Hardhat
+# Membuat file hardhat.config.js
 cat <<EOL > hardhat.config.js
 /** @type import('hardhat/config').HardhatUserConfig */
 require('dotenv').config()
