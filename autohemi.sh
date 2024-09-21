@@ -32,6 +32,10 @@ cd "$PROJECT_DIR" || exit
 npm init -y
 echo "Proyek NPM telah diinisialisasi."
 
+curl -s https://raw.githubusercontent.com/choir94/Airdropguide/refs/heads/main/logo.sh | bash
+
+sleep 2
+
 # Menginstal Hardhat, Ethers.js, dan OpenZeppelin
 npm install --save-dev hardhat @nomiclabs/hardhat-ethers ethers @openzeppelin/contracts
 echo "Hardhat, Ethers.js, dan OpenZeppelin telah diinstal."
@@ -131,4 +135,4 @@ echo "File 'deploy.js' telah dibuat di folder 'scripts'."
 
 
 # Menampilkan lokasi saat ini
-echo "Anda berada di: $(pwd)"
+echo cd TestToken "Anda berada di: $(pwd)"
