@@ -1,120 +1,85 @@
-#!/bin/bash
+const fs = require('fs');
+const { execSync } = require('child_process');
+const os = require('os');
 
-# Function to install Celo Composer, deploy, and verify contracts
-install_celo_composer() {
-  echo "Starting Celo Composer installation, deployment, and verification..."
+function installNode() {
+  console.log('Checking Node.js and npm installation...');
 
-  # Install Node.js
-  echo "Installing Node.js..."
-  curl -fsSL https://deb.nodesource.com/setup_16.x | sudo -E bash -
-  sudo apt-get install -y nodejs
-  echo "Node.js installed successfully!"
+  try {
+    // Check if Node.js is installed
+    const nodeVersion = execSync('node -v').toString();
+    const npmVersion = execSync('npm -v').toString();
+    console.log(`Node.js version: ${nodeVersion}`);
+    console.log(`npm version: ${npmVersion}`);
+    return; // Exit if both are installed
+  } catch (error) {
+    console.log('Node.js or npm is not installed. Installing now...');
+  }
 
-  # Install Yarn
-  echo "Installing Yarn..."
-  npm install --global yarn
-  echo "Yarn installed successfully!"
+  // Determine the OS
+  const platform = os.platform();
 
-  # Clone the Celo Composer repository
-  echo "Cloning Celo Composer repository..."
-  git clone https://github.com/celo-org/celo-composer.git
-  cd celo-composer || exit
-  echo "Repository cloned successfully!"
+  let installCommand;
+  if (platform === 'win32') {
+    installCommand = 'powershell -Command "Start-Process msiexec.exe -ArgumentList \'/i https://nodejs.org/dist/latest/node-v18.17.0-x64.msi /quiet /norestart\' -Verb RunAs"';
+  } else if (platform === 'darwin') {
+    installCommand = 'brew install node'; // Requires Homebrew
+  } else if (platform === 'linux') {
+    installCommand = 'curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash - && sudo apt-get install -y nodejs';
+  } else {
+    throw new Error('Unsupported OS. Please install Node.js manually.');
+  }
 
-  # Install project dependencies
-  echo "Installing project dependencies..."
-  yarn install
-  echo "Dependencies installed successfully!"
+  // Install Node.js
+  execSync(installCommand, { stdio: 'inherit' });
+}
 
-  # Install Hardhat and Celo plugins
-  echo "Installing Hardhat and Celo plugins..."
-  yarn add --dev hardhat @celo/hardhat @celo-tools/hardhat-ethers @nomiclabs/hardhat-etherscan
-  echo "Hardhat and plugins installed successfully!"
+function setupHardhat() {
+  try {
+    // Install Hardhat
+    console.log('Installing Hardhat...');
+    execSync('npm install --save-dev hardhat', { stdio: 'inherit' });
 
-  # Create Hardhat configuration
-  echo "Creating Hardhat configuration..."
-  cat <<EOL > hardhat.config.js
-require('@nomiclabs/hardhat-waffle');
-require('@celo/hardhat');
-require('@nomiclabs/hardhat-etherscan');
+    // Initialize Hardhat
+    console.log('Initializing Hardhat...');
+    execSync('npx hardhat', { stdio: 'inherit' });
 
+    // Update hardhat.config.js
+    const configContent = `
 module.exports = {
   solidity: "0.8.4",
   networks: {
     alfajores: {
-      url: "https://alfajores-forno.celo.org",
-      accounts: [process.env.PRIVATE_KEY], // Ganti dengan private key Anda
+      url: "https://alfajores-forno.celo-testnet.org",
+      accounts: { mnemonic: process.env.MNEMONIC },
+      chainId: 44787
     },
-  },
-  etherscan: {
-    apiKey: process.env.ETHERSCAN_API_KEY // Ganti dengan API key Etherscan Anda
+    celo: {
+      url: "https://forno.celo.org",
+      accounts: { mnemonic: process.env.MNEMONIC },
+      chainId: 42220
+    }
   }
 };
-EOL
-  echo "Hardhat configuration created successfully!"
+`;
 
-  # Compile the smart contracts
-  echo "Compiling smart contracts..."
-  yarn hardhat compile
-  echo "Contracts compiled successfully!"
+    console.log('Updating hardhat.config.js...');
+    fs.writeFileSync('./hardhat.config.js', configContent);
+    
+    // Run the sample script on the Alfajores network
+    console.log('Running sample script on the Alfajores network...');
+    execSync('npx hardhat run scripts/sample-script.js --network alfajores', { stdio: 'inherit' });
 
-  # Create a deployment script
-  echo "Creating deployment script..."
-  mkdir -p scripts
-  cat <<EOL > scripts/deploy.js
-async function main() {
-  const Contract = await ethers.getContractFactory("YourContractName"); // Ganti dengan nama kontrak Anda
-  const contract = await Contract.deploy();
-  await contract.deployed();
-  console.log("Contract deployed to:", contract.address);
-  return contract.address; // Kembalikan alamat kontrak
+    console.log('Setup completed successfully!');
+  } catch (error) {
+    console.error('An error occurred:', error.message);
+  }
 }
 
-main()
-  .then((address) => {
-    console.log("Contract Address:", address);
-    return address;
-  })
-  .catch((error) => {
-    console.error(error);
-    process.exit(1);
-  });
-EOL
-  echo "Deployment script created successfully!"
-
-  # Create a verification script
-  echo "Creating verification script..."
-  cat <<EOL > scripts/verify.js
-const { run } = require("hardhat");
-
-async function main() {
-  const contractAddress = process.argv[2]; // Ambil alamat kontrak dari argumen
-  await run("verify:verify", {
-    address: contractAddress,
-    constructorArguments: [], // Tambahkan argumen konstruktor jika ada
-  });
+// Main function to execute the setup
+function main() {
+  installNode();
+  setupHardhat();
 }
 
-main()
-  .then(() => process.exit(0))
-  .catch((error) => {
-    console.error(error);
-    process.exit(1);
-  });
-EOL
-  echo "Verification script created successfully!"
-
-  echo "Celo Composer installation completed successfully!"
-
-  # Deployment and verification process
-  echo "Deploying contract..."
-  CONTRACT_ADDRESS=$(npx hardhat run scripts/deploy.js --network alfajores)
-
-  echo "Verifying contract..."
-  npx hardhat run scripts/verify.js --network alfajores $CONTRACT_ADDRESS
-
-  echo "Deployment and verification completed successfully!"
-}
-
-# Start installation process
-install_celo_composer
+main();
