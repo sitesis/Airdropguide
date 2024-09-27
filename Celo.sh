@@ -71,20 +71,6 @@ start_node() {
         --etherbase $CELO_ACCOUNT_ADDRESS --alfajores --datadir /root/.celo
 }
 
-# Fungsi untuk verifikasi kontrak menggunakan Hardhat
-verify_contract() {
-    CONTRACT_ADDRESS=$1
-    CONSTRUCTOR_ARGUMENTS=$2
-
-    if [ -z "$CONTRACT_ADDRESS" ]; then
-        echo "Alamat kontrak tidak disediakan."
-        exit 1
-    fi
-
-    echo "Memverifikasi kontrak di jaringan Alfajores..."
-    npx hardhat verify --network alfajores $CONTRACT_ADDRESS $CONSTRUCTOR_ARGUMENTS
-}
-
 # Fungsi utama untuk menjalankan semua langkah
 main() {
     install_docker
@@ -92,14 +78,6 @@ main() {
     create_data_directory
     create_account
     start_node
-
-    # Verifikasi kontrak setelah node berjalan
-    echo "Masukkan alamat kontrak untuk diverifikasi:"
-    read CONTRACT_ADDRESS
-    echo "Masukkan argumen konstruktor (pisahkan dengan spasi, atau tekan enter jika tidak ada):"
-    read CONSTRUCTOR_ARGUMENTS
-
-    verify_contract $CONTRACT_ADDRESS "$CONSTRUCTOR_ARGUMENTS"
 
     
 }
