@@ -1,98 +1,120 @@
 #!/bin/bash
 
-# Fungsi untuk membuat proyek dApp Celo Composer baru
-buat_proyek_celo() {
-  echo "Memulai pembuatan dApp Celo Composer..."
-  echo "Masukkan nama proyek Anda: "
-  read nama_proyek
-  
-  # Menjalankan perintah Celo Composer untuk membuat proyek
-  npx @celo/celo-composer@latest create "$nama_proyek"
-  
-  echo "Apakah Anda ingin menggunakan Hardhat? (Y/n): "
-  read gunakan_hardhat
-  
-  echo "Apakah Anda ingin menggunakan template? (Y/n): "
-  read gunakan_template
-  
-  if [ "$gunakan_template" == "Y" ] || [ "$gunakan_template" == "y" ]; then
-    echo "Pilih template (minipay/valora/social-connect): "
-    read nama_template
-  else
-    nama_template=""
-  fi
+# Function to install Celo Composer, deploy, and verify contracts
+install_celo_composer() {
+  echo "Starting Celo Composer installation, deployment, and verification..."
 
-  echo "Masukkan nama pemilik proyek: "
-  read pemilik_proyek
+  # Install Node.js
+  echo "Installing Node.js..."
+  curl -fsSL https://deb.nodesource.com/setup_16.x | sudo -E bash -
+  sudo apt-get install -y nodejs
+  echo "Node.js installed successfully!"
 
-  # Setelah proyek dibuat, pindah ke direktori proyek
-  cd "$nama_proyek" || exit
+  # Install Yarn
+  echo "Installing Yarn..."
+  npm install --global yarn
+  echo "Yarn installed successfully!"
 
-  # Ganti nama .env.template menjadi .env
-  echo "Mengganti nama .env.template menjadi .env..."
-  mv packages/react-app/.env.template packages/react-app/.env
+  # Clone the Celo Composer repository
+  echo "Cloning Celo Composer repository..."
+  git clone https://github.com/celo-org/celo-composer.git
+  cd celo-composer || exit
+  echo "Repository cloned successfully!"
 
-  # Mengarahkan untuk mengisi file .env
-  echo "Silakan edit file .env di packages/react-app/.env dengan variabel lingkungan Anda."
-
-  # Instal dependensi
-  echo "Menginstal dependensi..."
-  cd packages/react-app || exit
+  # Install project dependencies
+  echo "Installing project dependencies..."
   yarn install
+  echo "Dependencies installed successfully!"
 
-  # Memulai server pengembangan
-  echo "Memulai server pengembangan..."
-  yarn dev
-}
+  # Install Hardhat and Celo plugins
+  echo "Installing Hardhat and Celo plugins..."
+  yarn add --dev hardhat @celo/hardhat @celo-tools/hardhat-ethers @nomiclabs/hardhat-etherscan
+  echo "Hardhat and plugins installed successfully!"
 
-# Fungsi untuk inisialisasi dan konfigurasi Hardhat khusus untuk Alfajores
-konfigurasi_hardhat_alfajores() {
-  echo "Inisialisasi Hardhat..."
-  
-  # Inisialisasi Hardhat di dalam proyek
-  npx hardhat init
-  
-  # Instal Hardhat Toolbox
-  echo "Menginstal @nomicfoundation/hardhat-toolbox..."
-  npm install --save-dev @nomicfoundation/hardhat-toolbox
-  
-  # Tambahkan konfigurasi untuk jaringan Alfajores saja
-  echo "Menambahkan konfigurasi jaringan Alfajores ke hardhat.config.js..."
-  
-  cat <<EOL >> hardhat.config.js
-require("@nomicfoundation/hardhat-toolbox");
+  # Create Hardhat configuration
+  echo "Creating Hardhat configuration..."
+  cat <<EOL > hardhat.config.js
+require('@nomiclabs/hardhat-waffle');
+require('@celo/hardhat');
+require('@nomiclabs/hardhat-etherscan');
 
 module.exports = {
   solidity: "0.8.4",
   networks: {
     alfajores: {
-      url: "https://alfajores-forno.celo-testnet.org",
-      accounts: ["<YOUR_PRIVATE_KEY>"],
-      chainId: 44787,
-    }
+      url: "https://alfajores-forno.celo.org",
+      accounts: [process.env.PRIVATE_KEY], // Ganti dengan private key Anda
+    },
   },
   etherscan: {
-    apiKey: {
-      alfajores: "<CELOSCAN_API_KEY>"
-    },
-    customChains: [
-      {
-        network: "alfajores",
-        chainId: 44787,
-        urls: {
-          apiURL: "https://api-alfajores.celoscan.io/api",
-          browserURL: "https://alfajores.celoscan.io",
-        },
-      }
-    ]
+    apiKey: process.env.ETHERSCAN_API_KEY // Ganti dengan API key Etherscan Anda
   }
 };
 EOL
+  echo "Hardhat configuration created successfully!"
 
-  echo "Konfigurasi jaringan Alfajores selesai."
-  echo "Silakan lengkapi kunci privat dan CELOSCAN API Key di hardhat.config.js."
+  # Compile the smart contracts
+  echo "Compiling smart contracts..."
+  yarn hardhat compile
+  echo "Contracts compiled successfully!"
+
+  # Create a deployment script
+  echo "Creating deployment script..."
+  mkdir -p scripts
+  cat <<EOL > scripts/deploy.js
+async function main() {
+  const Contract = await ethers.getContractFactory("YourContractName"); // Ganti dengan nama kontrak Anda
+  const contract = await Contract.deploy();
+  await contract.deployed();
+  console.log("Contract deployed to:", contract.address);
+  return contract.address; // Kembalikan alamat kontrak
 }
 
-# Jalankan fungsi
-buat_proyek_celo
-konfigurasi_hardhat_alfajores
+main()
+  .then((address) => {
+    console.log("Contract Address:", address);
+    return address;
+  })
+  .catch((error) => {
+    console.error(error);
+    process.exit(1);
+  });
+EOL
+  echo "Deployment script created successfully!"
+
+  # Create a verification script
+  echo "Creating verification script..."
+  cat <<EOL > scripts/verify.js
+const { run } = require("hardhat");
+
+async function main() {
+  const contractAddress = process.argv[2]; // Ambil alamat kontrak dari argumen
+  await run("verify:verify", {
+    address: contractAddress,
+    constructorArguments: [], // Tambahkan argumen konstruktor jika ada
+  });
+}
+
+main()
+  .then(() => process.exit(0))
+  .catch((error) => {
+    console.error(error);
+    process.exit(1);
+  });
+EOL
+  echo "Verification script created successfully!"
+
+  echo "Celo Composer installation completed successfully!"
+
+  # Deployment and verification process
+  echo "Deploying contract..."
+  CONTRACT_ADDRESS=$(npx hardhat run scripts/deploy.js --network alfajores)
+
+  echo "Verifying contract..."
+  npx hardhat run scripts/verify.js --network alfajores $CONTRACT_ADDRESS
+
+  echo "Deployment and verification completed successfully!"
+}
+
+# Start installation process
+install_celo_composer
