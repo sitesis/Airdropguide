@@ -1,86 +1,163 @@
 #!/bin/bash
 
-# Fungsi untuk memeriksa dan memasang Docker
-install_docker() {
-    if ! command -v docker &> /dev/null; then
-        echo "Docker tidak ditemukan. Memasang Docker..."
-        
-        # Memasang Docker di Ubuntu
-        sudo apt-get update
-        sudo apt-get install -y \
-            apt-transport-https \
-            ca-certificates \
-            curl \
-            software-properties-common
-
-        # Menambahkan kunci GPG resmi Docker
-        curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
-
-        # Menambahkan repositori Docker
-        sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
-
-        # Memasang Docker
-        sudo apt-get update
-        sudo apt-get install -y docker-ce
-    else
-        echo "Docker sudah terinstal."
-    fi
+# Fungsi untuk menginstal Node.js dan npm
+install_nodejs_npm() {
+  echo "Menginstal Node.js dan npm..."
+  
+  # Menghapus versi Node.js yang mungkin sudah ada
+  sudo apt-get remove -y nodejs npm
+  
+  # Menginstal Node.js versi LTS (misalnya, versi 16.x)
+  curl -fsSL https://deb.nodesource.com/setup_16.x | sudo -E bash -
+  sudo apt-get install -y nodejs
+  
+  # Memverifikasi instalasi Node.js dan npm
+  node_version=$(node -v)
+  npm_version=$(npm -v)
+  echo "Node.js versi $node_version terinstal."
+  echo "npm versi $npm_version terinstal."
 }
 
-# Fungsi untuk menarik gambar Docker Celo
-pull_celo_image() {
-    export CELO_IMAGE=us.gcr.io/celo-org/geth:alfajores
-    echo "Variabel lingkungan CELO_IMAGE telah disetel: $CELO_IMAGE"
-
-    echo "Menarik gambar Docker Celo..."
-    docker pull $CELO_IMAGE
+# Fungsi untuk membuat proyek Hardhat baru dengan nama celodeploy
+create_hardhat_project() {
+  project_dir="celodeploy"
+  
+  echo "Membuat proyek Hardhat di direktori $project_dir..."
+  
+  # Membuat direktori proyek
+  mkdir -p $project_dir
+  cd $project_dir
+  
+  # Menginisialisasi proyek Node.js
+  echo "Inisialisasi proyek Node.js..."
+  npm init -y
+  
+  # Menginstal Hardhat secara lokal di proyek
+  echo "Menginstal Hardhat..."
+  npm install --save-dev hardhat
+  
+  # Menginisialisasi proyek Hardhat
+  echo "Inisialisasi proyek Hardhat..."
+  npx hardhat
+  
+  # Menginstal dependensi lain yang diperlukan
+  echo "Menginstal dependensi yang diperlukan..."
+  npm install --save-dev @nomicfoundation/hardhat-toolbox dotenv
 }
 
-# Fungsi untuk membuat direktori data
-create_data_directory() {
-    mkdir -p celo-data-dir
-    cd celo-data-dir || exit
-    echo "Direktori 'celo-data-dir' telah dibuat dan berpindah ke direktori tersebut."
+# Fungsi untuk menambahkan konfigurasi ke dalam hardhat.config.js
+configure_hardhat() {
+  echo "Menambahkan konfigurasi ke dalam hardhat.config.js..."
+  
+  # Membuat file hardhat.config.js dengan konfigurasi Celo Alfajores
+  cat <<EOL > hardhat.config.js
+require("@nomicfoundation/hardhat-toolbox");
+require("dotenv").config();
+
+module.exports = {
+  solidity: "0.8.20",
+  networks: {
+    alfajores: {
+      url: "https://alfajores-forno.celo-testnet.org",
+      accounts: [process.env.PRIVATE_KEY], // Ambil private key dari .env
+    },
+  },
+};
+EOL
+
+  echo "Konfigurasi hardhat.config.js telah dibuat!"
 }
 
-# Fungsi untuk membuat akun baru dan mendapatkan alamatnya
-create_account() {
-    echo "Membuat akun baru Celo..."
-    CELO_ACCOUNT_ADDRESS=$(docker run -v $PWD:/root/.celo --rm -it $CELO_IMAGE account new | grep -oE '0x[a-fA-F0-9]{40}')
-
-    # Memastikan alamat akun disetel
-    if [ -z "$CELO_ACCOUNT_ADDRESS" ]; then
-        echo "Gagal membuat akun baru. Skrip akan dihentikan."
-        exit 1
-    fi
-    echo "Akun baru telah dibuat. Alamat akun: $CELO_ACCOUNT_ADDRESS"
+# Fungsi untuk membuat file .env
+create_env_file() {
+  echo "Membuat file .env..."
+  touch .env
+  
+  # Meminta pengguna untuk memasukkan private key
+  read -p "Masukkan private key Anda: " private_key
+  
+  # Menambahkan private key ke file .env
+  echo "PRIVATE_KEY=$private_key" > .env
+  
+  echo "File .env telah dibuat dengan private key Anda!"
 }
 
-# Fungsi untuk memulai node Celo
-start_node() {
-    echo "Memulai node Celo..."
-    docker run --name celo-fullnode -d --restart unless-stopped --stop-timeout 300 \
-        -p 127.0.0.1:8545:8545 \
-        -p 127.0.0.1:8546:8546 \
-        -p 30303:30303 \
-        -p 30303:30303/udp \
-        -v $PWD:/root/.celo \
-        $CELO_IMAGE --verbosity 3 --syncmode full \
-        --http --http.addr 0.0.0.0 --http.api eth,net,web3,debug,admin,personal \
-        --light.serve 90 --light.maxpeers 1000 --maxpeers 1100 \
-        --etherbase $CELO_ACCOUNT_ADDRESS --alfajores --datadir /root/.celo
+# Fungsi untuk membuat skrip deploy.js
+create_deploy_script() {
+  echo "Membuat skrip deploy di scripts/deploy.js..."
+
+  mkdir -p scripts
+
+  cat <<EOL > scripts/deploy.js
+const hre = require("hardhat");
+
+async function main() {
+  // Mengambil akun yang digunakan untuk melakukan deploy
+  const [deployer] = await hre.ethers.getSigners();
+  console.log("Deploying contracts with the account:", deployer.address);
+
+  // Mendapatkan saldo akun
+  const balance = await deployer.getBalance();
+  console.log("Account balance:", hre.ethers.utils.formatEther(balance), "ETH");
+
+  // Mengambil kontrak Token dan mendeplynya
+  const Token = await hre.ethers.getContractFactory("Token");
+  const token = await Token.deploy();
+
+  // Menunggu hingga kontrak dideploy
+  await token.deployed();
+  console.log("Token deployed to:", token.address);
+}
+
+// Menjalankan fungsi utama dan menangani error
+main()
+  .then(() => process.exit(0))
+  .catch((error) => {
+    console.error(error);
+    process.exit(1);
+  });
+EOL
+
+  echo "Skrip deploy.js telah dibuat di folder scripts!"
+}
+
+# Fungsi untuk memverifikasi kontrak
+verify_contract() {
+  read -p "Masukkan alamat kontrak yang dideploy: " contract_address
+  read -p "Masukkan argumen constructor (misalnya, '0x0D6Dc2f182Eafa687090F95466d5368726C1ca45'): " constructor_args
+  
+  echo "Verifikasi kontrak di jaringan Alfajores..."
+  
+  npx hardhat verify --network alfajores $contract_address $constructor_args
+}
+
+# Fungsi untuk menampilkan informasi tentang bergabung di channel Telegram
+join_telegram_channel() {
+  echo "Proses selesai"
+  echo "Jangan lupa untuk bergabung di channel Telegram Airdrop Node untuk mendapatkan informasi terbaru dan dukungan:"
+  echo "👉 https://t.me/airdrop_node"
 }
 
 # Fungsi utama untuk menjalankan semua langkah
 main() {
-    install_docker
-    pull_celo_image
-    create_data_directory
-    create_account
-    start_node
+  install_nodejs_npm
+  create_hardhat_project
+  configure_hardhat
+  create_env_file
+  create_deploy_script
+  
+  echo "Proses instalasi, konfigurasi, dan pembuatan skrip deploy selesai!"
+  echo "Silakan jalankan 'npx hardhat run scripts/deploy.js --network alfajores' untuk mendeply kontrak."
 
-    
+  # Verifikasi kontrak setelah deploy
+  read -p "Apakah Anda ingin memverifikasi kontrak sekarang? (y/n): " verify_choice
+  if [[ "$verify_choice" == "y" ]]; then
+    verify_contract
+  fi
+  
+  # Memanggil fungsi join_telegram_channel
+  join_telegram_channel
 }
 
-# Menjalankan fungsi utama
+# Memulai script
 main
