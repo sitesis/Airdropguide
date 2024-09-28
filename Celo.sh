@@ -131,9 +131,34 @@ verify_contract() {
   npx hardhat verify --network alfajores $contract_address $constructor_args
 }
 
+# Fungsi untuk membuat file .gitignore
+create_gitignore() {
+  echo "Membuat file .gitignore..."
+  
+  cat <<EOL > .gitignore
+# Node.js dependencies
+node_modules/
+
+# Hardhat artifacts
+artifacts/
+cache/
+
+# Environment variables file
+.env
+
+# Logs
+logs/
+npm-debug.log*
+yarn-debug.log*
+EOL
+
+  echo "File .gitignore telah dibuat!"
+}
+
 # Fungsi untuk menampilkan informasi tentang bergabung di channel Telegram
 join_telegram_channel() {
-  echo "Proses selesai"
+  echo "Proses selesai!"
+  echo "Anda telah berhasil mengatur proyek Hardhat dan siap untuk mendeply kontrak."
   echo "Jangan lupa untuk bergabung di channel Telegram Airdrop Node untuk mendapatkan informasi terbaru dan dukungan:"
   echo "👉 https://t.me/airdrop_node"
 }
@@ -145,6 +170,7 @@ main() {
   configure_hardhat
   create_env_file
   create_deploy_script
+  create_gitignore # Tambahkan pemanggilan fungsi di sini
   
   echo "Proses instalasi, konfigurasi, dan pembuatan skrip deploy selesai!"
   echo "Silakan jalankan 'npx hardhat run scripts/deploy.js --network alfajores' untuk mendeply kontrak."
