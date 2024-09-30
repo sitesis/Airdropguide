@@ -1,118 +1,27 @@
 #!/bin/bash
 
-# Exit immediately if a command exits with a non-zero status.
-set -e 
-
-# Memperbarui daftar paket
-sudo apt update
-
-# Menginstal curl jika belum terinstal
-sudo apt install -y curl
-
-# Mengunduh dan menginstal Node.js menggunakan NodeSource
-curl -fsSL https://deb.nodesource.com/setup_16.x | sudo -E bash -
-sudo apt install -y nodejs
-
-# Memverifikasi instalasi
-echo "Node.js dan npm telah diinstal."
-node -v
-npm -v
+# Nama proyek
+PROJECT_NAME="SonicTokenDeploy"
+TOKEN_NAME="soniclabs"
+TOKEN_SYMBOL="SON"
+INITIAL_SUPPLY="1000000" # Jumlah awal token
 
 # Membuat direktori proyek
-PROJECT_DIR=~/TestToken
+mkdir -p $PROJECT_NAME
+cd $PROJECT_NAME
 
-if [ ! -d "$PROJECT_DIR" ]; then
-    mkdir "$PROJECT_DIR"
-    echo "Direktori $PROJECT_DIR telah dibuat."
-else
-    echo "Direktori $PROJECT_DIR sudah ada."
-fi
-
-# Masuk ke direktori proyek
-cd "$PROJECT_DIR" || exit
-
-# Menginisialisasi proyek NPM
+# Inisialisasi proyek Node.js
 npm init -y
-echo "Proyek NPM telah diinisialisasi."
 
-# Mengunduh dan menjalankan script tambahan
-curl -s https://raw.githubusercontent.com/choir94/Airdropguide/refs/heads/main/logo.sh | bash
+# Instalasi Hardhat dan OpenZeppelin
+npm install --save-dev hardhat
+npm install @openzeppelin/contracts
 
-sleep 2
-
-# Menginstal Hardhat, Ethers.js, dan OpenZeppelin
-npm install --save-dev hardhat @nomiclabs/hardhat-ethers ethers @openzeppelin/contracts
-echo "Hardhat, Ethers.js, dan OpenZeppelin telah diinstal."
-
-# Memulai proyek Hardhat
-npx hardhat <<< "Create an empty hardhat.config.js"
-echo "Proyek Hardhat telah dibuat dengan konfigurasi kosong."
-
-# Membuat folder contracts dan scripts
-mkdir contracts && mkdir scripts
-echo "Folder 'contracts' dan 'scripts' telah dibuat."
-
-# Membuat file MyToken.sol
-cat <<EOL > contracts/MyToken.sol
-// SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
-
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-
-contract MyToken is ERC20 {
-    constructor(uint256 initialSupply) ERC20("Mytoken", "MTK") {
-        _mint(msg.sender, initialSupply);
-    }
-}
-EOL
-echo "File 'MyToken.sol' telah dibuat di folder 'contracts'."
-
-# Mengompilasi kontrak
-npx hardhat compile
-echo "Kontrak telah dikompilasi."
-
-# Menginstal paket dotenv
-npm install dotenv
-echo "Paket dotenv telah diinstal."
-
-# Membuat file .env
-touch .env
-echo "File '.env' telah dibuat di direktori proyek."
-
-# Menyuruh pengguna untuk menambahkan kunci privat
-echo "Silakan tambahkan baris berikut ke file .env:"
-echo "PRIVATE_KEY=your_exported_private_key"
-echo "Setelah selesai, simpan dan keluar dari nano dengan Ctrl + X, lalu Y, kemudian Enter."
-
-# Membuat file .gitignore
-cat <<EOL > .gitignore
-# Sample .gitignore code
-# Node modules
-node_modules
-
-# Environment variables
-.env
-
-# Coverage files
-coverage/
-coverage.json
-
-# Typechain generated files
-typechain/
-typechain-types/
-
-# Hardhat files
-cache/
-artifacts/
-EOL
-echo "File '.gitignore' telah dibuat dengan contoh kode."
-
-# Membuat file hardhat.config.js
+# Membuat file konfigurasi Hardhat
 cat <<EOL > hardhat.config.js
-/** @type import('hardhat/config').HardhatUserConfig */
-require('dotenv').config();
 require("@nomicfoundation/hardhat-toolbox");
 
+// Ganti dengan private key akun Sonic kamu
 const SONIC_PRIVATE_KEY = "YOUR SONIC TEST ACCOUNT PRIVATE KEY";
 
 module.exports = {
@@ -120,36 +29,57 @@ module.exports = {
   networks: {
     sonic: {
       url: "https://rpc.testnet.soniclabs.com",
-      accounts: [SONIC_PRIVATE_KEY]
-    }
-  }
+      accounts: [SONIC_PRIVATE_KEY],
+    },
+  },
 };
 EOL
-echo "File 'hardhat.config.js' telah diisi dengan konfigurasi Hardhat yang baru."
 
-# Membuat file deploy.js di folder scripts
+# Membuat kontrak token ERC20
+mkdir -p contracts
+cat <<EOL > contracts/$TOKEN_NAME.sol
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.19;
+
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+
+contract $TOKEN_NAME is ERC20 {
+    constructor(uint256 initialSupply) ERC20("$TOKEN_NAME", "$TOKEN_SYMBOL") {
+        _mint(msg.sender, initialSupply);
+    }
+}
+EOL
+
+# Membuat script deploy
+mkdir -p scripts
 cat <<EOL > scripts/deploy.js
-const { ethers } = require("hardhat");
+const hre = require("hardhat");
 
 async function main() {
-    const [deployer] = await ethers.getSigners();
-    const initialSupply = ethers.utils.parseUnits("1000", "ether");
-
-    const Token = await ethers.getContractFactory("MyToken");
+    const initialSupply = hre.ethers.utils.parseUnits("$INITIAL_SUPPLY", 18); // 1 juta token
+    const Token = await hre.ethers.getContractFactory("$TOKEN_NAME");
     const token = await Token.deploy(initialSupply);
 
+    await token.deployed();
     console.log("Token deployed to:", token.address);
 }
 
-main().catch((error) => {
-    console.error(error);
-    process.exit(1);
-});
+main()
+    .then(() => process.exit(0))
+    .catch((error) => {
+        console.error(error);
+        process.exit(1);
+    });
 EOL
-echo "File 'deploy.js' telah dibuat di folder 'scripts'."
 
-# Menjalankan skrip deploy.js di jaringan sonic
+# Membuat file .gitignore
+cat <<EOL > .gitignore
+node_modules/
+artifacts/
+cache/
+.env
+EOL
+
+# Menjalankan deploy
+echo "Instalasi dependensi dan deploy kontrak..."
 npx hardhat run scripts/deploy.js --network sonic
-echo "Skrip deploy.js telah dijalankan di jaringan sonic."
-
-echo "Bergabunglah dengan airdrop node di https://t.me/airdrop_node"
