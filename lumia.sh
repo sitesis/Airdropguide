@@ -44,7 +44,15 @@ require('dotenv').config();
 const { privateKey } = require("./private.json");
 
 module.exports = {
-  solidity: "0.8.19", // Ubah ke versi Solidity yang sesuai
+  solidity: {
+    version: "0.8.20", // Versi Solidity yang digunakan
+    settings: {
+      optimizer: {
+        enabled: true,
+        runs: 200,
+      },
+    },
+  },
   networks: {
     "lumia-testnet": {
       url: process.env.LUMIA_TESTNET_RPC_URL,
@@ -105,16 +113,20 @@ main()
   });
 EOT
 
-# 10. Deploy Kontrak
+# 10. Mengompilasi Proyek
+echo "Mengompilasi Proyek..."
+npx hardhat compile
+
+# 11. Deploy Kontrak
 echo "Melakukan Deployment Kontrak di Lumia Testnet..."
 npx hardhat run scripts/deploy.js --network lumia-testnet
 
-# 11. Verifikasi Kontrak
+# 12. Verifikasi Kontrak
 echo "Verifikasi Kontrak di BlockScout Lumia Testnet..."
 DEPLOYED_CONTRACT_ADDRESS=$(npx hardhat run scripts/deploy.js --network lumia-testnet | grep 'Sportimex deployed to:' | awk '{print $4}')
 npx hardhat verify --network lumia-testnet $DEPLOYED_CONTRACT_ADDRESS
 
-# 12. Menambahkan File .gitignore
+# 13. Menambahkan File .gitignore
 echo "Menambahkan private.json ke .gitignore..."
 cat <<EOT >> .gitignore
 private.json
