@@ -1,103 +1,118 @@
 #!/bin/bash
 
-# Jalur penyimpanan script
-SCRIPT_PATH="$HOME/sonicdeploy"
+# Exit immediately if a command exits with a non-zero status.
+set -e 
 
-# Tampilkan Logo
-curl -s https://raw.githubusercontent.com/choir94/Airdropguide/refs/heads/main/logo.sh | bash
-sleep 3
-
-# Perbarui sistem dan instal unzip
+# Memperbarui daftar paket
 sudo apt update
-sudo apt install -y unzip
 
-# Tambahkan atau perbarui file .gitignore
-function add_gitignore() {
-    echo "Membuat .gitignore jika belum ada..."
-    
-    # Cek apakah file .gitignore sudah ada
-    if [ ! -f .gitignore ]; then
-        touch .gitignore
-        echo "node_modules/" >> .gitignore
-        echo "scripts/" >> .gitignore
-        echo "hardhat.config.js" >> .gitignore
-        echo "deploy.js" >> .gitignore
-        echo ".env" >> .gitignore
-    else
-        echo ".gitignore sudah ada, tidak ada perubahan."
-    fi
+# Menginstal curl jika belum terinstal
+sudo apt install -y curl
+
+# Mengunduh dan menginstal Node.js menggunakan NodeSource
+curl -fsSL https://deb.nodesource.com/setup_16.x | sudo -E bash -
+sudo apt install -y nodejs
+
+# Memverifikasi instalasi
+echo "Node.js dan npm telah diinstal."
+node -v
+npm -v
+
+# Membuat direktori proyek
+PROJECT_DIR=~/TestToken
+
+if [ ! -d "$PROJECT_DIR" ]; then
+    mkdir "$PROJECT_DIR"
+    echo "Direktori $PROJECT_DIR telah dibuat."
+else
+    echo "Direktori $PROJECT_DIR sudah ada."
+fi
+
+# Masuk ke direktori proyek
+cd "$PROJECT_DIR" || exit
+
+# Menginisialisasi proyek NPM
+npm init -y
+echo "Proyek NPM telah diinisialisasi."
+
+# Mengunduh dan menjalankan script tambahan
+curl -s https://raw.githubusercontent.com/choir94/Airdropguide/refs/heads/main/logo.sh | bash
+
+sleep 2
+
+# Menginstal Hardhat, Ethers.js, dan OpenZeppelin
+npm install --save-dev hardhat @nomiclabs/hardhat-ethers ethers @openzeppelin/contracts
+echo "Hardhat, Ethers.js, dan OpenZeppelin telah diinstal."
+
+# Memulai proyek Hardhat
+npx hardhat <<< "Create an empty hardhat.config.js"
+echo "Proyek Hardhat telah dibuat dengan konfigurasi kosong."
+
+# Membuat folder contracts dan scripts
+mkdir contracts && mkdir scripts
+echo "Folder 'contracts' dan 'scripts' telah dibuat."
+
+# Membuat file MyToken.sol
+cat <<EOL > contracts/MyToken.sol
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+
+contract MyToken is ERC20 {
+    constructor(uint256 initialSupply) ERC20("Mytoken", "MTK") {
+        _mint(msg.sender, initialSupply);
+    }
 }
+EOL
+echo "File 'MyToken.sol' telah dibuat di folder 'contracts'."
 
-# Fungsi menu utama
-function main_menu() {
-    while true; do
-        clear
-        
-        echo "================================================================"
-        echo "Airdrop Node Telegram Channel: https://t.me/airdrop_node"
-        echo "Untuk keluar dari script, tekan ctrl+c pada keyboard"
-        echo "Pilih tindakan yang ingin dilakukan:"
-        echo "1) Deploy Kontrak"
-        echo "2) Keluar"
+# Mengompilasi kontrak
+npx hardhat compile
+echo "Kontrak telah dikompilasi."
 
-        read -p "Masukkan pilihan: " choice
+# Menginstal paket dotenv
+npm install dotenv
+echo "Paket dotenv telah diinstal."
 
-        case $choice in
-            1)
-                deploy_contract
-                ;;
-            2)
-                echo "Keluar dari script..."
-                exit 0
-                ;;
-            *)
-                echo "Pilihan tidak valid, silakan coba lagi"
-                ;;
-        esac
-        read -n 1 -s -r -p "Tekan enter tombol untuk melanjutkan..."
-    done
-}
+# Membuat file .env
+touch .env
+echo "File '.env' telah dibuat di direktori proyek."
 
-# Periksa dan instal perintah
-function check_install() {
-    command -v "$1" &> /dev/null
-    if [ $? -ne 0 ]; then
-        echo "$1 belum diinstal, menginstal..."
-        eval "$2"
-    else
-        echo "$1 sudah diinstal"
-    fi
-}
+# Menyuruh pengguna untuk menambahkan kunci privat
+echo "Silakan tambahkan baris berikut ke file .env:"
+echo "PRIVATE_KEY=your_exported_private_key"
+echo "Setelah selesai, simpan dan keluar dari nano dengan Ctrl + X, lalu Y, kemudian Enter."
 
-# Deploy kontrak menggunakan Hardhat
-function deploy_contract() {
-    export NVM_DIR="$HOME/.nvm"
-    
-    if [ -s "$NVM_DIR/nvm.sh" ]; then
-        source "$NVM_DIR/nvm.sh"
-    else
-        curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.4/install.sh | bash
-        source "$NVM_DIR/nvm.sh"
-    fi
+# Membuat file .gitignore
+cat <<EOL > .gitignore
+# Sample .gitignore code
+# Node modules
+node_modules
 
-    # Periksa dan instal Node.js versi stabil (v16 atau v18)
-    if ! command -v node &> /dev/null; then
-        nvm install 18
-        nvm alias default 18
-        nvm use default
-    fi
+# Environment variables
+.env
 
-    echo "Menginstal Hardhat..."
-    npm install --save-dev hardhat
-    npx hardhat
+# Coverage files
+coverage/
+coverage.json
 
-    echo "Mengonfigurasi Hardhat untuk Sonic Testnet..."
-    mkdir -p scripts && cd scripts || exit
+# Typechain generated files
+typechain/
+typechain-types/
 
-cat <<EOF > ../hardhat.config.js
+# Hardhat files
+cache/
+artifacts/
+EOL
+echo "File '.gitignore' telah dibuat dengan contoh kode."
+
+# Membuat file hardhat.config.js
+cat <<EOL > hardhat.config.js
+/** @type import('hardhat/config').HardhatUserConfig */
+require('dotenv').config();
 require("@nomicfoundation/hardhat-toolbox");
 
-// Replace this private key with your Sonic account private key
 const SONIC_PRIVATE_KEY = "YOUR SONIC TEST ACCOUNT PRIVATE KEY";
 
 module.exports = {
@@ -109,41 +124,32 @@ module.exports = {
     }
   }
 };
-EOF
+EOL
+echo "File 'hardhat.config.js' telah diisi dengan konfigurasi Hardhat yang baru."
 
-cat <<EOF > deploy.js
+# Membuat file deploy.js di folder scripts
+cat <<EOL > scripts/deploy.js
+const { ethers } = require("hardhat");
+
 async function main() {
-  const [deployer] = await ethers.getSigners();
-  console.log("Deploying contracts with the account:", deployer.address);
+    const [deployer] = await ethers.getSigners();
+    const initialSupply = ethers.utils.parseUnits("1000", "ether");
 
-  const balance = await deployer.getBalance();
-  console.log("Account balance:", balance.toString());
+    const Token = await ethers.getContractFactory("MyToken");
+    const token = await Token.deploy(initialSupply);
 
-  const ContractFactory = await ethers.getContractFactory("YourContract");
-  const contract = await ContractFactory.deploy();
-  console.log("Contract deployed to:", contract.address);
+    console.log("Token deployed to:", token.address);
 }
 
-main()
-  .then(() => process.exit(0))
-  .catch((error) => {
+main().catch((error) => {
     console.error(error);
     process.exit(1);
-  });
-EOF
+});
+EOL
+echo "File 'deploy.js' telah dibuat di folder 'scripts'."
 
-    # Meminta pengguna memasukkan private key akun Sonic mereka
-    read -p "Masukkan private key akun Sonic Anda: " SONIC_PRIVATE_KEY
-    sed -i "s|YOUR SONIC TEST ACCOUNT PRIVATE KEY|$SONIC_PRIVATE_KEY|" ../hardhat.config.js
+# Menjalankan skrip deploy.js di jaringan sonic
+npx hardhat run scripts/deploy.js --network sonic
+echo "Skrip deploy.js telah dijalankan di jaringan sonic."
 
-    echo "Konfigurasi selesai. Menjalankan deploy script..."
-    npx hardhat run scripts/deploy.js --network sonic
-
-    read -p "Tekan Enter untuk kembali ke menu utama..."
-}
-
-# Menambahkan .gitignore
-add_gitignore
-
-# Jalankan menu utama
-main_menu
+echo "Bergabunglah dengan airdrop node di https://t.me/airdrop_node"
