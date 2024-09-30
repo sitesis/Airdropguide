@@ -11,7 +11,7 @@ npm init -y
 
 # 2. Instalasi Hardhat dan Dependensi
 echo "Menginstal Hardhat dan Dependensi..."
-npm install --save-dev hardhat @nomicfoundation/hardhat-verify @openzeppelin/contracts dotenv
+npm install --save-dev hardhat @nomicfoundation/hardhat-verify @openzeppelin/contracts dotenv @nomiclabs/hardhat-waffle
 
 # 3. Inisialisasi Proyek Hardhat
 echo "Membuat Proyek Hardhat..."
@@ -44,8 +44,7 @@ require('dotenv').config();
 const { privateKey } = require("./private.json");
 
 module.exports = {
-  solidity: "0.8.20",
-  
+  solidity: "0.8.19", // Ubah ke versi Solidity yang sesuai
   networks: {
     "lumia-testnet": {
       url: process.env.LUMIA_TESTNET_RPC_URL,
