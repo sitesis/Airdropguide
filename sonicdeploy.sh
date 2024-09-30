@@ -1,95 +1,101 @@
 #!/bin/bash
 
-# Nama proyek
-PROJECT_NAME="SonicTokenDeploy"
-TOKEN_NAME="soniclabs"
-TOKEN_SYMBOL="SON"
-INITIAL_SUPPLY="1000000" # Jumlah awal token
-
-# Fungsi untuk memeriksa dan menginstal Node.js dan npm
+# Function to install Node.js
 install_node() {
-    if ! command -v node &> /dev/null; then
-        echo "Node.js tidak terinstal. Menginstal Node.js..."
-        
-        # Menginstal Node.js dan npm
-        if [ "$(uname)" == "Darwin" ]; then
-            # MacOS
-            brew install node
-        elif [ -f /etc/debian_version ]; then
-            # Debian/Ubuntu
-            sudo apt update
-            sudo apt install -y nodejs npm
-        elif [ -f /etc/redhat-release ]; then
-            # RHEL/CentOS
-            sudo yum install -y nodejs npm
-        else
-            echo "Sistem operasi tidak dikenali. Silakan instal Node.js dan npm secara manual."
-            exit 1
-        fi
-    else
-        echo "Node.js sudah terinstal."
+    echo "Installing Node.js..."
+
+    # Check if curl is installed
+    if ! command -v curl &> /dev/null; then
+        echo "curl could not be found. Please install curl and run the script again."
+        exit 1
     fi
+
+    # Install Node.js using NodeSource
+    curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+    sudo apt-get install -y nodejs
+
+    # Verify installation
+    if ! command -v node &> /dev/null; then
+        echo "Node.js installation failed."
+        exit 1
+    fi
+
+    echo "Node.js installed successfully. Version: $(node -v)"
 }
 
-# Memeriksa dan menginstal Node.js dan npm
-install_node
+# Check if Node.js is installed
+if ! command -v node &> /dev/null; then
+    install_node
+else
+    echo "Node.js is already installed. Version: $(node -v)"
+fi
 
-# Membuat direktori proyek
-mkdir -p $PROJECT_NAME
+# Create a new Hardhat project directory
+PROJECT_NAME="sonic"
+mkdir $PROJECT_NAME
 cd $PROJECT_NAME
 
-# Inisialisasi proyek Node.js
+# Initialize a new npm project
 npm init -y
 
-# Instalasi Hardhat dan OpenZeppelin
-npm install --save-dev hardhat
-npm install @openzeppelin/contracts
+# Install Hardhat and dependencies
+npm install --save-dev hardhat @nomicfoundation/hardhat-toolbox dotenv
 
-# Membuat file konfigurasi Hardhat
+# Create Hardhat configuration file
 cat <<EOL > hardhat.config.js
 require("@nomicfoundation/hardhat-toolbox");
+require("dotenv").config();
 
-// Ganti dengan private key akun Sonic kamu
-const SONIC_PRIVATE_KEY = "YOUR SONIC TEST ACCOUNT PRIVATE KEY";
+// Replace this private key with your Sonic account private key
+const SONIC_PRIVATE_KEY = process.env.SONIC_PRIVATE_KEY;
 
 module.exports = {
   solidity: "0.8.19",
   networks: {
     sonic: {
       url: "https://rpc.testnet.soniclabs.com",
-      accounts: [SONIC_PRIVATE_KEY],
-    },
-  },
+      accounts: [SONIC_PRIVATE_KEY]
+    }
+  }
 };
 EOL
 
-# Membuat kontrak token ERC20
-mkdir -p contracts
-cat <<EOL > contracts/$TOKEN_NAME.sol
+# Create .env file for environment variables
+cat <<EOL > .env
+SONIC_PRIVATE_KEY=YOUR_SONIC_TEST_ACCOUNT_PRIVATE_KEY
+EOL
+
+# Create contracts directory and a simple contract
+mkdir contracts
+cat <<EOL > contracts/MyContract.sol
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+contract MyContract {
+    string public message;
 
-contract $TOKEN_NAME is ERC20 {
-    constructor(uint256 initialSupply) ERC20("$TOKEN_NAME", "$TOKEN_SYMBOL") {
-        _mint(msg.sender, initialSupply);
+    constructor(string memory initialMessage) {
+        message = initialMessage;
+    }
+
+    function setMessage(string memory newMessage) public {
+        message = newMessage;
     }
 }
 EOL
 
-# Membuat script deploy
-mkdir -p scripts
+# Create scripts directory and deployment script
+mkdir scripts
 cat <<EOL > scripts/deploy.js
-const hre = require("hardhat");
-
 async function main() {
-    const initialSupply = hre.ethers.utils.parseUnits("$INITIAL_SUPPLY", 18); // 1 juta token
-    const Token = await hre.ethers.getContractFactory("$TOKEN_NAME");
-    const token = await Token.deploy(initialSupply);
+    const [deployer] = await ethers.getSigners();
 
-    await token.deployed();
-    console.log("Token deployed to:", token.address);
+    console.log("Deploying contracts with the account:", deployer.address);
+
+    const MyContract = await ethers.getContractFactory("MyContract");
+    const myContract = await MyContract.deploy("Hello, Sonic!");
+
+    console.log("Contract deployed to:", myContract.address);
 }
 
 main()
@@ -100,14 +106,7 @@ main()
     });
 EOL
 
-# Membuat file .gitignore
-cat <<EOL > .gitignore
-node_modules/
-artifacts/
-cache/
-.env
-EOL
-
-# Menjalankan deploy
-echo "Instalasi dependensi dan deploy kontrak..."
-npx hardhat run scripts/deploy.js --network sonic
+# Provide instructions for deployment
+echo "Setup complete. Please update your .env file with your Sonic private key."
+echo "You can deploy your contract using the following command:"
+echo "npx hardhat run scripts/deploy.js --network sonic"
