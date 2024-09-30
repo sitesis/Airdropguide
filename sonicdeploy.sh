@@ -6,6 +6,34 @@ TOKEN_NAME="soniclabs"
 TOKEN_SYMBOL="SON"
 INITIAL_SUPPLY="1000000" # Jumlah awal token
 
+# Fungsi untuk memeriksa dan menginstal Node.js dan npm
+install_node() {
+    if ! command -v node &> /dev/null; then
+        echo "Node.js tidak terinstal. Menginstal Node.js..."
+        
+        # Menginstal Node.js dan npm
+        if [ "$(uname)" == "Darwin" ]; then
+            # MacOS
+            brew install node
+        elif [ -f /etc/debian_version ]; then
+            # Debian/Ubuntu
+            sudo apt update
+            sudo apt install -y nodejs npm
+        elif [ -f /etc/redhat-release ]; then
+            # RHEL/CentOS
+            sudo yum install -y nodejs npm
+        else
+            echo "Sistem operasi tidak dikenali. Silakan instal Node.js dan npm secara manual."
+            exit 1
+        fi
+    else
+        echo "Node.js sudah terinstal."
+    fi
+}
+
+# Memeriksa dan menginstal Node.js dan npm
+install_node
+
 # Membuat direktori proyek
 mkdir -p $PROJECT_NAME
 cd $PROJECT_NAME
