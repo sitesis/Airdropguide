@@ -40,8 +40,8 @@ cat <<EOT >> .env
 CITREA_TESTNET_RPC_URL="https://rpc.testnet.citrea.xyz"
 EOT
 
-# 7. Mengkonfigurasi hardhat.config.js
-echo "Mengonfigurasi hardhat.config.js..."
+# 7. Mengkonfigurasi hardhat.config.js (dengan verifikasi Sourcify)
+echo "Mengonfigurasi hardhat.config.js dengan verifikasi Sourcify..."
 cat <<EOT > hardhat.config.js
 require('@nomiclabs/hardhat-waffle');
 require('@nomicfoundation/hardhat-verify');
@@ -50,7 +50,7 @@ const { privateKey } = require("./private.json");
 
 module.exports = {
     solidity: {
-        version: "0.8.20", // Versi Solidity yang digunakan
+        version: "0.8.20",
         settings: {
             optimizer: {
                 enabled: true,
@@ -72,11 +72,16 @@ module.exports = {
                 network: "citrea",
                 chainId: 5115,
                 urls: {
-                    apiURL: "https://blockscout.testnet.citrea.xyz/api",
-                    browserURL: "https://blockscout.testnet.citrea.xyz",
+                    apiURL: "https://explorer.testnet.citrea.xyz/api",
+                    browserURL: "https://explorer.testnet.citrea.xyz",
                 }
             }
         ]
+    },
+    sourcify: {
+        // Konfigurasi Sourcify untuk verifikasi
+        endpoint: "https://sourcify.dev/server",  // Sourcify verification server
+        verifyOnDeploy: true,  // Otomatis memverifikasi kontrak setelah deploy
     }
 };
 EOT
@@ -125,10 +130,9 @@ npx hardhat compile
 echo "Melakukan Deployment Kontrak di Citrea Testnet..."
 npx hardhat run --network citrea scripts/deploy.js
 
-# 12. Verifikasi Kontrak di BlockScout Citrea Testnet
-echo "Verifikasi Kontrak di BlockScout Citrea Testnet..."
-DEPLOYED_CONTRACT_ADDRESS=$(npx hardhat run --network citrea scripts/deploy.js | grep 'Sportimex deployed to:' | awk '{print $4}')
-npx hardhat verify --network citrea $DEPLOYED_CONTRACT_ADDRESS
+# 12. Verifikasi Kontrak menggunakan Sourcify
+echo "Verifikasi Kontrak di Sourcify..."
+npx hardhat sourcify --network citrea
 
 # 13. Menambahkan File .gitignore
 echo "Menambahkan private.json ke .gitignore..."
@@ -138,4 +142,4 @@ private.json
 node_modules/
 EOT
 
-echo "Proses selesai. Proyek Citrea berhasil diinstal dan dikonfigurasi."
+echo "Proses selesai. Proyek Citrea berhasil diinstal, dikonfigurasi, dan diverifikasi melalui Sourcify."
