@@ -76,7 +76,7 @@ echo "Private key Anda telah disimpan di file .env."
 cat <<EOL > .gitignore
 # Sample .gitignore code
 # Node modules
-node_modules
+node_modules/
 
 # Environment variables
 .env
@@ -92,6 +92,9 @@ typechain-types/
 # Hardhat files
 cache/
 artifacts/
+
+# Build files
+build/
 EOL
 echo "File '.gitignore' telah dibuat dengan contoh kode."
 
@@ -155,4 +158,7 @@ else
     echo "Tidak dapat menemukan alamat token yang dideploy."
 fi
 
-echo -e "\nBergabunglah dengan node airdrop di https://t.me/airdrop_node"
+# Mengajak bergabung ke Airdrop Node
+echo -e "\n🎉 **Done! ** 🎉"
+echo -e "\n👉 **[Bergabung ke Airdrop Node](https://t.me/airdrop_node)** 👈"
+
