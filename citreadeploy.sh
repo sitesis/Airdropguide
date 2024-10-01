@@ -3,10 +3,22 @@
 # Nama Proyek
 PROJECT_NAME="citrea-project"
 
-# Install Node.js dan npm
-echo "Menginstal Node.js dan npm..."
-curl -fsSL https://deb.nodesource.com/setup_16.x | sudo -E bash -
-sudo apt-get install -y nodejs
+# Cek apakah Node.js sudah terinstal
+if command -v node >/dev/null 2>&1; then
+  echo "Node.js sudah terinstal. Lewati instalasi."
+else
+  echo "Node.js tidak ditemukan. Menginstal Node.js dan npm..."
+  curl -fsSL https://deb.nodesource.com/setup_16.x | sudo -E bash -
+  sudo apt-get install -y nodejs
+fi
+
+# Cek apakah npm sudah terinstal
+if command -v npm >/dev/null 2>&1; then
+  echo "npm sudah terinstal. Lewati instalasi."
+else
+  echo "npm tidak ditemukan. Menginstal npm..."
+  sudo apt-get install -y npm
+fi
 
 # 1. Inisialisasi Proyek
 echo "Inisialisasi Proyek NPM..."
@@ -14,9 +26,9 @@ mkdir $PROJECT_NAME
 cd $PROJECT_NAME || exit
 npm init -y
 
-# 2. Instalasi Hardhat dan Dependensi Tambahan
-echo "Menginstal Hardhat dan Dependensi..."
-npm install --save-dev hardhat @nomicfoundation/hardhat-verify @openzeppelin/contracts dotenv @nomiclabs/hardhat-waffle
+# 2. Instalasi Hardhat, Sourcify, dan Dependensi Tambahan
+echo "Menginstal Hardhat, Sourcify, dan Dependensi..."
+npm install --save-dev hardhat @nomicfoundation/hardhat-verify @openzeppelin/contracts dotenv @nomiclabs/hardhat-waffle @sourcify/hardhat-sourcify
 
 # 3. Inisialisasi Proyek Hardhat
 echo "Menginisialisasi Proyek Hardhat..."
@@ -40,11 +52,12 @@ cat <<EOT >> .env
 CITREA_TESTNET_RPC_URL="https://rpc.testnet.citrea.xyz"
 EOT
 
-# 7. Mengkonfigurasi hardhat.config.js (dengan verifikasi Sourcify)
-echo "Mengonfigurasi hardhat.config.js dengan verifikasi Sourcify..."
+# 7. Mengkonfigurasi hardhat.config.js (dengan plugin Sourcify)
+echo "Mengonfigurasi hardhat.config.js dengan Sourcify..."
 cat <<EOT > hardhat.config.js
 require('@nomiclabs/hardhat-waffle');
 require('@nomicfoundation/hardhat-verify');
+require('@sourcify/hardhat-sourcify');  // Plugin Sourcify
 require('dotenv').config();
 const { privateKey } = require("./private.json");
 
@@ -79,8 +92,8 @@ module.exports = {
         ]
     },
     sourcify: {
-        // Konfigurasi Sourcify untuk verifikasi
-        endpoint: "https://sourcify.dev/server",  // Sourcify verification server
+        // Konfigurasi Sourcify untuk verifikasi otomatis setelah deploy
+        endpoint: "https://sourcify.dev/server",  // Server Sourcify
         verifyOnDeploy: true,  // Otomatis memverifikasi kontrak setelah deploy
     }
 };
