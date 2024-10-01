@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# Buat direktori proyek dan masuk ke dalamnya
+mkdir citrea
+cd citrea || exit
+
 # Check for Node.js installation
 if ! command -v node &> /dev/null
 then
@@ -41,7 +45,7 @@ echo "Configuring Hardhat for Citrea..."
 cat <<EOL >> $CONFIG_FILE
 
 module.exports = {
-    // Add your existing configuration above this line
+    solidity: "0.8.19", // Version Solidity
     networks: {
         citrea: {
             url: "https://rpc.testnet.citrea.xyz",
@@ -49,8 +53,53 @@ module.exports = {
             accounts: ["$PRIVATE_KEY"],
         },
     },
-    // Add your existing configuration below this line
 };
+EOL
+
+# Create a simple smart contract
+echo "Creating a sample smart contract..."
+mkdir -p contracts
+cat <<EOL > contracts/MyContract.sol
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.19;
+
+contract MyContract {
+    string public name;
+
+    constructor(string memory _name) {
+        name = _name;
+    }
+
+    function setName(string memory _name) public {
+        name = _name;
+    }
+}
+EOL
+
+# Create a deploy script
+echo "Creating a deploy script..."
+mkdir -p scripts
+cat <<EOL > scripts/deploy.js
+const hre = require("hardhat");
+
+async function main() {
+    const MyContract = await hre.ethers.getContractFactory("MyContract");
+    const myContract = await MyContract.deploy("Hello, Citrea!");
+    await myContract.deployed();
+    console.log("Contract deployed to:", myContract.address);
+}
+
+async function deploy() {
+    try {
+        await main();
+        process.exit(0);
+    } catch (error) {
+        console.error(error);
+        process.exit(1);
+    }
+}
+
+deploy();
 EOL
 
 # Print success message
