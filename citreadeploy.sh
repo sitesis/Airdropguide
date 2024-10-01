@@ -1,108 +1,144 @@
 #!/bin/bash
 
-# Buat direktori proyek dan masuk ke dalamnya
-mkdir citrea
-cd citrea || exit
+# Memperbarui daftar paket
+sudo apt update
 
-# Check for Node.js installation
-if ! command -v node &> /dev/null
-then
-    echo "Node.js is not installed. Please install Node.js before running this script."
-    exit 1
+# Menginstal curl jika belum terinstal
+sudo apt install -y curl
+
+# Mengunduh dan menginstal Node.js menggunakan NodeSource
+curl -fsSL https://deb.nodesource.com/setup_16.x | sudo -E bash -
+sudo apt install -y nodejs
+
+# Memverifikasi instalasi
+echo "Node.js dan npm telah diinstal."
+node -v
+npm -v
+
+# Membuat direktori proyek
+PROJECT_DIR=~/CitreaProject
+
+if [ ! -d "$PROJECT_DIR" ]; then
+    mkdir "$PROJECT_DIR"
+    echo "Direktori $PROJECT_DIR telah dibuat."
+else
+    echo "Direktori $PROJECT_DIR sudah ada."
 fi
 
-# Check for npm installation
-if ! command -v npm &> /dev/null
-then
-    echo "npm is not installed. Please install npm before running this script."
-    exit 1
-fi
+# Masuk ke direktori proyek
+cd "$PROJECT_DIR" || exit
 
-# Install Hardhat
-echo "Installing Hardhat..."
-npm install --save-dev hardhat
+# Menginisialisasi proyek NPM
+npm init -y
+echo "Proyek NPM telah diinisialisasi."
 
-# Create a new Hardhat project
-echo "Creating a new Hardhat project..."
-npx hardhat init
+# Menginstal Hardhat, Ethers.js, dan OpenZeppelin
+npm install --save-dev hardhat @nomiclabs/hardhat-ethers ethers @openzeppelin/contracts dotenv
+echo "Hardhat, Ethers.js, dan OpenZeppelin telah diinstal."
 
-# Check if hardhat.config.js exists
-CONFIG_FILE="hardhat.config.js"
+# Memulai proyek Hardhat
+npx hardhat init -y
+echo "Proyek Hardhat telah dibuat dengan konfigurasi kosong."
 
-if [ ! -f "$CONFIG_FILE" ]; then
-    echo "Error: $CONFIG_FILE not found. Please make sure to run 'npx hardhat init' first."
-    exit 1
-fi
+# Membuat folder contracts dan scripts
+mkdir contracts && mkdir scripts
+echo "Folder 'contracts' dan 'scripts' telah dibuat."
 
-# Prompt for private key
-read -sp "Enter your private key (this will be kept secret): " PRIVATE_KEY
-echo
+# Membuat file MyToken.sol
+cat <<EOL > contracts/MyToken.sol
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
 
-# Update hardhat.config.js with Citrea configuration
-echo "Configuring Hardhat for Citrea..."
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
-# Add Citrea network configuration to hardhat.config.js
-cat <<EOL >> $CONFIG_FILE
+contract MyToken is ERC20 {
+    constructor(uint256 initialSupply) ERC20("MyToken", "MTK") {
+        _mint(msg.sender, initialSupply);
+    }
+}
+EOL
+echo "File 'MyToken.sol' telah dibuat di folder 'contracts'."
+
+# Mengompilasi kontrak
+npx hardhat compile
+echo "Kontrak telah dikompilasi."
+
+# Membuat file .env
+touch .env
+echo "File '.env' telah dibuat di direktori proyek."
+
+# Meminta pengguna untuk memasukkan kunci privat
+read -p "Masukkan private key Anda: " PRIVATE_KEY
+echo "PRIVATE_KEY=$PRIVATE_KEY" > .env
+echo "Private key Anda telah disimpan di file .env."
+
+# Membuat file .gitignore
+cat <<EOL > .gitignore
+# Sample .gitignore code
+# Node modules
+node_modules
+
+# Environment variables
+.env
+
+# Coverage files
+coverage/
+coverage.json
+
+# Typechain generated files
+typechain/
+typechain-types/
+
+# Hardhat files
+cache/
+artifacts/
+EOL
+echo "File '.gitignore' telah dibuat dengan contoh kode."
+
+# Membuat file hardhat.config.js
+cat <<EOL > hardhat.config.js
+/** @type import('hardhat/config').HardhatUserConfig */
+require('dotenv').config();
+require("@nomiclabs/hardhat-ethers");
 
 module.exports = {
-    solidity: "0.8.19", // Version Solidity
-    networks: {
-        citrea: {
-            url: "https://rpc.testnet.citrea.xyz",
-            chainId: 5115,
-            accounts: ["$PRIVATE_KEY"],
-        },
+  solidity: "0.8.20",
+  networks: {
+    citrea: {
+      url: "https://rpc.testnet.citrea.xyz",
+      chainId: 5115,
+      accounts: [\`0x\${process.env.PRIVATE_KEY}\`],
     },
+  },
 };
 EOL
+echo "File 'hardhat.config.js' telah diisi dengan konfigurasi Hardhat untuk Citrea."
 
-# Create a simple smart contract
-echo "Creating a sample smart contract..."
-mkdir -p contracts
-cat <<EOL > contracts/MyContract.sol
-// SPDX-License-Identifier: MIT
-pragma solidity ^0.8.19;
-
-contract MyContract {
-    string public name;
-
-    constructor(string memory _name) {
-        name = _name;
-    }
-
-    function setName(string memory _name) public {
-        name = _name;
-    }
-}
-EOL
-
-# Create a deploy script
-echo "Creating a deploy script..."
-mkdir -p scripts
+# Membuat file deploy.js di folder scripts
 cat <<EOL > scripts/deploy.js
-const hre = require("hardhat");
+const { ethers } = require("hardhat");
 
 async function main() {
-    const MyContract = await hre.ethers.getContractFactory("MyContract");
-    const myContract = await MyContract.deploy("Hello, Citrea!");
-    await myContract.deployed();
-    console.log("Contract deployed to:", myContract.address);
+    const [deployer] = await ethers.getSigners();
+    const initialSupply = ethers.utils.parseUnits("1000", "ether");
+
+    const Token = await ethers.getContractFactory("MyToken");
+    const token = await Token.deploy(initialSupply);
+
+    console.log("Token deployed to:", token.address);
 }
 
-async function deploy() {
-    try {
-        await main();
-        process.exit(0);
-    } catch (error) {
-        console.error(error);
-        process.exit(1);
-    }
-}
-
-deploy();
+main().catch((error) => {
+    console.error(error);
+    process.exit(1);
+});
 EOL
+echo "File 'deploy.js' telah dibuat di folder 'scripts'."
 
-# Print success message
-echo "Hardhat has been configured for Citrea Testnet successfully!"
-echo "You can now deploy your smart contracts using the command:"
-echo "npx hardhat run --network citrea scripts/deploy.js"
+# Menjalankan skrip deploy
+echo "Menjalankan skrip deploy..."
+npx hardhat run --network citrea scripts/deploy.js
+
+# Menampilkan informasi berguna
+echo -e "\nProyek Citrea telah disiapkan dan kontrak telah dideploy!"
+echo -e "\nBergabunglah dengan node airdrop di https://t.me/airdrop_node"
