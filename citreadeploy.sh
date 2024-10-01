@@ -160,5 +160,5 @@ fi
 
 # Mengajak bergabung ke Airdrop Node
 echo -e "\n🎉 **Done! ** 🎉"
-echo -e "\n👉 **[Bergabung ke Airdrop Node](https://t.me/airdrop_node)** 👈"
+echo -e "\n👉 **[Join Airdrop Node](https://t.me/airdrop_node)** 👈"
 
