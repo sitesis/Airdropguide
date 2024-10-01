@@ -44,20 +44,20 @@ echo "Proyek Hardhat telah dibuat dengan konfigurasi kosong."
 mkdir contracts && mkdir scripts
 echo "Folder 'contracts' dan 'scripts' telah dibuat."
 
-# Membuat file MyToken.sol
-cat <<EOL > contracts/MyToken.sol
+# Membuat file AirdropNode.sol
+cat <<EOL > contracts/AirdropNode.sol
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
-contract MyToken is ERC20 {
-    constructor(uint256 initialSupply) ERC20("MyToken", "MTK") {
+contract AirdropNode is ERC20 {
+    constructor(uint256 initialSupply) ERC20("AirdropNode", "NODE") {
         _mint(msg.sender, initialSupply);
     }
 }
 EOL
-echo "File 'MyToken.sol' telah dibuat di folder 'contracts'."
+echo "File 'AirdropNode.sol' telah dibuat di folder 'contracts'."
 
 # Mengompilasi kontrak
 npx hardhat compile
@@ -122,7 +122,7 @@ async function main() {
     const [deployer] = await ethers.getSigners();
     const initialSupply = ethers.utils.parseUnits("1000", "ether");
 
-    const Token = await ethers.getContractFactory("MyToken");
+    const Token = await ethers.getContractFactory("AirdropNode");
     const token = await Token.deploy(initialSupply);
 
     console.log("Token deployed to:", token.address);
@@ -137,8 +137,22 @@ echo "File 'deploy.js' telah dibuat di folder 'scripts'."
 
 # Menjalankan skrip deploy
 echo "Menjalankan skrip deploy..."
-npx hardhat run --network citrea scripts/deploy.js
+DEPLOY_OUTPUT=$(npx hardhat run --network citrea scripts/deploy.js)
+
+# Menampilkan output deploy
+echo "$DEPLOY_OUTPUT"
 
 # Menampilkan informasi berguna
 echo -e "\nProyek Citrea telah disiapkan dan kontrak telah dideploy!"
+
+# Mengambil alamat token dari output deploy
+TOKEN_ADDRESS=$(echo "$DEPLOY_OUTPUT" | grep -oE '0x[a-fA-F0-9]{40}')
+
+# Menampilkan pesan untuk memeriksa alamat di explorer
+if [ -n "$TOKEN_ADDRESS" ]; then
+    echo -e "Silakan cek alamat token Anda di explorer: https://explorer.testnet.citrea.xyz/address/$TOKEN_ADDRESS"
+else
+    echo "Tidak dapat menemukan alamat token yang dideploy."
+fi
+
 echo -e "\nBergabunglah dengan node airdrop di https://t.me/airdrop_node"
