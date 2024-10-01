@@ -1,19 +1,24 @@
 #!/bin/bash
 
-# Memperbarui daftar paket
-sudo apt update
+# Memeriksa apakah Node.js sudah terinstal
+if command -v node >/dev/null 2>&1; then
+    echo "Node.js sudah terinstal: $(node -v)"
+else
+    # Memperbarui daftar paket
+    sudo apt update
 
-# Menginstal curl jika belum terinstal
-sudo apt install -y curl
+    # Menginstal curl jika belum terinstal
+    sudo apt install -y curl
 
-# Mengunduh dan menginstal Node.js menggunakan NodeSource
-curl -fsSL https://deb.nodesource.com/setup_16.x | sudo -E bash -
-sudo apt install -y nodejs
+    # Mengunduh dan menginstal Node.js menggunakan NodeSource
+    curl -fsSL https://deb.nodesource.com/setup_16.x | sudo -E bash -
+    sudo apt install -y nodejs
 
-# Memverifikasi instalasi
-echo "Node.js dan npm telah diinstal."
-node -v
-npm -v
+    # Memverifikasi instalasi
+    echo "Node.js dan npm telah diinstal."
+    node -v
+    npm -v
+fi
 
 # Membuat direktori proyek
 PROJECT_DIR=~/CitreaProject
@@ -161,4 +166,3 @@ fi
 # Mengajak bergabung ke Airdrop Node
 echo -e "\n🎉 **Done! ** 🎉"
 echo -e "\n👉 **[Join Airdrop Node](https://t.me/airdrop_node)** 👈"
-
