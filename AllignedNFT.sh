@@ -1,5 +1,10 @@
 #!/bin/bash
 
+#Logo
+curl -s https://raw.githubusercontent.com/choir94/Airdropguide/refs/heads/main/logo.sh | bash
+
+sleep 4
+
 # Fungsi untuk menginstal Rust
 install_rust() {
     echo "Memulai instalasi Rust..."
