@@ -35,19 +35,6 @@ install_dependencies() {
     echo "pkg-config dan libssl-dev berhasil diinstall."
 }
 
-# Function to check ETH balance in Holesky
-check_eth_balance() {
-    echo "Checking ETH balance in Holesky..."
-    balance=$(cast wallet balance $(cast wallet address) --rpc-url https://holesky.ethereum.org)
-
-    if (( $(echo "$balance < 0.1" | bc -l) )); then
-        echo "You need at least 0.1 ETH in your Holesky account to proceed. Current balance: $balance ETH"
-        exit 1
-    else
-        echo "You have sufficient balance: $balance ETH"
-    fi
-}
-
 # Function to import a new wallet
 import_wallet() {
     # Delete existing keystore directory if it exists
