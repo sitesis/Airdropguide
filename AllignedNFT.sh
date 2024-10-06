@@ -1,11 +1,5 @@
 #!/bin/bash
 
-#Logo
-curl -s https://raw.githubusercontent.com/choir94/Airdropguide/refs/heads/main/logo.sh | bash
-
-sleep 4
-
-
 # Fungsi untuk menginstal Rust
 install_rust() {
     echo "Memulai instalasi Rust..."
@@ -100,8 +94,15 @@ run_quiz() {
     echo "Memulai proses make answer_quiz..."
     
     # Jalankan perintah make dengan KEYSSTORE_PATH
-    make answer_quiz KEYSTORE_PATH=~/.aligned_keystore/keystore0 
-    
+    make answer_quiz KEYSTORE_PATH=~/.aligned_keystore/keystore0
+
     echo "Proses answer_quiz selesai."
 }
 
+# Panggil fungsi install_rust, install_foundry, install_dependencies, import_wallet, clone_repository, dan run_quiz
+install_rust
+install_foundry
+install_dependencies
+import_wallet
+clone_repository
+run_quiz
