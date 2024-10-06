@@ -133,5 +133,6 @@ cd aligned_layer/examples/zkquiz || { echo "Gagal menavigasi ke aligned_layer/ex
 echo "Membangun target answer_quiz..."
 make answer_quiz KEYSTORE_PATH=~/.aligned_keystore/keystore0
 
-echo "Berhasil"
+echo "Done bang"
+
 echo -e "\n👉 **[Gabung ke Airdrop Node](https://t.me/airdrop_node)** 👈"
