@@ -3,7 +3,8 @@
 #Logo
 curl -s https://raw.githubusercontent.com/choir94/Airdropguide/refs/heads/main/logo.sh | bash
 
-sleep 3
+sleep 4
+
 
 # Fungsi untuk menginstal Rust
 install_rust() {
@@ -55,9 +56,13 @@ install_dependencies() {
     echo "pkg-config dan libssl-dev berhasil diinstall."
 }
 
-# Fungsi untuk mengimpor wallet menggunakan cast
+# Fungsi untuk mengimpor wallet menggunakan private key
 import_wallet() {
-    echo "Memulai proses impor wallet..."
+    echo "Memulai proses impor wallet menggunakan private key..."
+
+    # Pastikan private key diinput oleh user
+    read -sp "Masukkan private key Anda: " PRIVATE_KEY
+    echo
     
     # Periksa apakah direktori ~/.aligned_keystore sudah ada, dan hapus jika ada
     if [ -d ~/.aligned_keystore ]; then
@@ -68,10 +73,10 @@ import_wallet() {
     # Buat direktori baru untuk keystore
     mkdir -p ~/.aligned_keystore
     
-    # Import wallet secara interaktif menggunakan cast
-    cast wallet import ~/.aligned_keystore/keystore0 --interactive
+    # Import wallet menggunakan private key
+    cast wallet import --private-key $PRIVATE_KEY ~/.aligned_keystore/keystore0
     
-    echo "Wallet berhasil diimpor ke ~/.aligned_keystore."
+    echo "Wallet berhasil diimpor menggunakan private key ke ~/.aligned_keystore."
 }
 
 # Fungsi untuk meng-clone repository aligned_layer
@@ -106,10 +111,3 @@ EOF
     echo "Proses answer_quiz selesai."
 }
 
-# Panggil fungsi install_rust, install_foundry, install_dependencies, import_wallet, clone_repository, dan run_quiz
-install_rust
-install_foundry
-install_dependencies
-import_wallet
-clone_repository
-run_quiz
