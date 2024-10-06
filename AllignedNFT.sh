@@ -38,12 +38,11 @@ install_dependencies() {
 # Fungsi untuk mengimpor wallet menggunakan cast
 import_wallet() {
     echo "Memulai proses impor wallet..."
-    read -p "Apakah Anda yakin ingin menghapus direktori ~/.aligned_keystore? (y/n) " confirm
-    if [[ "$confirm" == "y" ]]; then
-        [ -d ~/.aligned_keystore ] && rm -rf ~/.aligned_keystore
-        echo "Deleted existing directory ~/.aligned_keystore."
-    fi
+    
+    # Buat direktori baru untuk keystore jika belum ada
     mkdir -p ~/.aligned_keystore
+    
+    # Import wallet secara interaktif menggunakan cast
     cast wallet import ~/.aligned_keystore/keystore0 --interactive
     echo "Wallet berhasil diimpor ke ~/.aligned_keystore."
 }
