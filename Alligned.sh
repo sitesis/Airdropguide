@@ -4,68 +4,68 @@ curl -s https://raw.githubusercontent.com/choir94/Airdropguide/refs/heads/main/l
 
 sleep 4
 
-set -e  # Exit immediately if a command exits with a non-zero status
+set -e  # Keluar segera jika ada perintah yang keluar dengan status non-nol
 
-# Function to install system dependencies required for Rust and Foundry
+# Fungsi untuk menginstal ketergantungan sistem yang diperlukan untuk Rust dan Foundry
 install_dependencies() {
-    echo "Installing system dependencies required for Rust and Foundry..."
+    echo "Menginstal ketergantungan sistem yang diperlukan untuk Rust dan Foundry..."
     if command -v apt &> /dev/null; then
-        sudo apt update && sudo apt install -y build-essential pkg-config libssl-dev curl || { echo "Failed to install dependencies."; exit 1; }
+        sudo apt update && sudo apt install -y build-essential pkg-config libssl-dev curl || { echo "Gagal menginstal ketergantungan."; exit 1; }
     elif command -v yum &> /dev/null; then
-        sudo yum groupinstall 'Development Tools' && sudo yum install -y openssl-devel curl || { echo "Failed to install dependencies."; exit 1; }
+        sudo yum groupinstall 'Development Tools' && sudo yum install -y openssl-devel curl || { echo "Gagal menginstal ketergantungan."; exit 1; }
     elif command -v dnf &> /dev/null; then
-        sudo dnf groupinstall 'Development Tools' && sudo dnf install -y openssl-devel curl || { echo "Failed to install dependencies."; exit 1; }
+        sudo dnf groupinstall 'Development Tools' && sudo dnf install -y openssl-devel curl || { echo "Gagal menginstal ketergantungan."; exit 1; }
     elif command -v pacman &> /dev/null; then
-        sudo pacman -Syu base-devel openssl curl || { echo "Failed to install dependencies."; exit 1; }
+        sudo pacman -Syu base-devel openssl curl || { echo "Gagal menginstal ketergantungan."; exit 1; }
     else
-        echo "Unsupported package manager. Please install dependencies manually."
+        echo "Pengelola paket tidak didukung. Silakan instal ketergantungan secara manual."
         exit 1
     fi
 }
 
-# Install system dependencies
+# Instal ketergantungan sistem
 install_dependencies
 
-# Step 1: Install Rust using rustup
+# Langkah 1: Instal Rust menggunakan rustup
 if command -v rustup &> /dev/null; then
-    echo "Rust is already installed."
-    read -p "Do you want to reinstall or update Rust? (r to reinstall, u to update, n to skip): " choice
+    echo "Rust sudah terinstal."
+    read -p "Apakah Anda ingin menginstal ulang atau memperbarui Rust? (r untuk menginstal ulang, u untuk memperbarui, n untuk melewatkan): " choice
     case "$choice" in
         r)
-            echo "Reinstalling Rust..."
+            echo "Menginstal ulang Rust..."
             rustup self uninstall -y
             ;;
         u)
-            echo "Updating Rust..."
+            echo "Memperbarui Rust..."
             rustup update
             ;;
         *)
-            echo "Skipping Rust installation."
+            echo "Melewatkan instalasi Rust."
             ;;
     esac
 else
-    echo "Installing Rust..."
+    echo "Menginstal Rust..."
     curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 fi
 
-# Load Rust environment variables
+# Muat variabel lingkungan Rust
 export RUSTUP_HOME="$HOME/.rustup"
 export CARGO_HOME="$HOME/.cargo"
 export PATH="$CARGO_HOME/bin:$PATH"
 
-# Fix permissions for Rust directories
+# Perbaiki izin untuk direktori Rust
 chmod -R 755 "$RUSTUP_HOME"
 chmod -R 755 "$CARGO_HOME"
 chown -R $(whoami) "$RUSTUP_HOME" "$CARGO_HOME"
 
-# Verify Rust and Cargo versions
+# Verifikasi versi Rust dan Cargo
 rust_version=$(rustc --version)
 cargo_version=$(cargo --version)
 
-echo "Rust version: $rust_version"
-echo "Cargo version: $cargo_version"
+echo "Versi Rust: $rust_version"
+echo "Versi Cargo: $cargo_version"
 
-# Add Rust environment variables to .bashrc or .zshrc
+# Tambahkan variabel lingkungan Rust ke .bashrc atau .zshrc
 if [[ $SHELL == *"zsh"* ]]; then
     PROFILE="$HOME/.zshrc"
 else
@@ -77,61 +77,61 @@ if ! grep -q 'CARGO_HOME' "$PROFILE"; then
     echo 'export CARGO_HOME="$HOME/.cargo"' >> "$PROFILE"
     echo 'export PATH="$CARGO_HOME/bin:$PATH"' >> "$PROFILE"
     echo 'source "$HOME/.cargo/env"' >> "$PROFILE"
-    echo "Added Rust environment variables to $PROFILE. Please restart your terminal or run 'source $PROFILE' for changes to take effect."
+    echo "Menambahkan variabel lingkungan Rust ke $PROFILE. Silakan restart terminal Anda atau jalankan 'source $PROFILE' agar perubahan berlaku."
 fi
 
-# Source the profile for the current session
+# Sumber profil untuk sesi saat ini
 source "$PROFILE"
 
-# Step 2: Install Foundry using foundryup
-echo "Installing Foundry..."
+# Langkah 2: Instal Foundry menggunakan foundryup
+echo "Menginstal Foundry..."
 if ! command -v curl &> /dev/null; then
-    echo "curl is not installed. Please install curl manually."
+    echo "curl tidak terinstal. Silakan instal curl secara manual."
     exit 1
 fi
 
 curl -L https://foundry.paradigm.xyz | bash
 
-# Update PATH for Foundry
+# Perbarui PATH untuk Foundry
 if ! grep -q 'export PATH="$HOME/.foundry/bin:$PATH"' "$PROFILE"; then
     echo 'export PATH="$HOME/.foundry/bin:$PATH"' >> "$PROFILE"
-    echo "Added Foundry environment variable to $PROFILE. Please restart your terminal or run 'source $PROFILE' for changes to take effect."
+    echo "Menambahkan variabel lingkungan Foundry ke $PROFILE. Silakan restart terminal Anda atau jalankan 'source $PROFILE' agar perubahan berlaku."
 fi
 
-# Source the profile for the current session
+# Sumber profil untuk sesi saat ini
 source "$PROFILE"
 
-# Verify Foundry installation
+# Verifikasi instalasi Foundry
 if foundryup; then
-    echo "Foundry installation successful!"
+    echo "Instalasi Foundry berhasil!"
 else
-    echo "Foundry installation failed."
+    echo "Instalasi Foundry gagal."
     exit 1
 fi
 
-# Verify Foundry tools
+# Verifikasi alat Foundry
 if command -v forge &> /dev/null && command -v cast &> /dev/null && command -v anvil &> /dev/null; then
-    echo "Foundry tools (forge, cast, anvil) are installed and available!"
+    echo "Alat Foundry (forge, cast, anvil) telah terinstal dan tersedia!"
 else
-    echo "Foundry tools are not recognized. Please check your installation."
+    echo "Alat Foundry tidak dikenali. Silakan periksa instalasi Anda."
     exit 1
 fi
 
-# Step 3: Set up the aligned keystore
-echo "Setting up aligned keystore..."
-[ -d ~/.aligned_keystore ] && rm -rf ~/.aligned_keystore && echo "Deleted existing directory ~/.aligned_keystore."
+# Langkah 3: Atur keystore yang selaras
+echo "Mengatur keystore yang selaras..."
+[ -d ~/.aligned_keystore ] && rm -rf ~/.aligned_keystore && echo "Menghapus direktori yang ada ~/.aligned_keystore."
 mkdir -p ~/.aligned_keystore
 cast wallet import ~/.aligned_keystore/keystore0 --interactive
 
-# Step 4: Clone aligned_layer repository and navigate to zkquiz example
-echo "Setting up aligned_layer..."
-[ -d aligned_layer ] && rm -rf aligned_layer && echo "Deleted existing aligned_layer directory."
+# Langkah 4: Klon repositori aligned_layer dan navigasikan ke contoh zkquiz
+echo "Mengatur aligned_layer..."
+[ -d aligned_layer ] && rm -rf aligned_layer && echo "Menghapus direktori aligned_layer yang ada."
 git clone https://github.com/yetanotherco/aligned_layer.git
-cd aligned_layer/examples/zkquiz || { echo "Failed to navigate to aligned_layer/examples/zkquiz."; exit 1; }
+cd aligned_layer/examples/zkquiz || { echo "Gagal menavigasi ke aligned_layer/examples/zkquiz."; exit 1; }
 
-# Step 5: Build the answer_quiz target
-echo "Building the answer_quiz target..."
+# Langkah 5: Bangun target answer_quiz
+echo "Membangun target answer_quiz..."
 make answer_quiz KEYSTORE_PATH=~/.aligned_keystore/keystore0
 
-echo "Succes"
-echo -e "\n👉 **[Join Airdrop Node](https://t.me/airdrop_node)** 👈"
+echo "Berhasil"
+echo -e "\n👉 **[Gabung ke Airdrop Node](https://t.me/airdrop_node)** 👈"
