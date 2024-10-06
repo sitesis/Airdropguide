@@ -1,5 +1,9 @@
 #!/bin/bash
 
+curl -s https://raw.githubusercontent.com/choir94/Airdropguide/refs/heads/main/logo.sh | bash
+
+sleep 4
+
 set -e  # Exit immediately if a command exits with a non-zero status
 
 # Function to install system dependencies required for Rust and Foundry
@@ -129,4 +133,5 @@ cd aligned_layer/examples/zkquiz || { echo "Failed to navigate to aligned_layer/
 echo "Building the answer_quiz target..."
 make answer_quiz KEYSTORE_PATH=~/.aligned_keystore/keystore0
 
-echo "Join Channel TELEGRAM https://t.me/airdrop_node"
+echo "Succes"
+echo -e "\n👉 **[Join Airdrop Node](https://t.me/airdrop_node)** 👈"
