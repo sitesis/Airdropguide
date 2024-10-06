@@ -100,14 +100,8 @@ run_quiz() {
     echo "Memulai proses make answer_quiz..."
     
     # Jalankan perintah make dengan KEYSSTORE_PATH
-    make answer_quiz KEYSTORE_PATH=~/.aligned_keystore/keystore0 <<EOF
-y
-c
-c
-a
-y
-EOF
-
+    make answer_quiz KEYSTORE_PATH=~/.aligned_keystore/keystore0 
+    
     echo "Proses answer_quiz selesai."
 }
 
