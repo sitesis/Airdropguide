@@ -2,7 +2,7 @@
 
 set -e  # Exit immediately if a command exits with a non-zero status.
 
-# Fungsi untuk menginstal Rust
+# Function to install Rust
 install_rust() {
     echo "Memulai instalasi Rust..."
     if command -v rustc &> /dev/null; then
@@ -15,7 +15,7 @@ install_rust() {
     fi
 }
 
-# Fungsi untuk menginstal Foundry
+# Function to install Foundry
 install_foundry() {
     echo "Memulai instalasi Foundry..."
     if command -v forge &> /dev/null; then
@@ -28,44 +28,74 @@ install_foundry() {
     fi
 }
 
-# Fungsi untuk menginstal pkg-config dan libssl-dev
+# Function to install pkg-config and libssl-dev
 install_dependencies() {
     echo "Memulai update dan instalasi dependensi..."
     sudo apt update && sudo apt install -y pkg-config libssl-dev
     echo "pkg-config dan libssl-dev berhasil diinstall."
 }
 
-# Fungsi untuk mengimpor wallet menggunakan cast
+# Function to check ETH balance in Holesky
+check_eth_balance() {
+    echo "Checking ETH balance in Holesky..."
+    balance=$(cast wallet balance $(cast wallet address) --rpc-url https://holesky.ethereum.org)
+
+    if (( $(echo "$balance < 0.1" | bc -l) )); then
+        echo "You need at least 0.1 ETH in your Holesky account to proceed. Current balance: $balance ETH"
+        exit 1
+    else
+        echo "You have sufficient balance: $balance ETH"
+    fi
+}
+
+# Function to import a new wallet
 import_wallet() {
-    echo "Memulai proses impor wallet..."
-    
-    # Buat direktori baru untuk keystore jika belum ada
+    # Delete existing keystore directory if it exists
+    if [ -d ~/.aligned_keystore ]; then
+        rm -rf ~/.aligned_keystore
+        echo "Deleted existing directory ~/.aligned_keystore."
+    fi
+
+    # Create a new keystore directory
     mkdir -p ~/.aligned_keystore
-    
-    # Import wallet secara interaktif menggunakan cast
+
+    # Import the wallet
+    echo "Importing wallet..."
     cast wallet import ~/.aligned_keystore/keystore0 --interactive
-    echo "Wallet berhasil diimpor ke ~/.aligned_keystore."
 }
 
-# Fungsi untuk meng-clone repository aligned_layer
-clone_repository() {
-    echo "Memulai proses clone repository aligned_layer..."
-    [ -d aligned_layer ] && rm -rf aligned_layer
-    git clone https://github.com/yetanotherco/aligned_layer.git && cd aligned_layer/examples/zkquiz || exit
-    echo "Repository berhasil di-clone dan pindah ke direktori aligned_layer/examples/zkquiz."
+# Function to clone aligned_layer repository
+clone_aligned_layer() {
+    # Delete existing aligned_layer directory if it exists
+    if [ -d aligned_layer ]; then
+        rm -rf aligned_layer
+        echo "Deleted existing aligned_layer directory."
+    fi
+
+    # Clone the aligned_layer repository from GitHub
+    git clone https://github.com/yetanotherco/aligned_layer.git
+
+    # Change to the zkquiz directory
+    cd aligned_layer/examples/zkquiz
+    echo "Changed to the zkquiz directory."
 }
 
-# Fungsi untuk menjalankan make answer_quiz
-run_quiz() {
-    echo "Memulai proses make answer_quiz..."
+# Function to answer the quiz
+answer_quiz() {
+    echo "Answering the quiz..."
     make answer_quiz KEYSTORE_PATH=~/.aligned_keystore/keystore0
-    echo "Proses answer_quiz selesai."
 }
 
-# Panggil fungsi
-install_rust
-install_foundry
-install_dependencies
-import_wallet
-clone_repository
-run_quiz
+# Main function to execute the steps
+main() {
+    install_dependencies
+    install_rust
+    install_foundry
+    check_eth_balance
+    import_wallet
+    clone_aligned_layer
+    answer_quiz
+}
+
+# Run the main function
+main
