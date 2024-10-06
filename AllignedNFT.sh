@@ -1,88 +1,77 @@
 #!/bin/bash
 
-set -e  # Exit immediately if a command exits with a non-zero status.
+# Update dan upgrade sistem
+echo "Updating and upgrading the system..."
+sudo apt update && sudo apt upgrade -y
 
-# Function to install Rust
-install_rust() {
-    echo "Memulai instalasi Rust..."
-    if command -v rustc &> /dev/null; then
-        echo "Rust sudah terinstall pada sistem."
-    else
-        echo "Menginstall Rust..."
-        curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-        source $HOME/.cargo/env
-        echo "Rust berhasil diinstall."
-    fi
-}
+# Menginstal dependensi tambahan
+echo "Installing additional dependencies: pkg-config and libssl-dev..."
+sudo apt install -y pkg-config libssl-dev
 
-# Function to install Foundry
-install_foundry() {
-    echo "Memulai instalasi Foundry..."
-    if command -v forge &> /dev/null; then
-        echo "Foundry sudah terinstall pada sistem."
-    else
-        echo "Menginstall Foundry..."
-        curl -L https://foundry.paradigm.xyz | bash
-        source $HOME/.bashrc
-        echo "Foundry berhasil diinstall."
-    fi
-}
+# Menginstal dependensi untuk Rust jika belum terpasang
+if ! command -v rustc &> /dev/null; then
+    echo "Installing dependencies for Rust..."
+    sudo apt install -y build-essential curl
 
-# Function to install pkg-config and libssl-dev
-install_dependencies() {
-    echo "Memulai update dan instalasi dependensi..."
-    sudo apt update && sudo apt install -y pkg-config libssl-dev
-    echo "pkg-config dan libssl-dev berhasil diinstall."
-}
+    # Menginstal Rust
+    echo "Installing Rust..."
+    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 
-# Function to import a new wallet
-import_wallet() {
-    # Delete existing keystore directory if it exists
-    if [ -d ~/.aligned_keystore ]; then
-        rm -rf ~/.aligned_keystore
-        echo "Deleted existing directory ~/.aligned_keystore."
-    fi
+    # Menambahkan Rust ke PATH
+    echo "Adding Rust to PATH..."
+    source $HOME/.cargo/env
 
-    # Create a new keystore directory
-    mkdir -p ~/.aligned_keystore
+    # Memverifikasi instalasi Rust
+    echo "Verifying Rust installation..."
+    rustc --version
+else
+    echo "Rust is already installed. Skipping installation."
+fi
 
-    # Import the wallet
-    echo "Importing wallet..."
-    cast wallet import ~/.aligned_keystore/keystore0 --interactive
-}
+# Menginstal Foundry jika belum terpasang
+if ! command -v foundryup &> /dev/null; then
+    echo "Installing Foundry..."
+    curl -L https://foundry.paradigm.xyz | bash
 
-# Function to clone aligned_layer repository
-clone_aligned_layer() {
-    # Delete existing aligned_layer directory if it exists
-    if [ -d aligned_layer ]; then
-        rm -rf aligned_layer
-        echo "Deleted existing aligned_layer directory."
-    fi
+    # Menambahkan Foundry ke PATH
+    echo "Adding Foundry to PATH..."
+    source $HOME/.foundry/bin/foundry
 
-    # Clone the aligned_layer repository from GitHub
-    git clone https://github.com/yetanotherco/aligned_layer.git
+    # Memverifikasi instalasi Foundry
+    echo "Verifying Foundry installation..."
+    foundryup --version
+else
+    echo "Foundry is already installed. Skipping installation."
+fi
 
-    # Change to the zkquiz directory
-    cd aligned_layer/examples/zkquiz
-    echo "Changed to the zkquiz directory."
-}
+# Menghapus direktori ~/.aligned_keystore jika ada
+if [ -d ~/.aligned_keystore ]; then
+    rm -rf ~/.aligned_keystore
+    echo "Deleted existing directory ~/.aligned_keystore."
+fi
 
-# Function to answer the quiz
-answer_quiz() {
-    echo "Answering the quiz..."
-    make answer_quiz KEYSTORE_PATH=~/.aligned_keystore/keystore0
-}
+# Membuat direktori ~/.aligned_keystore
+mkdir -p ~/.aligned_keystore
 
-# Main function to execute the steps
-main() {
-    install_dependencies
-    install_rust
-    install_foundry
-    check_eth_balance
-    import_wallet
-    clone_aligned_layer
-    answer_quiz
-}
+# Mengimpor wallet menggunakan cast
+echo "Importing wallet..."
+cast wallet import ~/.aligned_keystore/keystore0 --interactive
 
-# Run the main function
-main
+# Menghapus direktori aligned_layer jika ada
+if [ -d aligned_layer ]; then
+    rm -rf aligned_layer
+    echo "Deleted existing aligned_layer directory."
+fi
+
+# Mengkloning repositori aligned_layer
+echo "Cloning aligned_layer repository..."
+git clone https://github.com/yetanotherco/aligned_layer.git
+
+# Berpindah ke direktori aligned_layer/examples/zkquiz
+cd aligned_layer/examples/zkquiz || { echo "Failed to change directory to aligned_layer/examples/zkquiz"; exit 1; }
+
+# Menjalankan perintah make untuk answer_quiz
+echo "Running make command to answer quiz..."
+make answer_quiz KEYSTORE_PATH=~/.aligned_keystore/keystore0
+
+echo "Installation script completed successfully!"
