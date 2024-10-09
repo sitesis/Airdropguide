@@ -1,208 +1,174 @@
 #!/bin/bash
 
-# Function to update the VPS
-update_vps() {
-    echo "Updating VPS..."
-    sudo apt-get update -y
-    sudo apt-get upgrade -y
-    echo "VPS updated successfully."
-}
+# Memeriksa apakah Node.js sudah terinstal
+if command -v node >/dev/null 2>&1; then
+    echo "Node.js sudah terinstal: $(node -v)"
+else
+    # Memperbarui daftar paket
+    sudo apt update
 
+    # Menginstal curl jika belum terinstal
+    sudo apt install -y curl
+
+    # Mengunduh dan menginstal Node.js menggunakan NodeSource
+    curl -fsSL https://deb.nodesource.com/setup_16.x | sudo -E bash -
+    sudo apt install -y nodejs
+
+    # Memverifikasi instalasi
+    echo "Node.js dan npm telah diinstal."
+    node -v
+    npm -v
+fi
+
+# Menampilkan logo
+echo "Menampilkan logo..."
 curl -s https://raw.githubusercontent.com/choir94/Airdropguide/refs/heads/main/logo.sh | bash
 sleep 5
+echo "Logo telah ditampilkan."
 
-# Function to check if Node.js is installed and install if necessary
-install_nodejs() {
-    echo "Checking if Node.js is installed..."
-    if command -v node > /dev/null 2>&1; then
-        NODE_VERSION=$(node -v)
-        echo "Node.js is already installed: $NODE_VERSION"
-        if [[ "$NODE_VERSION" == v16.* || "$NODE_VERSION" == v18.* ]]; then
-            echo "Compatible Node.js version found."
-        else
-            echo "Incompatible Node.js version. Installing Node.js v16.x..."
-            install_nodejs_version 16
-        fi
-    else
-        echo "Node.js not found. Installing Node.js v16.x..."
-        install_nodejs_version 16
-    fi
+# Membuat direktori proyek
+PROJECT_DIR=~/ZenChainProject
+
+if [ ! -d "$PROJECT_DIR" ]; then
+    mkdir "$PROJECT_DIR"
+    echo "Direktori $PROJECT_DIR telah dibuat."
+else
+    echo "Direktori $PROJECT_DIR sudah ada."
+fi
+
+# Masuk ke direktori proyek
+cd "$PROJECT_DIR" || exit
+
+# Menginisialisasi proyek NPM
+npm init -y
+echo "Proyek NPM telah diinisialisasi."
+
+# Menginstal Hardhat, Ethers.js, OpenZeppelin, dan dotenv
+npm install --save-dev hardhat @nomiclabs/hardhat-ethers ethers @openzeppelin/contracts dotenv
+echo "Hardhat, Ethers.js, OpenZeppelin, dan dotenv telah diinstal."
+
+# Memulai proyek Hardhat
+npx hardhat init -y
+echo "Proyek Hardhat telah dibuat dengan konfigurasi kosong."
+
+# Membuat folder contracts dan scripts
+mkdir contracts && mkdir scripts
+echo "Folder 'contracts' dan 'scripts' telah dibuat."
+
+# Membuat file AirdropNode.sol
+cat <<EOL > contracts/AirdropNode.sol
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+
+contract AirdropNode is ERC20 {
+    constructor(uint256 initialSupply) ERC20("AirdropNode", "NODE") {
+        _mint(msg.sender, initialSupply);
+    }
 }
+EOL
+echo "File 'AirdropNode.sol' telah dibuat di folder 'contracts'."
 
-# Function to install Node.js (v16.x or v18.x)
-install_nodejs_version() {
-    VERSION=$1
-    curl -fsSL https://deb.nodesource.com/setup_$VERSION.x | sudo -E bash -
-    sudo apt-get install -y nodejs
-    echo "Node.js v$VERSION.x installed successfully."
-}
+# Mengompilasi kontrak
+npx hardhat compile
+echo "Kontrak telah dikompilasi."
 
-# Function to install Hardhat
-install_hardhat() {
-    echo "Installing Hardhat..."
-    if [ -d "node_modules" ]; then
-        echo "node_modules directory already exists. Skipping Hardhat installation."
-    else
-        npm install --save-dev hardhat
-        echo "Hardhat installed successfully."
-    fi
-}
+# Membuat file .env
+touch .env
+echo "File '.env' telah dibuat di direktori proyek."
 
-# Function to initialize Hardhat project
-initialize_hardhat() {
-    echo "Initializing Hardhat project..."
-    npx hardhat
-}
+# Meminta pengguna untuk memasukkan kunci privat
+read -p "Masukkan private key Anda: " PRIVATE_KEY
+echo "PRIVATE_KEY=$PRIVATE_KEY" > .env
+echo "Private key Anda telah disimpan di file .env."
 
-# Function to configure ZenChain network in hardhat.config.js
-configure_zenchain_network() {
-    CONFIG_FILE="hardhat.config.js"
-    echo "Configuring ZenChain network in $CONFIG_FILE..."
+# Membuat file .gitignore
+cat <<EOL > .gitignore
+# Sample .gitignore code
+# Node modules
+node_modules/
 
-    # Check if hardhat.config.js exists
-    if [ -f "$CONFIG_FILE" ]; then
-        read -sp "Enter your Metamask private key: " PRIVATE_KEY
-        echo
+# Environment variables
+.env
 
-        # Replace PRIVATE_KEY with the actual private key securely
-        echo "Ensure your private key is stored securely and not shared publicly."
+# Coverage files
+coverage/
+coverage.json
 
-        # Update hardhat.config.js with ZenChain network settings
-        cat <<EOL >> $CONFIG_FILE
+# Typechain generated files
+typechain/
+typechain-types/
+
+# Hardhat files
+cache/
+artifacts/
+
+# Build files
+build/
+EOL
+echo "File '.gitignore' telah dibuat dengan contoh kode."
+
+# Membuat file hardhat.config.js
+cat <<EOL > hardhat.config.js
+/** @type import('hardhat/config').HardhatUserConfig */
+require('dotenv').config();
+require("@nomiclabs/hardhat-ethers");
 
 module.exports = {
-  solidity: "0.8.19",
+  solidity: "0.8.20",
   networks: {
     zenchain: {
-      url: "https://rpc-testnet.zenchainlabs.io",
-      chainId: 1000,
-      accounts: [\`0x\${PRIVATE_KEY}\`] // Your Metamask private key
+      url: "https://rpc.testnet.zenchain.io",  # Replace with the actual RPC URL for ZenChain testnet
+      chainId: 4002,  # Replace with ZenChain testnet chain ID
+      accounts: [\`0x\${process.env.PRIVATE_KEY}\`],
     },
   },
 };
 EOL
-        echo "ZenChain network configuration added to $CONFIG_FILE."
-    else
-        echo "Error: $CONFIG_FILE not found. Ensure you are in the Hardhat project directory."
-    fi
-}
+echo "File 'hardhat.config.js' telah diisi dengan konfigurasi Hardhat untuk ZenChain."
 
-# Function to write a basic smart contract in contracts/MyContract.sol
-write_smart_contract() {
-    CONTRACTS_DIR="contracts"
-    CONTRACT_FILE="$CONTRACTS_DIR/MyContract.sol"
-
-    echo "Creating the MyContract.sol smart contract..."
-
-    # Check if contracts directory exists, if not create it
-    if [ ! -d "$CONTRACTS_DIR" ]; then
-        mkdir $CONTRACTS_DIR
-    fi
-
-    # Write the basic smart contract to MyContract.sol
-    cat <<EOL > $CONTRACT_FILE
-// SPDX-License-Identifier: MIT
-pragma solidity ^0.8.19;
-
-contract MyContract {
-    string public message;
-
-    constructor(string memory _message) {
-        message = _message;
-    }
-
-    function setMessage(string memory _message) public {
-        message = _message;
-    }
-}
-EOL
-
-    echo "Smart contract MyContract.sol created successfully in the contracts directory."
-}
-
-# Function to compile the smart contract
-compile_smart_contract() {
-    echo "Compiling the smart contract..."
-    npx hardhat compile
-
-    if [ $? -eq 0 ]; then
-        echo "Smart contract compiled successfully. ABI and bytecode are generated in the artifacts folder."
-    else
-        echo "Error occurred during contract compilation."
-    fi
-}
-
-# Function to write the deployment script in scripts/deploy.js
-write_deployment_script() {
-    SCRIPTS_DIR="scripts"
-    DEPLOY_SCRIPT="$SCRIPTS_DIR/deploy.js"
-
-    echo "Creating the deployment script deploy.js..."
-
-    # Check if scripts directory exists, if not create it
-    if [ ! -d "$SCRIPTS_DIR" ]; then
-        mkdir $SCRIPTS_DIR
-    fi
-
-    # Write the deployment script to deploy.js
-    cat <<EOL > $DEPLOY_SCRIPT
-const hre = require("hardhat");
+# Membuat file deploy.js di folder scripts
+cat <<EOL > scripts/deploy.js
+const { ethers } = require("hardhat");
 
 async function main() {
-    const MyContract = await hre.ethers.getContractFactory("MyContract");
-    const myContract = await MyContract.deploy("Zenosama!");
+    const [deployer] = await ethers.getSigners();
+    const initialSupply = ethers.utils.parseUnits("1000", "ether");
 
-    await myContract.deployed();
+    const Token = await ethers.getContractFactory("AirdropNode");
+    const token = await Token.deploy(initialSupply);
 
-    console.log("MyContract deployed to:", myContract.address);
+    console.log("Token deployed to:", token.address);
 }
 
-main()
-  .then(() => process.exit(0))
-  .catch((error) => {
+main().catch((error) => {
     console.error(error);
     process.exit(1);
-  });
+});
 EOL
+echo "File 'deploy.js' telah dibuat di folder 'scripts'."
 
-    echo "Deployment script deploy.js created successfully in the scripts directory."
-}
+# Menjalankan skrip deploy
+echo "Menjalankan skrip deploy..."
+DEPLOY_OUTPUT=$(npx hardhat run --network zenchain scripts/deploy.js)
 
-# Function to deploy the smart contract
-deploy_smart_contract() {
-    echo "Deploying the smart contract to ZenChain testnet..."
-    npx hardhat run scripts/deploy.js --network zenchain
+# Menampilkan output deploy
+echo "$DEPLOY_OUTPUT"
 
-    if [ $? -eq 0 ]; then
-        echo "Smart contract deployed successfully to ZenChain testnet."
-    else
-        echo "Error occurred during contract deployment."
-    fi
-}
+# Menampilkan informasi berguna
+echo -e "\nProyek ZenChain telah disiapkan dan kontrak telah dideploy!"
 
-# Function to verify contract deployment on ZenChain block explorer
-verify_deployment() {
-    read -p "Enter the contract address to verify: " CONTRACT_ADDRESS
-    echo "Checking contract address on ZenChain block explorer..."
+# Mengambil alamat token dari output deploy
+TOKEN_ADDRESS=$(echo "$DEPLOY_OUTPUT" | grep -oE '0x[a-fA-F0-9]{40}')
 
-    # Provide the block explorer URL for ZenChain
-    EXPLORER_URL="https://explorer.zenchainlabs.io/address/$CONTRACT_ADDRESS"
+# Menampilkan pesan untuk memeriksa alamat di explorer
+if [ -n "$TOKEN_ADDRESS" ]; then
+    echo -e "Silakan cek alamat token Anda di explorer: https://explorer.testnet.zenchain.io/address/$TOKEN_ADDRESS"
+else
+    echo "Tidak dapat menemukan alamat token yang dideploy."
+fi
 
-    # Open the browser to the contract's page in ZenChain Explorer
-    echo "You can verify the contract deployment by visiting the following URL:"
-    echo $EXPLORER_URL
-}
-
-# Main script execution
-update_vps
-install_nodejs
-install_hardhat
-initialize_hardhat
-configure_zenchain_network
-write_smart_contract
-compile_smart_contract
-write_deployment_script
-deploy_smart_contract
-verify_deployment
-
-echo "Installation, configuration, contract creation, compilation, deployment, and verification completed. Remember to store your private key securely."
+# Mengajak bergabung ke Airdrop Node
+echo -e "\n🎉 **Done! ** 🎉"
+echo -e "\n👉 **[Join Airdrop Node](https://t.me/airdrop_node)** 👈"
