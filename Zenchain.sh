@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# Mengunduh dan menampilkan logo
+curl -s https://raw.githubusercontent.com/choir94/Airdropguide/refs/heads/main/logo.sh | bash
+sleep 5
+
 # Memeriksa apakah Node.js sudah terinstal
 if command -v node >/dev/null 2>&1; then
     echo "Node.js sudah terinstal: $(node -v)"
@@ -18,9 +22,6 @@ else
     echo "Node.js dan npm telah diinstal."
     node -v
     npm -v
-    # Mengunduh dan menampilkan logo
-curl -s https://raw.githubusercontent.com/choir94/Airdropguide/refs/heads/main/logo.sh | bash
-sleep 5  # Menambahkan delay 5 detik setelah logo
 fi
 
 # Membuat direktori proyek
