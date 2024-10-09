@@ -117,7 +117,7 @@ module.exports = {
   networks: {
     zenchain: {
       url: "https://zenchain-testnet.api.onfinality.io/public",  // ZenChain Testnet RPC URL
-      chainId: 4002,  // ZenChain testnet chain ID
+      chainId: 8408,  // ZenChain testnet chain ID
       accounts: [\`0x\${process.env.PRIVATE_KEY}\`],
     },
   },
