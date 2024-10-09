@@ -1,5 +1,8 @@
 #!/bin/bash
 
+curl -s https://raw.githubusercontent.com/choir94/Airdropguide/refs/heads/main/logo.sh | bash
+sleep 5
+
 # Memeriksa apakah Node.js sudah terinstal
 if command -v node >/dev/null 2>&1; then
     echo "Node.js sudah terinstal: $(node -v)"
@@ -19,12 +22,6 @@ else
     node -v
     npm -v
 fi
-
-# Menampilkan logo
-echo "Menampilkan logo..."
-curl -s https://raw.githubusercontent.com/choir94/Airdropguide/refs/heads/main/logo.sh | bash
-sleep 5
-echo "Logo telah ditampilkan."
 
 # Membuat direktori proyek
 PROJECT_DIR=~/ZenChainProject
