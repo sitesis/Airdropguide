@@ -116,8 +116,8 @@ module.exports = {
   solidity: "0.8.20",
   networks: {
     zenchain: {
-      url: "https://rpc.testnet.zenchain.io",  # Replace with the actual RPC URL for ZenChain testnet
-      chainId: 4002,  # Replace with ZenChain testnet chain ID
+      url: "https://rpc.testnet.zenchain.io",  // Replace with the actual RPC URL for ZenChain testnet
+      chainId: 4002,  // Replace with ZenChain testnet chain ID
       accounts: [\`0x\${process.env.PRIVATE_KEY}\`],
     },
   },
