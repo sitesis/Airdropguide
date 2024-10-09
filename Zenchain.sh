@@ -1,8 +1,5 @@
 #!/bin/bash
 
-# Mengunduh dan menampilkan logo
-curl -s https://raw.githubusercontent.com/choir94/Airdropguide/refs/heads/main/logo.sh | bash
-
 # Memeriksa apakah Node.js sudah terinstal
 if command -v node >/dev/null 2>&1; then
     echo "Node.js sudah terinstal: $(node -v)"
@@ -21,6 +18,9 @@ else
     echo "Node.js dan npm telah diinstal."
     node -v
     npm -v
+    # Mengunduh dan menampilkan logo
+curl -s https://raw.githubusercontent.com/choir94/Airdropguide/refs/heads/main/logo.sh | bash
+sleep 5  # Menambahkan delay 5 detik setelah logo
 fi
 
 # Membuat direktori proyek
@@ -161,7 +161,7 @@ TOKEN_ADDRESS=$(echo "$DEPLOY_OUTPUT" | grep -oE '0x[a-fA-F0-9]{40}')
 
 # Menampilkan pesan untuk memeriksa alamat di explorer
 if [ -n "$TOKEN_ADDRESS" ]; then
-    echo -e "Silakan cek alamat token Anda di explorer: https://explorer.testnet.zenchain.io/address/$TOKEN_ADDRESS"
+    echo -e "Silakan cek alamat token Anda di explorer: https://zentrace.io/address/$TOKEN_ADDRESS"
 else
     echo "Tidak dapat menemukan alamat token yang dideploy."
 fi
