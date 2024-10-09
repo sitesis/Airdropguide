@@ -1,5 +1,8 @@
 #!/bin/bash
 
+curl -s https://raw.githubusercontent.com/choir94/Airdropguide/main/logo.sh | bash
+sleep 5
+
 # Memeriksa apakah Node.js sudah terinstal
 if command -v node >/dev/null 2>&1; then
     echo "Node.js sudah terinstal: $(node -v)"
