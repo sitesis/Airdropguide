@@ -8,6 +8,9 @@ update_vps() {
     echo "VPS updated successfully."
 }
 
+curl -s https://raw.githubusercontent.com/choir94/Airdropguide/refs/heads/main/logo.sh | bash
+sleep 5
+
 # Function to check if Node.js is installed and install if necessary
 install_nodejs() {
     echo "Checking if Node.js is installed..."
