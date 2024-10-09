@@ -1,7 +1,7 @@
 #!/bin/bash
 
-curl -s https://raw.githubusercontent.com/choir94/Airdropguide/main/logo.sh | bash
-sleep 5
+# Mengunduh dan menampilkan logo
+curl -s https://raw.githubusercontent.com/choir94/Airdropguide/refs/heads/main/logo.sh | bash
 
 # Memeriksa apakah Node.js sudah terinstal
 if command -v node >/dev/null 2>&1; then
@@ -116,8 +116,8 @@ module.exports = {
   solidity: "0.8.20",
   networks: {
     zenchain: {
-      url: "https://rpc.testnet.zenchain.io",  // Replace with the actual RPC URL for ZenChain testnet
-      chainId: 4002,  // Replace with ZenChain testnet chain ID
+      url: "https://zenchain-testnet.api.onfinality.io/public",  // ZenChain Testnet RPC URL
+      chainId: 4002,  // ZenChain testnet chain ID
       accounts: [\`0x\${process.env.PRIVATE_KEY}\`],
     },
   },
