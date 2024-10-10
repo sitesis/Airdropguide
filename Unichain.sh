@@ -44,10 +44,6 @@ echo "Proyek NPM wis diinisialisasi."
 npm install --save-dev hardhat @nomiclabs/hardhat-ethers ethers @openzeppelin/contracts dotenv
 echo "Hardhat, Ethers.js, OpenZeppelin, lan dotenv wis diinstal."
 
-# Instal Solmate nggunakake Forge
-forge install transmissions11/solmate
-echo "Solmate wis diinstal nganggo Forge."
-
 # Miwiti proyek Hardhat
 npx hardhat init -y
 echo "Proyek Hardhat wis digawe nganggo konfigurasi kosong."
@@ -61,10 +57,10 @@ cat <<EOL > contracts/AirdropNode.sol
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import {ERC20} from "solmate/tokens/ERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 contract AirdropNode is ERC20 {
-    constructor() ERC20("AirdropNode", "NODE", 18) {
+    constructor() ERC20("AirdropNode", "NODE") {
         _mint(msg.sender, 1_000_000e18);
     }
 }
