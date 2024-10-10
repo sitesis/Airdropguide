@@ -41,8 +41,12 @@ npm init -y
 echo "Proyek NPM wis diinisialisasi."
 
 # Instal Hardhat, Ethers.js, OpenZeppelin, lan dotenv
-npm install --save-dev hardhat @nomiclabs/hardhat-ethers ethers @openzeppelin/contracts dotenv
-echo "Hardhat, Ethers.js, OpenZeppelin, lan dotenv wis diinstal."
+npm install --save-dev hardhat @nomiclabs/hardhat-ethers ethers dotenv
+echo "Hardhat, Ethers.js, lan dotenv wis diinstal."
+
+# Instal kontrak OpenZeppelin (ERC721 lan Counters)
+npm install @openzeppelin/contracts
+echo "Kontrak OpenZeppelin (ERC721 lan Counters) wis diinstal."
 
 # Miwiti proyek Hardhat
 npx hardhat init -y
