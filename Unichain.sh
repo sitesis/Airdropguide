@@ -61,7 +61,7 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 contract AirdropNode is ERC20 {
     constructor() ERC20("AirdropNode", "NODE") {
-        _mint(msg.sender, 1_000_000e18);
+        _mint(msg.sender, 1000000e18);
     }
 }
 EOL
@@ -131,7 +131,7 @@ const { ethers } = require("hardhat");
 
 async function main() {
     const [deployer] = await ethers.getSigners();
-    const initialSupply = ethers.utils.parseUnits("1_000_000", "ether");
+    const initialSupply = ethers.utils.parseUnits("1000000", "ether");
 
     const Token = await ethers.getContractFactory("AirdropNode");
     const token = await Token.deploy();
