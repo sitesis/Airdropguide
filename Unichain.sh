@@ -24,7 +24,7 @@ else
 fi
 
 # Gawe direktori proyek
-PROJECT_DIR=~/UnichainProject
+PROJECT_DIR=~/UniChainProject
 
 if [ ! -d "$PROJECT_DIR" ];then
     mkdir "$PROJECT_DIR"
@@ -52,20 +52,20 @@ echo "Proyek Hardhat wis digawe nganggo konfigurasi kosong."
 mkdir contracts && mkdir scripts
 echo "Folder 'contracts' lan 'scripts' wis digawe."
 
-# Gawe file AirdropNode.sol
-cat <<EOL > contracts/AirdropNode.sol
+# Gawe file UniChainToken.sol
+cat <<EOL > contracts/UniChainToken.sol
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
-contract AirdropNode is ERC20 {
-    constructor() ERC20("AirdropNode", "NODE") {
+contract UniChainToken is ERC20 {
+    constructor() ERC20("UniChainToken", "UNI") {
         _mint(msg.sender, 1000000e18);
     }
 }
 EOL
-echo "File 'AirdropNode.sol' wis digawe ing folder 'contracts'."
+echo "File 'UniChainToken.sol' wis digawe ing folder 'contracts'."
 
 # Ngompilasi kontrak
 npx hardhat compile
@@ -123,7 +123,7 @@ module.exports = {
   },
 };
 EOL
-echo "File 'hardhat.config.js' wis diisi karo konfigurasi Hardhat kanggo Unichain."
+echo "File 'hardhat.config.js' wis diisi karo konfigurasi Hardhat kanggo UniChain."
 
 # Gawe file deploy.js ing folder scripts
 cat <<EOL > scripts/deploy.js
@@ -133,7 +133,7 @@ async function main() {
     const [deployer] = await ethers.getSigners();
     const initialSupply = ethers.utils.parseUnits("1000000", "ether");
 
-    const Token = await ethers.getContractFactory("AirdropNode");
+    const Token = await ethers.getContractFactory("UniChainToken");
     const token = await Token.deploy();
 
     console.log("Token deployed to:", token.address);
@@ -154,7 +154,7 @@ DEPLOY_OUTPUT=$(npx hardhat run --network unichain scripts/deploy.js)
 echo "$DEPLOY_OUTPUT"
 
 # Tampilake informasi penting
-echo -e "\nProyek Unichain wis disiapake lan kontrak wis dideploy!"
+echo -e "\nProyek UniChain wis disiapake lan kontrak wis dideploy!"
 
 # Njupuk alamat token saka output deploy
 TOKEN_ADDRESS=$(echo "$DEPLOY_OUTPUT" | grep -oE '0x[a-fA-F0-9]{40}')
@@ -166,6 +166,6 @@ else
     echo "Ora bisa nemokake alamat token sing wis dideploy."
 fi
 
-# Ngajak gabung ing Airdrop Node
+# Ngajak gabung ing UniChain komunitas
 echo -e "\n🎉 **Rampung! ** 🎉"
-echo -e "\n👉 **[Gabung Airdrop Node](https://t.me/airdrop_node)** 👈"
+echo -e "\n👉 **[Gabung UniChain komunitas](https://t.me/unichain_node)** 👈"
