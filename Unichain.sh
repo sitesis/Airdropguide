@@ -14,7 +14,7 @@ else
     sudo apt install -y curl
 
     # Ngundhuh lan nginstal Node.js nggunakake NodeSource
-    curl -fsSL https://deb.nodesource.com/setup_16.x | sudo -E bash -
+    curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
     sudo apt install -y nodejs
 
     # Verifikasi instalasi
