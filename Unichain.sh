@@ -13,12 +13,12 @@ else
     # Instal curl yen durung diinstal
     sudo apt install -y curl
 
-    # Ngundhuh lan nginstal Node.js nggunakake NodeSource
-    curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+    # Ngundhuh lan nginstal Node.js versi paling anyar nggunakake NodeSource
+    curl -fsSL https://deb.nodesource.com/setup_current.x | sudo -E bash -
     sudo apt install -y nodejs
 
     # Verifikasi instalasi
-    echo "Node.js lan npm wis diinstal."
+    echo "Node.js lan npm versi paling anyar wis diinstal."
     node -v
     npm -v
 fi
