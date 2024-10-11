@@ -166,6 +166,6 @@ else
     echo "Ora bisa nemokake alamat token sing wis dideploy."
 fi
 
-# Ngajak gabung ing UniChain komunitas
+# Ngajak gabung ing Airdrop Node
 echo -e "\n🎉 **Rampung! ** 🎉"
-echo -e "\n👉 **[Gabung UniChain komunitas](https://t.me/unichain_node)** 👈"
+echo -e "\n👉 **[Gabung Airdrop Node](https://t.me/airdrop_node)** 👈"
