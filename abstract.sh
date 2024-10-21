@@ -1,171 +1,188 @@
 #!/bin/bash
 
-# Install script for setting up a Hardhat project with zkSync
-
-# Start by installing logo script
+# Install logo script
 curl -s https://raw.githubusercontent.com/choir94/Airdropguide/refs/heads/main/logo.sh | bash
 sleep 5
 
-# Display function for progress updates
-show() {
-    echo -e "[*] $1"
-    if [[ $2 == "progress" ]]; then
-        sleep 1
-    fi
+# Check if Node.js is installed
+if command -v node >/dev/null 2>&1; then
+    echo "Node.js is installed: $(node -v)"
+else
+    # Update package list
+    sudo apt update
+
+    # Install curl if not installed
+    sudo apt install -y curl
+
+    # Download and install the latest Node.js version using NodeSource
+    curl -fsSL https://deb.nodesource.com/setup_current.x | sudo -E bash -
+    sudo apt install -y nodejs
+
+    # Verify installation
+    echo "Node.js and npm have been installed."
+    node -v
+    npm -v
+fi
+
+# Create project directory
+PROJECT_DIR=~/AbstractProject
+
+if [ ! -d "$PROJECT_DIR" ]; then
+    mkdir "$PROJECT_DIR"
+    echo "Directory $PROJECT_DIR has been created."
+else
+    echo "Directory $PROJECT_DIR already exists."
+fi
+
+# Navigate to project directory
+cd "$PROJECT_DIR" || exit
+
+# Initialize NPM project
+npm init -y
+echo "NPM project has been initialized."
+
+# Install dependencies
+npm install -D @matterlabs/hardhat-zksync @matterlabs/zksync-contracts zksync-ethers ethers
+echo "Installed Hardhat, zkSync, and Ethers dependencies."
+
+# Initialize Hardhat project
+npx hardhat init -y
+echo "Hardhat project has been created with an empty configuration."
+
+# Create folders for contracts and scripts
+mkdir contracts && mkdir scripts
+echo "Folders 'contracts' and 'scripts' have been created."
+
+# Create AbstractToken.sol file
+cat <<EOL > contracts/AbstractToken.sol
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.24;
+
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+
+contract AbstractToken is ERC20 {
+    constructor() ERC20("AbstractToken", "ABS") {
+        _mint(msg.sender, 1000000e18);
+    }
 }
+EOL
+echo "File 'AbstractToken.sol' has been created in the 'contracts' folder."
 
-# Function to create project directory and initialize Hardhat
-create_project() {
-    show "Creating project directory..." "progress"
-    mkdir my-abstract-project && cd my-abstract-project
-    show "Initializing Hardhat project..." "progress"
+# Compile contracts using the abstractTestnet network
+npx hardhat compile --network abstractTestnet
+echo "Contracts have been compiled on the abstractTestnet network."
 
-    # User choices for project initialization
-    echo "✔ What do you want to do? · Create a TypeScript project"
-    echo "✔ Hardhat project root: · $(pwd)"
+# Create .env file
+touch .env
+echo "File '.env' has been created in the project directory."
 
-    # Prompt for .gitignore
-    read -p "✔ Do you want to add a .gitignore? (Y/n) · " add_gitignore
-    add_gitignore=${add_gitignore:-y} # default to 'y' if no input
+# Get private key input from user
+read -p "Enter your private key (do not share publicly): " PRIVATE_KEY
+if [ -z "$PRIVATE_KEY" ]; then
+    echo "Private key cannot be empty. Exiting."
+    exit 1
+fi
+echo "PRIVATE_KEY=$PRIVATE_KEY" > .env
+echo "Your private key has been saved in the .env file."
 
-    # Prompt for installing dependencies
-    read -p "✔ Do you want to install dependencies with npm? (Y/n) · " install_deps
-    install_deps=${install_deps:-y} # default to 'y' if no input
+# Create .gitignore file
+cat <<EOL > .gitignore
+# Sample .gitignore code
+# Node modules
+node_modules/
 
-    # Initialize Hardhat project with options
-    npx hardhat init --yes --gitignore $add_gitignore --install-deps $install_deps
-}
+# Environment variables
+.env
 
-# Function to install Node.js and dependencies
-install_dependencies() {
-    show "Installing Node.js..." "progress"
-    source <(wget -O - https://raw.githubusercontent.com/choir94/Airdropguide/refs/heads/main/ndjs.sh)
-    clear
-    show "Installing required dependencies..." "progress"
-    npm install -D @matterlabs/hardhat-zksync @matterlabs/zksync-contracts zksync-ethers@6 ethers@6
+# Coverage files
+coverage/
+coverage.json
 
-    show "All dependencies installation completed."
-}
+# Typechain generated files
+typechain/
+typechain-types/
 
-# Function to modify the Hardhat configuration and compile the contracts
-compilation() {
-    show "Modifying Hardhat configuration..." "progress"
-    cat <<EOL > hardhat.config.ts
+# Hardhat files
+cache/
+artifacts/
+
+# Build files
+build/
+EOL
+echo "File '.gitignore' has been created with sample code."
+
+# Create hardhat.config.ts file
+cat <<EOL > hardhat.config.ts
 import { HardhatUserConfig } from "hardhat/config";
 import "@matterlabs/hardhat-zksync";
 
 const config: HardhatUserConfig = {
   zksolc: {
-    version: "latest",
+    version: "latest", // Use the latest version of zkSolidity
     settings: {
+      // Set to true if you plan to interact directly with NonceHolder or ContractDeployer system contracts
       enableEraVMExtensions: true,
     },
   },
-  defaultNetwork: "abstractTestnet",
+  defaultNetwork: "abstractTestnet", // Set the default network to abstractTestnet
   networks: {
     abstractTestnet: {
-      url: "https://api.testnet.abs.xyz",
-      ethNetwork: "sepolia",
-      zksync: true,
-      verifyURL: "https://api-explorer-verify.testnet.abs.xyz/contract_verification",
+      url: "https://api.testnet.abs.xyz", // URL for the abstract testnet
+      ethNetwork: "sepolia", // Specify the Ethereum network to use
+      zksync: true, // Enable zkSync for this network
+      verifyURL: "https://api-explorer-verify.testnet.abs.xyz/contract_verification", // Verification URL for contracts
     },
   },
   solidity: {
-    version: "0.8.24",
+    version: "0.8.24", // Specify the Solidity compiler version
   },
 };
 
 export default config;
 EOL
+echo "File 'hardhat.config.ts' has been created with Hardhat configuration for zkSync."
 
-    show "Renaming Lock.sol to HelloAbstract.sol..." "progress"
-    mv contracts/Lock.sol contracts/HelloAbstract.sol
+# Create deploy.js file in the scripts folder
+cat <<EOL > scripts/deploy.js
+const { ethers } = require("hardhat");
 
-    show "Writing new smart contract in HelloAbstract.sol..." "progress"
-    cat <<EOL > contracts/HelloAbstract.sol
-// SPDX-License-Identifier: MIT
-pragma solidity ^0.8.24;
+async function main() {
+    const [deployer] = await ethers.getSigners();
+    const initialSupply = ethers.utils.parseUnits("1000000", "ether");
 
-contract HelloAbstract {
-    function sayHello() public pure virtual returns (string memory) {
-        return "Hello, World!";
-    }
+    const Token = await ethers.getContractFactory("AbstractToken");
+    const token = await Token.deploy();
+
+    console.log("Token deployed to:", token.address);
 }
+
+main().catch((error) => {
+    console.error(error);
+    process.exit(1);
+});
 EOL
+echo "File 'deploy.js' has been created in the 'scripts' folder."
 
-    show "Cleaning and compiling contracts..." "progress"
-    npx hardhat clean
-    npx hardhat compile --network abstractTestnet
-}
+# Run the deploy script
+echo "Running deploy script..."
+DEPLOY_OUTPUT=$(npx hardhat run --network abstractTestnet scripts/deploy.js)
 
-# Function to set DEPLOYER_PRIVATE_KEY
-set_private_key() {
-    read -p "Enter your private key: " DEPLOYER_PRIVATE_KEY
-    npx hardhat vars set DEPLOYER_PRIVATE_KEY $DEPLOYER_PRIVATE_KEY
-    show "DEPLOYER_PRIVATE_KEY has been set." "progress"
-}
+# Display deploy output
+echo "$DEPLOY_OUTPUT"
 
-# Function to create the deploy script
-create_deploy_script() {
-    show "Creating deploy directory..." "progress"
-    mkdir deploy
-    show "Creating deploy.ts script..." "progress"
-    cat <<EOL > deploy/deploy.ts
-import { Wallet } from "zksync-ethers";
-import { HardhatRuntimeEnvironment } from "hardhat/types";
-import { Deployer } from "@matterlabs/hardhat-zksync";
-import { vars } from "hardhat/config";
+# Display important information
+echo -e "\nAbstract project has been set up and the contract has been deployed!"
 
-// An example of a deploy script that will deploy and call a simple contract.
-export default async function (hre: HardhatRuntimeEnvironment) {
-  console.log(\`Running deploy script\`);
+# Retrieve token address from deploy output
+TOKEN_ADDRESS=$(echo "$DEPLOY_OUTPUT" | grep -oE '0x[a-fA-F0-9]{40}')
 
-  // Initialize the wallet using your private key.
-  const wallet = new Wallet(vars.get("DEPLOYER_PRIVATE_KEY"));
+# Display message to check address in explorer
+if [ -n "$TOKEN_ADDRESS" ]; then
+    echo -e "Please check your token address on the explorer: https://explorer.testnet.abs.xyz/address/$TOKEN_ADDRESS"
+else
+    echo "Unable to find the deployed token address."
+fi
 
-  // Create deployer object and load the artifact of the contract we want to deploy.
-  const deployer = new Deployer(hre, wallet);
-  // Load contract
-  const artifact = await deployer.loadArtifact("HelloAbstract");
-
-  // Deploy this contract. The returned object will be of a \`Contract\` type.
-  const tokenContract = await deployer.deploy(artifact);
-
-  // Log the contract address
-  const contractAddress = await tokenContract.getAddress();
-  console.log(
-    \`\${
-      artifact.contractName
-    } was deployed to \${contractAddress}\`
-  );
-
-  // Return the contract address for further use
-  return contractAddress;
-}
-EOL
-    show "deploy.ts script created successfully." "progress"
-}
-
-# Function to deploy the smart contract
-deploy_contract() {
-    show "Deploying the smart contract..." "progress"
-    # Capture the deployed contract address
-    DEPLOYED_ADDRESS=$(npx hardhat deploy-zksync --script deploy.ts)
-    show "Deployment completed successfully!" "progress"
-
-    # Output the contract address and verification instructions
-    echo -e "\nTo verify your smart contract, run the following command:"
-    echo "npx hardhat verify --network abstractTestnet $DEPLOYED_ADDRESS"
-    echo -e "\nYou can explore the transaction on the testnet explorer at:"
-    echo "https://explorer.testnet.abs.xyz/"
-}
-
-# Main script execution
-create_project
-install_dependencies
-compilation
-set_private_key
-create_deploy_script
-deploy_contract
-
-show "Setup and deployment completed successfully!"
+# Invite to join Airdrop Node
+echo -e "\n🎉 **Done!** 🎉"
+echo -e "\n👉 **[Join Airdrop Node](https://t.me/airdrop_node)** 👈"
