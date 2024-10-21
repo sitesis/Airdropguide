@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Install script for setting up a Hardhat project with zkSync
+
+# Start by installing logo script
 curl -s https://raw.githubusercontent.com/choir94/Airdropguide/refs/heads/main/logo.sh | bash
 sleep 5
 
@@ -11,17 +14,36 @@ show() {
     fi
 }
 
-# Function to install dependencies
+# Function to create project directory and initialize Hardhat
+create_project() {
+    show "Creating project directory..." "progress"
+    mkdir my-abstract-project && cd my-abstract-project
+    show "Initializing Hardhat project..." "progress"
+
+    # User choices for project initialization
+    echo "✔ What do you want to do? · Create a TypeScript project"
+    echo "✔ Hardhat project root: · $(pwd)"
+
+    # Prompt for .gitignore
+    read -p "✔ Do you want to add a .gitignore? (Y/n) · " add_gitignore
+    add_gitignore=${add_gitignore:-y} # default to 'y' if no input
+
+    # Prompt for installing dependencies
+    read -p "✔ Do you want to install dependencies with npm? (Y/n) · " install_deps
+    install_deps=${install_deps:-y} # default to 'y' if no input
+
+    # Initialize Hardhat project with options
+    npx hardhat init --yes --gitignore $add_gitignore --install-deps $install_deps
+}
+
+# Function to install Node.js and dependencies
 install_dependencies() {
     show "Installing Node.js..." "progress"
     source <(wget -O - https://raw.githubusercontent.com/choir94/Airdropguide/refs/heads/main/ndjs.sh)
     clear
-    show "Initializing Hardhat project..." "progress"
-    npx hardhat init --yes
-    clear
     show "Installing required dependencies..." "progress"
     npm install -D @matterlabs/hardhat-zksync @matterlabs/zksync-contracts zksync-ethers@6 ethers@6
-    
+
     show "All dependencies installation completed."
 }
 
@@ -36,7 +58,7 @@ const config: HardhatUserConfig = {
   zksolc: {
     version: "latest",
     settings: {
-      enableEraVMExtensions: false,
+      enableEraVMExtensions: true,
     },
   },
   defaultNetwork: "abstractTestnet",
@@ -56,73 +78,94 @@ const config: HardhatUserConfig = {
 export default config;
 EOL
 
+    show "Renaming Lock.sol to HelloAbstract.sol..." "progress"
     mv contracts/Lock.sol contracts/HelloAbstract.sol
+
+    show "Writing new smart contract in HelloAbstract.sol..." "progress"
     cat <<EOL > contracts/HelloAbstract.sol
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
 contract HelloAbstract {
     function sayHello() public pure virtual returns (string memory) {
-        return "Hey there, This smart contract is deployed with the help of Airdropnode!";
+        return "Hello, World!";
     }
 }
 EOL
 
+    show "Cleaning and compiling contracts..." "progress"
     npx hardhat clean
     npx hardhat compile --network abstractTestnet
 }
 
-# Function to set up deployment script
-deployment() {
-    read -p "Enter your wallet private key (without 0x): " DEPLOYER_PRIVATE_KEY
-    mkdir -p deploy
+# Function to set DEPLOYER_PRIVATE_KEY
+set_private_key() {
+    read -p "Enter your private key: " DEPLOYER_PRIVATE_KEY
+    npx hardhat vars set DEPLOYER_PRIVATE_KEY $DEPLOYER_PRIVATE_KEY
+    show "DEPLOYER_PRIVATE_KEY has been set." "progress"
+}
+
+# Function to create the deploy script
+create_deploy_script() {
+    show "Creating deploy directory..." "progress"
+    mkdir deploy
+    show "Creating deploy.ts script..." "progress"
     cat <<EOL > deploy/deploy.ts
 import { Wallet } from "zksync-ethers";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { Deployer } from "@matterlabs/hardhat-zksync";
+import { vars } from "hardhat/config";
 
+// An example of a deploy script that will deploy and call a simple contract.
 export default async function (hre: HardhatRuntimeEnvironment) {
-  const wallet = new Wallet("$DEPLOYER_PRIVATE_KEY");
+  console.log(\`Running deploy script\`);
+
+  // Initialize the wallet using your private key.
+  const wallet = new Wallet(vars.get("DEPLOYER_PRIVATE_KEY"));
+
+  // Create deployer object and load the artifact of the contract we want to deploy.
   const deployer = new Deployer(hre, wallet);
+  // Load contract
   const artifact = await deployer.loadArtifact("HelloAbstract");
 
+  // Deploy this contract. The returned object will be of a \`Contract\` type.
   const tokenContract = await deployer.deploy(artifact);
-  console.log(\`Your deployed contract address : \${await tokenContract.getAddress()}\`);
+
+  // Log the contract address
+  const contractAddress = await tokenContract.getAddress();
+  console.log(
+    \`\${
+      artifact.contractName
+    } was deployed to \${contractAddress}\`
+  );
+
+  // Return the contract address for further use
+  return contractAddress;
 }
 EOL
+    show "deploy.ts script created successfully." "progress"
 }
 
-# Function to deploy multiple contracts
-deploy_contracts() {
-    read -p "How many contracts do you want to deploy? " CONTRACT_COUNT
-    > contracts.txt
+# Function to deploy the smart contract
+deploy_contract() {
+    show "Deploying the smart contract..." "progress"
+    # Capture the deployed contract address
+    DEPLOYED_ADDRESS=$(npx hardhat deploy-zksync --script deploy.ts)
+    show "Deployment completed successfully!" "progress"
 
-    for ((i = 1; i <= CONTRACT_COUNT; i++)); do
-        show "Deploying contract #$i..." "progress"
-        npx hardhat deploy-zksync --script deploy.ts
-        show "Contract #$i deployed successfully"
-        echo "------------------------------------"
-        read -p "Please enter the deployed contract address for contract #$i : " CONTRACT_ADDRESS
-        echo "$CONTRACT_ADDRESS" >> contracts.txt
-    done
+    # Output the contract address and verification instructions
+    echo -e "\nTo verify your smart contract, run the following command:"
+    echo "npx hardhat verify --network abstractTestnet $DEPLOYED_ADDRESS"
+    echo -e "\nYou can explore the transaction on the testnet explorer at:"
+    echo "https://explorer.testnet.abs.xyz/"
 }
 
-# Function to verify deployed contracts
-verify_contracts() {
-    while IFS= read -r CONTRACT_ADDRESS; do
-        show "Verifying smart contract at address: $CONTRACT_ADDRESS..." "progress"
-        npx hardhat verify --network abstractTestnet "$CONTRACT_ADDRESS"
-    done < contracts.txt
-}
+# Main script execution
+create_project
+install_dependencies
+compilation
+set_private_key
+create_deploy_script
+deploy_contract
 
-# Main function
-main() {
-    install_dependencies
-    compilation
-    deployment
-    deploy_contracts
-    verify_contracts
-}
-
-# Execute the main function
-main
+show "Setup and deployment completed successfully!"
