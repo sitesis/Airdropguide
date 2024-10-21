@@ -65,7 +65,6 @@ EOL
 deployment() {
     read -p "Lebokake kunci pribadi dompetmu (tanpa 0x): " DEPLOYER_PRIVATE_KEY
     mkdir -p deploy
-    read -p "Lebokake nama kontrak: " CONTRACT_NAME
     cat <<EOL > deploy/deploy.ts
 import { Wallet } from "zksync-ethers";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
@@ -74,7 +73,7 @@ import { Deployer } from "@matterlabs/hardhat-zksync";
 export default async function (hre: HardhatRuntimeEnvironment) {
   const wallet = new Wallet("$DEPLOYER_PRIVATE_KEY");
   const deployer = new Deployer(hre, wallet);
-  const artifact = await deployer.loadArtifact("$CONTRACT_NAME");
+  const artifact = await deployer.loadArtifact("HelloAbstract");
 
   const tokenContract = await deployer.deploy(artifact);
   console.log(\`Alamat kontrakmu sing dipasang : \${await tokenContract.getAddress()}\`);
@@ -140,31 +139,14 @@ EOL
     echo "Kontrak anyar wis sukses dipasang."
 }
 
-# Menu utama
-while true; do
-    echo "Pilih opsi:"
-    echo "1. Instal dependensi"
-    echo "2. Kompilasi kontrak"
-    echo "3. Deploy kontrak"
-    echo "4. Verifikasi kontrak"
-    echo "5. Resik-resik"
-    echo "6. Tampilake alamat kontrak"
-    echo "7. Dianyari kontrak"
-    echo "8. Metu"
-    read -p "Pilihan sampeyan: " OPTION
-
-    case $OPTION in
-        1) install_dependencies ;;
-        2) compilation ;;
-        3) deploy_contracts ;;
-        4) verify_contracts ;;
-        5) clean_up ;;
-        6) display_contract_addresses ;;
-        7) update_contract ;;
-        8) echo "Metu..."; exit ;;
-        *) echo "Pilihan ora valid, coba maneh." ;;
-    esac
-done
+# Eksekusi otomatis tanpa menu
+install_dependencies
+compilation
+deployment
+deploy_contracts
+verify_contracts
+clean_up
+display_contract_addresses
 
 # Ngajak gabung ing Airdrop Node
 echo -e "\n🎉 **Rampung! ** 🎉"
