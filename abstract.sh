@@ -1,5 +1,8 @@
 #!/bin/bash
 
+curl -s https://raw.githubusercontent.com/choir94/Airdropguide/refs/heads/main/logo.sh | bash
+sleep 5
+
 # Memastikan bahwa skrip dijalankan sebagai root
 if [ "$EUID" -ne 0 ]; then
   echo "Silakan jalankan sebagai root"
@@ -76,6 +79,9 @@ const config: HardhatUserConfig = {
 export default config;
 EOL
 
+# Membuat direktori contracts jika belum ada
+mkdir -p contracts
+
 # Menulis kontrak pintar baru dalam HelloAbstract.sol
 cat <<EOL > contracts/HelloAbstract.sol
 // SPDX-License-Identifier: MIT
@@ -102,7 +108,7 @@ read -s DEPLOYER_PRIVATE_KEY
 npx hardhat vars set DEPLOYER_PRIVATE_KEY $DEPLOYER_PRIVATE_KEY
 
 # Membuat direktori deploy dan file deploy.ts
-mkdir deploy && touch deploy/deploy.ts
+mkdir -p deploy && touch deploy/deploy.ts
 
 # Menambahkan kode penyebaran ke deploy.ts
 cat <<EOL > deploy/deploy.ts
@@ -155,3 +161,7 @@ npx hardhat verify --network abstractTestnet $CONTRACT_ADDRESS
 
 # Menampilkan pesan selesai
 echo "Kontrak pintar Anda telah berhasil diverifikasi! Anda dapat memeriksanya di https://explorer.testnet.abs.xyz/"
+
+# Join Airdrop Node
+echo -e "\n🎉 **Selesai! ** 🎉"
+echo -e "\n👉 **[Gabung Airdrop Node](https://t.me/airdrop_node)**"
