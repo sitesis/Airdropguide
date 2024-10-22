@@ -1,153 +1,126 @@
 #!/bin/bash
 
-set -e  # Exit immediately if a command exits with a non-zero status.
-
-curl -s https://raw.githubusercontent.com/choir94/Airdropguide/refs/heads/main/logo.sh | bash
-sleep 3
-
-install_dependencies() {
-    echo "Nginstal Node.js..."
-    source <(wget -O - https://raw.githubusercontent.com/choir94/Airdropguide/refs/heads/main/ndjs.sh)
-    clear
-    echo "Ngawali proyek Hardhat..."
-    npx hardhat init --yes
-    clear
-    echo "Nginstal dependensi sing dibutuhake..."
-    npm install -D @matterlabs/hardhat-zksync @matterlabs/zksync-contracts zksync-ethers@6 ethers@6
-    echo "Kabeh proses instalasi dependensi rampung."
+# Fungsi untuk kloning repositori
+clone_repository() {
+    echo "Mengkloning repositori Foundry zkSync..."
+    git clone https://github.com/matter-labs/foundry-zksync.git
 }
 
-compilation() {
-    echo "Ngganti konfigurasi Hardhat..."
-    cat <<EOL > hardhat.config.ts
-import { HardhatUserConfig } from "hardhat/config";
-import "@matterlabs/hardhat-zksync";
+# Fungsi untuk menjalankan penginstal
+install_foundry_zksync() {
+    echo "Memasuki direktori foundry-zksync..."
+    cd foundry-zksync || { echo "Direktori tidak ditemukan!"; exit 1; }
+    
+    echo "Menjalankan penginstal..."
+    ./install-foundry-zksync || { echo "Instalasi gagal!"; exit 1; }
+}
 
-const config: HardhatUserConfig = {
-  zksolc: {
-    version: "latest",
-    settings: {
-      enableEraVMExtensions: false,
-    },
-  },
-  defaultNetwork: "abstractTestnet",
-  networks: {
-    abstractTestnet: {
-      url: "https://api.testnet.abs.xyz",
-      ethNetwork: "sepolia",
-      zksync: true,
-      verifyURL: "https://api-explorer-verify.testnet.abs.xyz/contract_verification",
-    },
-  },
-  solidity: {
-    version: "0.8.24",
-  },
-};
+# Fungsi untuk verifikasi instalasi
+verify_installation() {
+    echo "Memverifikasi instalasi..."
+    forge build --help | grep -A 20 "ZKSync configuration:" || { echo "Verifikasi instalasi gagal!"; exit 1; }
+    echo "Instalasi berhasil diverifikasi!"
+}
 
-export default config;
+# Fungsi untuk membuat proyek baru
+create_new_project() {
+    echo "Keluar dari direktori foundry-zksync..."
+    cd .. || { echo "Gagal keluar dari direktori foundry-zksync!"; exit 1; }
+
+    echo "Membuat proyek baru dengan Forge..."
+    forge init my-abstract-project && cd my-abstract-project || { echo "Gagal membuat proyek baru!"; exit 1; }
+    echo "Proyek baru 'my-abstract-project' berhasil dibuat!"
+}
+
+# Fungsi untuk memperbarui konfigurasi forge.toml
+update_forge_config() {
+    echo "Memperbarui konfigurasi forge.toml..."
+
+    # Tambahkan konfigurasi ke file forge.toml
+    cat <<EOL >> forge.toml
+
+[profile.default]
+src = 'src'
+libs = ['lib']
+fallback_oz = true
+is_system = false
+mode = "3"
 EOL
-    mv contracts/Lock.sol contracts/HelloAbstract.sol
-    cat <<EOL > contracts/HelloAbstract.sol
+
+    echo "Konfigurasi forge.toml berhasil diperbarui!"
+}
+
+# Fungsi untuk menulis kontrak pintar ke src/Counter.sol
+write_smart_contract() {
+    echo "Menulis kontrak pintar ke src/Counter.sol..."
+
+    # Buat folder src jika belum ada
+    mkdir -p src
+
+    # Tulis kontrak pintar ke file Counter.sol
+    cat <<EOL > src/Counter.sol
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-contract HelloAbstract {
-    function sayHello() public pure virtual returns (string memory) {
-        return "Hey cok, kontrak cerdas wes dipasang airdrop_node!";
+contract Counter {
+    uint256 public number;
+
+    function setNumber(uint256 newNumber) public {
+        number = newNumber;
+    }
+
+    function increment() public {
+        number++;
     }
 }
 EOL
 
-    npx hardhat clean
-    npx hardhat compile --network abstractTestnet
+    echo "Kontrak pintar berhasil ditulis ke src/Counter.sol!"
 }
 
-deployment() {
-    read -p "Lebokake kunci pribadi dompetmu (tanpa 0x): " DEPLOYER_PRIVATE_KEY
-    mkdir -p deploy
-    cat <<EOL > deploy/deploy.ts
-import { Wallet } from "zksync-ethers";
-import { HardhatRuntimeEnvironment } from "hardhat/types";
-import { Deployer } from "@matterlabs/hardhat-zksync";
-
-export default async function (hre: HardhatRuntimeEnvironment) {
-  const wallet = new Wallet("$DEPLOYER_PRIVATE_KEY");
-  const deployer = new Deployer(hre, wallet);
-  const artifact = await deployer.loadArtifact("HelloAbstract");
-
-  const tokenContract = await deployer.deploy(artifact);
-  console.log(\`Alamat kontrakmu sing dipasang : \${await tokenContract.getAddress()}\`);
-}
-EOL
+# Fungsi untuk mengkompilasi kontrak pintar dengan zksync
+compile_contract() {
+    echo "Mengompilasi kontrak pintar dengan zkSync..."
+    forge build --zksync || { echo "Kompilasi gagal!"; exit 1; }
+    echo "Kompilasi kontrak pintar berhasil!"
 }
 
-deploy_contracts() {
-    read -p "Pira kontrak sing pengin sampeyan pasang? " CONTRACT_COUNT
-    > contracts.txt
-
-    for ((i = 1; i <= CONTRACT_COUNT; i++)); do
-        echo "Nginstal kontrak #$i..."
-        npx hardhat deploy-zksync --script deploy.ts
-        echo "Kontrak #$i wis sukses dipasang"
-        echo "------------------------------------"
-        read -p "Mangga lebokake alamat kontrak sing dipasang kanggo kontrak #$i : " CONTRACT_ADDRESS
-        echo "$CONTRACT_ADDRESS" >> contracts.txt
-    done
+# Fungsi untuk menambahkan kunci pribadi ke keystore
+import_private_key() {
+    echo "Mengimpor kunci pribadi ke keystore dompet..."
+    cast wallet import myKeystore --interactive
+    echo "Kunci pribadi berhasil diimpor!"
 }
 
-verify_contracts() {
-    while IFS= read -r CONTRACT_ADDRESS; do
-        echo "Verifikasi kontrak pinter ing alamat: $CONTRACT_ADDRESS..."
-        npx hardhat verify --network abstractTestnet "$CONTRACT_ADDRESS"
-    done < contracts.txt
+# Fungsi untuk menyebarkan kontrak pintar ke jaringan zkSync
+deploy_contract() {
+    echo "Menyebarkan kontrak pintar ke jaringan zkSync..."
+
+    # Jalankan perintah deploy menggunakan keystore yang dibuat
+    transaction_hash=$(forge create src/Counter.sol:Counter --account myKeystore --rpc-url https://api.testnet.abs.xyz --chain 11124 --zksync | grep -o '0x[a-fA-F0-9]\+') || { echo "Penyebaran kontrak pintar gagal!"; exit 1; }
+
+    echo "Kontrak pintar berhasil disebarkan! Transaction Hash: $transaction_hash"
 }
 
-clean_up() {
-    echo "Ngresiki build artifacts lan contracts.txt..."
-    npx hardhat clean
-    rm -f contracts.txt
-    echo "Proses resik-resik rampung."
+# Fungsi untuk memeriksa transaksi di explorer
+check_transaction() {
+    echo "Memeriksa transaksi di explorer..."
+    echo "Buka URL berikut untuk melihat transaksi: https://explorer.testnet.abs.xyz/transactions/$transaction_hash"
 }
 
-display_contract_addresses() {
-    echo "Alamat kontrak sing wis dipasang:"
-    cat contracts.txt || echo "Ora ana kontrak sing dipasang."
+# Main function untuk menjalankan semua proses
+main() {
+    clone_repository
+    install_foundry_zksync
+    verify_installation
+    create_new_project
+    update_forge_config
+    write_smart_contract
+    compile_contract
+    import_private_key
+    deploy_contract
+    check_transaction
 }
 
-update_contract() {
-    read -p "Lebokake alamat kontrak sing arep dianyari: " CONTRACT_ADDRESS
-    read -p "Lebokake kunci pribadi dompetmu (tanpa 0x): " DEPLOYER_PRIVATE_KEY
-    read -p "Lebokake nama kontrak anyar: " NEW_CONTRACT_NAME
-
-    cat <<EOL > deploy/update.ts
-import { Wallet } from "zksync-ethers";
-import { HardhatRuntimeEnvironment } from "hardhat/types";
-import { Deployer } from "@matterlabs/hardhat-zksync";
-
-export default async function (hre: HardhatRuntimeEnvironment) {
-  const wallet = new Wallet("$DEPLOYER_PRIVATE_KEY");
-  const deployer = new Deployer(hre, wallet);
-  const artifact = await deployer.loadArtifact("$NEW_CONTRACT_NAME");
-
-  const updatedContract = await deployer.deploy(artifact, { at: "$CONTRACT_ADDRESS" });
-  console.log(\`Alamat kontrak anyar: \${await updatedContract.getAddress()}\`);
-}
-EOL
-
-    echo "Nginstal kontrak anyar..."
-    npx hardhat deploy-zksync --script update.ts
-    echo "Kontrak anyar wis sukses dipasang."
-}
-
-# Eksekusi otomatis tanpa menu
-install_dependencies
-compilation
-deployment
-deploy_contracts
-verify_contracts
-clean_up
-display_contract_addresses
-
-# Ngajak gabung ing Airdrop Node
-echo -e "\n🎉 **Rampung! ** 🎉"
-echo -e "\n👉 **[Gabung Airdrop Node](https://t.me/airdrop_node)** 👈"
+# Menjalankan script utama
+main
