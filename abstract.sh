@@ -1,8 +1,5 @@
 #!/bin/bash
 
-curl -s https://raw.githubusercontent.com/choir94/Airdropguide/refs/heads/main/logo.sh | bash
-sleep 5
-
 # Memastikan bahwa skrip dijalankan sebagai root
 if [ "$EUID" -ne 0 ]; then
   echo "Silakan jalankan sebagai root"
@@ -78,14 +75,6 @@ const config: HardhatUserConfig = {
 
 export default config;
 EOL
-
-# Mengubah nama berkas Lock.sol menjadi HelloAbstract.sol jika ada
-if [ -f contracts/Lock.sol ]; then
-  mv contracts/Lock.sol contracts/HelloAbstract.sol
-  echo "Berhasil mengganti nama berkas Lock.sol menjadi HelloAbstract.sol"
-else
-  echo "Berkas Lock.sol tidak ditemukan."
-fi
 
 # Menulis kontrak pintar baru dalam HelloAbstract.sol
 cat <<EOL > contracts/HelloAbstract.sol
@@ -166,7 +155,3 @@ npx hardhat verify --network abstractTestnet $CONTRACT_ADDRESS
 
 # Menampilkan pesan selesai
 echo "Kontrak pintar Anda telah berhasil diverifikasi! Anda dapat memeriksanya di https://explorer.testnet.abs.xyz/"
-
-# Join Airdrop Node
-echo -e "\n🎉 **Selesai! ** 🎉"
-echo -e "\n👉 **[Gabung Airdrop Node](https://t.me/airdrop_node)**"
