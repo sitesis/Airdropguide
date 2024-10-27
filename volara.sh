@@ -38,23 +38,27 @@ check_docker_version() {
 
 # Function to pull and run Docker container with VANA_PRIVATE_KEY
 run_volara_miner() {
-  local VANA_PRIVATE_KEY="$1"
+  echo "Enter your VANA_PRIVATE_KEY:"
+  read -s VANA_PRIVATE_KEY
+
+  # Pull the Volara miner Docker image
   docker pull volara/miner
-  docker run -it -e VANA_PRIVATE_KEY="${VANA_PRIVATE_KEY}" volara/miner
+
+  # Run the Docker container with the private key as an environment variable
+  docker run -it -e VANA_PRIVATE_KEY=${VANA_PRIVATE_KEY} volara/miner
 }
 
-# Main script execution
-echo "Enter your VANA_PRIVATE_KEY:"
-read -s VANA_PRIVATE_KEY
+# Export functions for screen session
+export -f update_system remove_old_docker install_prerequisites setup_docker_repo install_docker check_docker_version run_volara_miner
 
+# Main script execution within a detached screen session
 screen -S volara -dm bash -c "
-  $(declare -f update_system remove_old_docker install_prerequisites setup_docker_repo install_docker check_docker_version run_volara_miner)
   update_system;
   remove_old_docker;
   install_prerequisites;
   setup_docker_repo;
   install_docker;
   check_docker_version;
-  run_volara_miner '${VANA_PRIVATE_KEY}';
+  run_volara_miner;
   exec bash
 "
