@@ -31,11 +31,6 @@ install_docker() {
   sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 }
 
-# Function to set executable permissions for Docker Compose
-set_docker_compose_permissions() {
-  sudo chmod +x /usr/local/bin/docker-compose
-}
-
 # Function to check Docker version
 check_docker_version() {
   docker --version
@@ -43,25 +38,23 @@ check_docker_version() {
 
 # Function to pull and run Docker container with VANA_PRIVATE_KEY
 run_volara_miner() {
-  echo "Enter your VANA_PRIVATE_KEY:"
-  read -s VANA_PRIVATE_KEY
-
-  # Pull the Volara miner Docker image
+  local VANA_PRIVATE_KEY="$1"
   docker pull volara/miner
-
-  # Run the Docker container with the private key as an environment variable
-  docker run -it -e VANA_PRIVATE_KEY=${VANA_PRIVATE_KEY} volara/miner
+  docker run -it -e VANA_PRIVATE_KEY="${VANA_PRIVATE_KEY}" volara/miner
 }
 
-# Main script execution within a detached screen session
+# Main script execution
+echo "Enter your VANA_PRIVATE_KEY:"
+read -s VANA_PRIVATE_KEY
+
 screen -S volara -dm bash -c "
+  $(declare -f update_system remove_old_docker install_prerequisites setup_docker_repo install_docker check_docker_version run_volara_miner)
   update_system;
   remove_old_docker;
   install_prerequisites;
   setup_docker_repo;
   install_docker;
-  set_docker_compose_permissions;
   check_docker_version;
-  run_volara_miner;
+  run_volara_miner '${VANA_PRIVATE_KEY}';
   exec bash
 "
