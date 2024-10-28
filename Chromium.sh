@@ -1,86 +1,87 @@
 #!/bin/bash
 
+# Skrip instalasi logo
 curl -s https://raw.githubusercontent.com/choir94/Airdropguide/refs/heads/main/logo.sh | bash
 sleep 5
 
-# Function to check if script is run as root
+# Fungsi untuk memeriksa apakah skrip dijalankan sebagai root
 check_root() {
     if [[ $EUID -ne 0 ]]; then
-        echo "This script must be run as root. Exiting..."
+        echo "Skrip ini harus dijalankan sebagai root. Keluar..."
         exit 1
     fi
 }
 
-# Function to check and install Docker
+# Fungsi untuk memeriksa dan menginstal Docker
 install_docker() {
-    echo "Installing Docker..."
-    sudo apt update -y && sudo apt upgrade -y || { echo "Failed to update packages. Exiting..."; exit 1; }
+    echo "Menginstal Docker..."
+    sudo apt update -y && sudo apt upgrade -y || { echo "Gagal memperbarui paket. Keluar..."; exit 1; }
 
-    # Remove conflicting packages
+    # Hapus paket yang konflik
     for pkg in docker.io docker-doc docker-compose podman-docker containerd runc; do
-        sudo apt-get remove -y $pkg || echo "Failed to remove $pkg, it may not be installed."
+        sudo apt-get remove -y $pkg || echo "Gagal menghapus $pkg, mungkin tidak terinstal."
     done
 
-    # Install necessary dependencies
-    sudo apt install -y apt-transport-https ca-certificates curl software-properties-common || { echo "Failed to install dependencies. Exiting..."; exit 1; }
-    
-    # Add Docker's official GPG key
-    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add - || { echo "Failed to add Docker GPG key. Exiting..."; exit 1; }
-    
-    # Set up the Docker stable repository
-    sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" || { echo "Failed to add Docker repository. Exiting..."; exit 1; }
-    
-    # Install Docker
-    sudo apt update -y && sudo apt install -y docker-ce || { echo "Failed to install Docker. Exiting..."; exit 1; }
-    
-    # Start and enable Docker service
-    sudo systemctl start docker || { echo "Failed to start Docker service. Exiting..."; exit 1; }
-    sudo systemctl enable docker || { echo "Failed to enable Docker service. Exiting..."; exit 1; }
+    # Instal dependensi yang diperlukan
+    sudo apt install -y apt-transport-https ca-certificates curl software-properties-common || { echo "Gagal menginstal dependensi. Keluar..."; exit 1; }
 
-    echo "Docker installed successfully."
+    # Tambahkan kunci GPG resmi Docker
+    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add - || { echo "Gagal menambahkan kunci GPG Docker. Keluar..."; exit 1; }
+
+    # Siapkan repositori stabil Docker
+    sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" || { echo "Gagal menambahkan repositori Docker. Keluar..."; exit 1; }
+
+    # Instal Docker
+    sudo apt update -y && sudo apt install -y docker-ce || { echo "Gagal menginstal Docker. Keluar..."; exit 1; }
+
+    # Mulai dan aktifkan layanan Docker
+    sudo systemctl start docker || { echo "Gagal memulai layanan Docker. Keluar..."; exit 1; }
+    sudo systemctl enable docker || { echo "Gagal mengaktifkan layanan Docker. Keluar..."; exit 1; }
+
+    echo "Docker berhasil diinstal."
 }
 
-# Function to check and install Docker Compose
+# Fungsi untuk memeriksa dan menginstal Docker Compose
 install_docker_compose() {
     if ! command -v docker-compose &> /dev/null; then
-        echo "Installing Docker Compose..."
-        sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose || { echo "Failed to download Docker Compose. Exiting..."; exit 1; }
+        echo "Menginstal Docker Compose..."
+        sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose || { echo "Gagal mengunduh Docker Compose. Keluar..."; exit 1; }
         sudo chmod +x /usr/local/bin/docker-compose
-        echo "Docker Compose installed successfully."
+        echo "Docker Compose berhasil diinstal."
     else
-        echo "Docker Compose is already installed."
+        echo "Docker Compose sudah terinstal."
     fi
 }
 
-# Check if script is run as root
+# Periksa apakah skrip dijalankan sebagai root
 check_root
 
-# Check and install Docker
+# Periksa dan instal Docker
 if ! command -v docker &> /dev/null; then
     install_docker
 else
-    echo "Docker is already installed."
+    echo "Docker sudah terinstal."
 fi
 
-# Check and install Docker Compose
+# Periksa dan instal Docker Compose
 install_docker_compose
 
-# Get server timezone
+# Dapatkan zona waktu server
 TIMEZONE=$(timedatectl | grep "Time zone" | awk '{print $3}')
 if [ -z "$TIMEZONE" ]; then
-    read -p "Enter your timezone (default: Asia/Jakarta): " user_timezone
+    read -p "Masukkan zona waktu Anda (default: Asia/Jakarta): " user_timezone
     TIMEZONE=${user_timezone:-Asia/Jakarta}
 fi
-echo "Server timezone detected: $TIMEZONE"
+echo "Zona waktu server terdeteksi: $TIMEZONE"
 
-# Generate random username and password
+# Hasilkan nama pengguna dan kata sandi acak
 CUSTOM_USER=$(openssl rand -hex 4)
 PASSWORD=$(openssl rand -hex 12)
-echo "Generated username: $CUSTOM_USER"
-echo "Generated password: $PASSWORD"
+echo "Nama pengguna yang dihasilkan: $CUSTOM_USER"
+echo "Kata sandi yang dihasilkan: $PASSWORD"
 
-# Set up Chromium with Docker Compose
-echo "Setting up Chromium with Docker Compose..."
+# Siapkan Chromium dengan Docker Compose
+echo "Menyiapkan Chromium dengan Docker Compose..."
 mkdir -p $HOME/chromium && cd $HOME/chromium
 
 cat <<EOF > docker-compose.yaml
@@ -108,27 +109,27 @@ services:
     restart: unless-stopped
 EOF
 
-# Verify that docker-compose.yaml was created successfully
+# Verifikasi bahwa docker-compose.yaml telah dibuat dengan sukses
 if [ ! -f "docker-compose.yaml" ]; then
-    echo "Failed to create docker-compose.yaml. Exiting..."
+    echo "Gagal membuat docker-compose.yaml. Keluar..."
     exit 1
 fi
 
-# Run Chromium container
-echo "Running Chromium container..."
-docker-compose up -d || { echo "Failed to run Docker container. Exiting..."; exit 1; }
+# Jalankan kontainer Chromium
+echo "Menjalankan kontainer Chromium..."
+docker-compose up -d || { echo "Gagal menjalankan kontainer Docker. Keluar..."; exit 1; }
 
-# Get VPS IP address
+# Dapatkan alamat IP VPS
 IPVPS=$(curl -s ifconfig.me)
 
-# Output access information
-echo "Access Chromium in your browser at: http://$IPVPS:3010/ or https://$IPVPS:3011/"
-echo "Username: $CUSTOM_USER"
-echo "Password: $PASSWORD"
-echo "Please save your data, or you will lose access!"
+# Output informasi akses
+echo "Akses Chromium di browser Anda di: http://$IPVPS:3010/ atau https://$IPVPS:3011/"
+echo "Nama pengguna: $CUSTOM_USER"
+echo "Kata sandi: $PASSWORD"
+echo "Harap simpan data Anda, atau Anda akan kehilangan akses!"
 
-# Cleanup unused Docker resources
+# Bersihkan sumber daya Docker yang tidak terpakai
 docker system prune -f
-echo "Docker system pruned.
+echo "Sistem Docker dibersihkan."
 echo -e "\n🎉 **Rampung! ** 🎉"
 echo -e "\n👉 **[Gabung Airdrop Node](https://t.me/airdrop_node)** 👈"
