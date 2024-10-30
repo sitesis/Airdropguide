@@ -60,7 +60,7 @@ install_node() {
     echo "Untuk melanjutkan, silakan daftarkan diri di tautan berikut:"
     echo -e "${YELLOW}https://app.blockmesh.xyz/register?invite_code=airdropnode${NC}"
     echo -n "Apakah Anda sudah menyelesaikan pendaftaran? (y/n): "
-    read registered
+    read -r registered
 
     if [[ "$registered" != "y" && "$registered" != "Y" ]]; then
         echo "Silakan selesaikan pendaftaran dan gunakan kode rujukan airdropnode untuk melanjutkan."
@@ -135,7 +135,7 @@ start_node() {
     read -p "Tekan Enter untuk kembali ke menu..."
 }
 
-# Function to change account
+# Function to change account details
 change_account() {
     echo "Mengubah detail akun..."
     read -p "Masukkan email baru: " USER_EMAIL
@@ -147,7 +147,7 @@ change_account() {
     read -p "Tekan Enter untuk kembali ke menu..."
 }
 
-# Function to display account
+# Function to display account details
 cat_account() {
     cat .env
     read -p "Tekan Enter untuk kembali ke menu..."
@@ -166,7 +166,7 @@ show_menu() {
     echo "7.  Ganti Akun"
     echo "0.  Keluar"
     echo -n "Masukkan nomor perintah [0-7]: "
-    read choice
+    read -r choice
 }
 
 # Main loop
