@@ -109,8 +109,44 @@ EOF
     echo "Node installed successfully. Check the logs to confirm authentication."
 }
 
-# Main script execution
-install_docker
-install_docker_compose
-install_node
+# Function to view logs
+view_logs() {
+    echo "Viewing logs..."
+    docker logs grass-node
+    echo
+}
 
+# Function to display account details
+display_account() {
+    echo "Current account details:"
+    echo "Email: $USER_EMAIL"
+    echo "Password: $USER_PASSWORD"
+    echo "WebSocket Proxy: ${WEBSOCKET_PROXY:-None}"
+}
+
+# Main menu
+show_menu() {
+    clear
+    display_logo  # Call the function to display the logo
+    echo "Please select an option:"
+    echo "1.  Install Node"
+    echo "2.  View Logs"
+    echo "3.  View Account Details"
+    echo "0.  Exit"
+    echo -n "Enter your choice [0-3]: "
+    read -r choice
+}
+
+# Main loop
+while true; do
+    install_docker
+    install_docker_compose
+    show_menu
+    case $choice in
+        1) install_node ;;
+        2) view_logs ;;
+        3) display_account ;;
+        0) echo "Exiting..."; exit 0 ;;
+        *) echo "Invalid input. Please try again."; read -p "Press Enter to continue..." ;;
+    esac
+done
