@@ -1,5 +1,28 @@
 #!/bin/bash
 
+# ANSI escape codes for colors
+YELLOW='\033[1;33m'
+BLUE='\033[1;34m'
+GREEN='\033[1;32m'
+UNDERLINE_YELLOW='\033[1;4;33m'
+NC='\033[0m' # No Color
+
+# Display logo
+echo -e "${YELLOW}
+           _         _                   _   _           _      
+     /\   (_)       | |                 | \\ | |         | |     
+    /  \\   _ _ __ __| |_ __ ___  _ __   |  \\| | ___   __| | ___ 
+   / /\ \\ | | '__/ _\` | '__/ _ \\| '_ \\  | . \\` |/ _ \\ / _\` |/ _ \\
+  / ____ \\| | | | (_| | | | (_) | |_) | | |\\  | (_) | (_| |  __/
+ /_/    \\_\\_|_|  \\__,_|_|  \\___/| .__/  |_| \\_|\\___/ \\__,_|\\___|
+                                | |                             
+                                |_|                             
+${BLUE}
+               Join the Airdrop Node Now!${GREEN}
+        ──────────────────────────────────────
+        🚀 Telegram Group: ${UNDERLINE_YELLOW}https://t.me/airdrop_node${NC}
+        ──────────────────────────────────────"
+
 # Set directory name
 DIRECTORY="blockmesh_directory"
 
@@ -35,7 +58,7 @@ install_docker_compose() {
 # Function to install the node
 install_node() {
     echo "Untuk melanjutkan, silakan daftarkan diri di tautan berikut:"
-    echo "https://app.blockmesh.xyz/register?invite_code=airdropnode"
+    echo -e "${YELLOW}https://app.blockmesh.xyz/register?invite_code=airdropnode${NC}"
     echo -n "Apakah Anda sudah menyelesaikan pendaftaran? (y/n): "
     read registered
 
