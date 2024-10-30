@@ -32,12 +32,12 @@ install_docker_compose() {
 # Fungsi instalasi node
 install_node() {
     echo "Untuk melanjutkan, silakan daftarkan diri di tautan berikut:"
-    echo "https://app.blockmesh.xyz/register?invite_code=DK"
+    echo "https://app.blockmesh.xyz/register?invite_code=airdropnode"
     echo -n "Apakah Anda sudah menyelesaikan pendaftaran? (y/n): "
     read registered
 
     if [[ "$registered" != "y" && "$registered" != "Y" ]]; then
-        echo "Silakan selesaikan pendaftaran dan gunakan kode rujukan DK untuk melanjutkan."
+        echo "Silakan selesaikan pendaftaran dan gunakan kode rujukan airdropnode untuk melanjutkan."
         read -p "Tekan Enter untuk kembali ke menu..."
         return
     fi
