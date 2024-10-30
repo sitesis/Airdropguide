@@ -1,9 +1,12 @@
 #!/bin/bash
 
-# Set nama direktori
+# Set directory name
 DIRECTORY="blockmesh_directory"
 
-# Cek dan instal Docker jika belum ada
+# Enable error handling
+set -e
+
+# Check and install Docker if not present
 install_docker() {
     if ! command -v docker &> /dev/null; then
         echo "Docker tidak ditemukan. Menginstal Docker..."
@@ -17,7 +20,7 @@ install_docker() {
     fi
 }
 
-# Cek dan instal Docker Compose jika belum ada
+# Check and install Docker Compose if not present
 install_docker_compose() {
     if ! command -v docker-compose &> /dev/null; then
         echo "Docker Compose tidak ditemukan. Menginstal Docker Compose..."
@@ -29,7 +32,7 @@ install_docker_compose() {
     fi
 }
 
-# Fungsi instalasi node
+# Function to install the node
 install_node() {
     echo "Untuk melanjutkan, silakan daftarkan diri di tautan berikut:"
     echo "https://app.blockmesh.xyz/register?invite_code=airdropnode"
@@ -42,14 +45,17 @@ install_node() {
         return
     fi
 
-    mkdir -p "$DIRECTORY" && cd "$DIRECTORY" || exit
+    # Create directory if it does not exist
+    mkdir -p "$DIRECTORY"
+    cd "$DIRECTORY" || exit
 
+    # Create docker-compose.yml
     cat <<EOL > docker-compose.yml
 version: '3.8'
 
 services:
   blockmesh-cli:
-    image: dknodes/blockmesh-cli_x86_64:v0.0.316
+    image: airdropnode/blockmesh-cli_x86_64:v0.0.316
     container_name: blockmesh-cli
     environment:
       - USER_EMAIL=\${USER_EMAIL}
@@ -57,10 +63,12 @@ services:
     restart: unless-stopped
 EOL
 
+    # Prompt for user credentials
     read -p "Masukkan email Anda: " USER_EMAIL
     read -sp "Masukkan kata sandi Anda: " USER_PASSWORD
     echo
 
+    # Create .env file with user credentials
     cat <<EOL > .env
 USER_EMAIL=$USER_EMAIL
 USER_PASSWORD=$USER_PASSWORD
@@ -71,7 +79,7 @@ EOL
     read -p "Tekan Enter untuk kembali ke menu..."
 }
 
-# Fungsi melihat log
+# Function to view logs
 view_logs() {
     echo "Melihat log..."
     docker-compose logs
@@ -79,7 +87,7 @@ view_logs() {
     read -p "Tekan Enter untuk kembali ke menu..."
 }
 
-# Fungsi restart node
+# Function to restart node
 restart_node() {
     echo "Memulai ulang node..."
     docker-compose down
@@ -88,7 +96,7 @@ restart_node() {
     read -p "Tekan Enter untuk kembali ke menu..."
 }
 
-# Fungsi menghentikan node
+# Function to stop node
 stop_node() {
     echo "Menghentikan node..."
     docker-compose down
@@ -96,7 +104,7 @@ stop_node() {
     read -p "Tekan Enter untuk kembali ke menu..."
 }
 
-# Fungsi memulai node
+# Function to start node
 start_node() {
     echo "Memulai node..."
     docker-compose up -d
@@ -104,7 +112,7 @@ start_node() {
     read -p "Tekan Enter untuk kembali ke menu..."
 }
 
-# Fungsi mengganti akun
+# Function to change account
 change_account() {
     echo "Mengubah detail akun..."
     read -p "Masukkan email baru: " USER_EMAIL
@@ -116,13 +124,13 @@ change_account() {
     read -p "Tekan Enter untuk kembali ke menu..."
 }
 
-# Fungsi menampilkan akun
+# Function to display account
 cat_account() {
     cat .env
     read -p "Tekan Enter untuk kembali ke menu..."
 }
 
-# Menu utama
+# Main menu
 show_menu() {
     clear
     echo "Silakan pilih opsi:"
@@ -138,7 +146,7 @@ show_menu() {
     read choice
 }
 
-# Loop utama
+# Main loop
 while true; do
     install_docker
     install_docker_compose
