@@ -27,8 +27,8 @@ services:
     container_name: blockmesh-cli
     environment:
       - USER_EMAIL=\${USER_EMAIL}
-      - USER_PASSWORD=\${USER_PASSWORD}
-    restart: unless-stopped
+      - USER_PASSWORD=\$(openssl enc -aes-256-cbc -base64 -d <<< \${USER_PASSWORD_ENC})
+    restart: on-failure
 EOF
     echo "Created docker-compose.yml file in $PROJECT_DIR."
 }
@@ -53,13 +53,14 @@ prompt_credentials() {
     done
 }
 
-# Save credentials to .env file with restricted permissions
+# Encrypt and save credentials to .env file with restricted permissions
 save_credentials() {
     {
         echo "USER_EMAIL=${USER_EMAIL}"
-        echo "USER_PASSWORD=${USER_PASSWORD}"
+        echo "USER_PASSWORD_ENC=$(echo "$USER_PASSWORD" | openssl enc -aes-256-cbc -base64)"
     } > "$PROJECT_DIR/.env"
     chmod 600 "$PROJECT_DIR/.env"
+    echo "Credentials saved securely in $PROJECT_DIR/.env."
 }
 
 # Install node function with registration link and check
@@ -84,24 +85,18 @@ install_node() {
     # Create the docker-compose.yml file
     create_docker_compose
 
-    # Update package list
+    # Update package list and install dependencies
     sudo apt update -y
+    sudo apt install -y docker.io openssl
 
-    # Install Docker if not present
-    if ! command -v docker &> /dev/null; then
-        echo "Installing Docker..."
-        sudo apt install docker.io -y || { echo "Failed to install Docker."; return; }
-        sudo systemctl start docker
-        sudo systemctl enable docker
-    else
-        echo "Docker is already installed."
-    fi
+    # Start and enable Docker service
+    sudo systemctl enable --now docker
 
     # Install Docker Compose if not present
     if ! command -v docker-compose &> /dev/null; then
         echo "Installing Docker Compose..."
-        sudo curl -L "https://github.com/docker/compose/releases/download/v2.20.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose && \
-        sudo chmod +x /usr/local/bin/docker-compose || { echo "Failed to install Docker Compose."; return; }
+        sudo curl -L "https://github.com/docker/compose/releases/download/v2.20.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+        sudo chmod +x /usr/local/bin/docker-compose
     else
         echo "Docker Compose is already installed."
     fi
@@ -153,24 +148,43 @@ view_account() {
     fi
 }
 
-# Main script flow to handle command-line arguments
-case "$1" in
-    install)
-        install_node
-        ;;
-    view_logs)
-        view_logs
-        ;;
-    start)
-        start_node
-        ;;
-    view_account)
-        view_account
-        ;;
-    cleanup)
-        cleanup_node
-        ;;
-    *)
-        echo "Usage: $0 {install|view_logs|start|view_account|cleanup}"
-        ;;
-esac
+# Interactive menu function
+interactive_menu() {
+    echo "===================="
+    echo " Blockmesh Node CLI "
+    echo "===================="
+    echo "Please select an option:"
+    echo "1) Install Node"
+    echo "2) View Logs"
+    echo "3) Start Node"
+    echo "4) View Account"
+    echo "5) Cleanup Node"
+    echo "6) Exit"
+
+    read -p "Enter your choice [1-6]: " choice
+    case "$choice" in
+        1) install_node ;;
+        2) view_logs ;;
+        3) start_node ;;
+        4) view_account ;;
+        5) cleanup_node ;;
+        6) exit 0 ;;
+        *) echo "Invalid choice. Please try again." ;;
+    esac
+}
+
+# Main script flow
+if [[ $# -eq 0 ]]; then
+    # Run interactive menu if no arguments are provided
+    interactive_menu
+else
+    # Command-line arguments support for automation
+    case "$1" in
+        install) install_node ;;
+        view_logs) view_logs ;;
+        start) start_node ;;
+        view_account) view_account ;;
+        cleanup) cleanup_node ;;
+        *) echo "Usage: $0 {install|view_logs|start|view_account|cleanup}" ;;
+    esac
+fi
