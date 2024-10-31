@@ -57,14 +57,6 @@ setup_grass_node() {
     # Create array from proxy input
     PROXIES=($PROXY_INPUT)
 
-    # Create environment string for proxy
-    PROXY_ENV=""
-    for PROXY in "${PROXIES[@]}"; do
-        if [ -n "$PROXY" ]; then
-            PROXY_ENV+="PROXY=${PROXY} "
-        fi
-    done
-
     # Create docker-compose.yml file
     cat <<EOL > docker-compose.yml
 version: "3.9"
@@ -76,7 +68,19 @@ services:
     environment:
       USER_EMAIL: "$USER_EMAIL"
       USER_PASSWORD: "$USER_PASSWORD"
-      $(echo $PROXY_ENV | xargs)  # Include proxy variables
+EOL
+
+    # Append proxies if any
+    if [ -n "$PROXY_INPUT" ]; then
+        for PROXY in "${PROXIES[@]}"; do
+            if [ -n "$PROXY" ]; then
+                echo "      PROXY=${PROXY}" >> docker-compose.yml
+            fi
+        done
+    fi
+
+    # Append ports to the docker-compose.yml file
+    cat <<EOL >> docker-compose.yml
     ports:
       - "5900:5900"
       - "6080:6080"
