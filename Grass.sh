@@ -58,33 +58,31 @@ setup_grass_node() {
     PROXIES=($PROXY_INPUT)
 
     # Create docker-compose.yml file
-    cat <<EOL > docker-compose.yml
-version: "3.9"
-services:
-  grass-node:
-    container_name: grass-node
-    hostname: my_device
-    image: mrcolorrain/grass-node
-    environment:
-      USER_EMAIL: "$USER_EMAIL"
-      USER_PASSWORD: "$USER_PASSWORD"
-EOL
+    {
+        echo "version: '3.9'"
+        echo "services:"
+        echo "  grass-node:"
+        echo "    container_name: grass-node"
+        echo "    hostname: my_device"
+        echo "    image: mrcolorrain/grass-node"
+        echo "    environment:"
+        echo "      USER_EMAIL: \"$USER_EMAIL\""
+        echo "      USER_PASSWORD: \"$USER_PASSWORD\""
 
-    # Append proxies if any
-    if [ -n "$PROXY_INPUT" ]; then
-        for PROXY in "${PROXIES[@]}"; do
-            if [ -n "$PROXY" ]; then
-                echo "      PROXY=${PROXY}" >> docker-compose.yml
-            fi
-        done
-    fi
+        # Append proxies if any
+        if [ -n "$PROXY_INPUT" ]; then
+            for PROXY in "${PROXIES[@]}"; do
+                if [ -n "$PROXY" ]; then
+                    echo "      PROXY: ${PROXY}" # Ensure correct format with ':'
+                fi
+            done
+        fi
 
-    # Append ports to the docker-compose.yml file
-    cat <<EOL >> docker-compose.yml
-    ports:
-      - "5900:5900"
-      - "6080:6080"
-EOL
+        # Append ports to the docker-compose.yml file
+        echo "    ports:"
+        echo "      - \"5900:5900\""
+        echo "      - \"6080:6080\""
+    } > docker-compose.yml
 
     # Run Docker Compose
     docker-compose up -d || { log "Gagal menjalankan Docker Compose"; exit 1; }
