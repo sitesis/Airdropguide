@@ -7,7 +7,7 @@ GREEN='\033[1;32m'
 UNDERLINE_YELLOW='\033[1;4;33m'
 NC='\033[0m' # No Color
 
-# Function to display logo
+# Function to display the logo
 display_logo() {
     echo -e "${YELLOW}
            _         _                   _   _           _      
@@ -38,7 +38,7 @@ install_docker() {
         sudo systemctl enable docker
         echo "Docker installed and running."
     else
-        echo "Docker already installed."
+        echo "Docker is already installed."
     fi
 }
 
@@ -50,7 +50,7 @@ install_docker_compose() {
         sudo chmod +x /usr/local/bin/docker-compose
         echo "Docker Compose installed."
     else
-        echo "Docker Compose already installed."
+        echo "Docker Compose is already installed."
     fi
 }
 
@@ -58,10 +58,9 @@ install_docker_compose() {
 install_node() {
     echo "To continue, please register using the following link:"
     echo -e "${YELLOW}https://app.getgrass.io/register/?referralCode=2G4AzIQX87ObykI${NC}"
-    echo -n "Have you completed the registration? (y/n): "
-    read -r registered
+    read -p "Have you completed the registration? (y/n): " registered
 
-    if [[ "$registered" != "y" && "$registered" != "Y" ]]; then
+    if [[ ! "$registered" =~ ^[yY]$ ]]; then
         echo "Please complete the registration and use referral code airdropnode to continue."
         return
     fi
@@ -74,10 +73,25 @@ install_node() {
     read -sp "Enter your password: " USER_PASSWORD
     echo
 
+    # Initialize an array for WebSocket proxies
+    WEBSOCKET_PROXIES=()
+
     # Prompt for WebSocket proxy URL
     read -p "Enter WebSocket Proxy URL (leave blank if not needed): " WEBSOCKET_PROXY
 
-    # Create the docker-compose.yml file with the user credentials and optional WebSocket proxy
+    # If the input is blank, check if proxy.txt exists in the current directory
+    if [[ -z "$WEBSOCKET_PROXY" && -f "./proxy.txt" ]]; then
+        while IFS= read -r line; do
+            WEBSOCKET_PROXIES+=("$line")
+        done < "./proxy.txt"
+        echo "Using WebSocket Proxies from proxy.txt: ${WEBSOCKET_PROXIES[*]}"
+    elif [[ -n "$WEBSOCKET_PROXY" ]]; then
+        WEBSOCKET_PROXIES+=("$WEBSOCKET_PROXY")
+    else
+        echo "No WebSocket Proxy provided and proxy.txt not found in the current directory."
+    fi
+
+    # Create the docker-compose.yml file with the user credentials and optional WebSocket proxies
     cat <<EOF > docker-compose.yml
 version: "3.9"
 services:
@@ -90,10 +104,10 @@ services:
       USER_PASSWORD: ${USER_PASSWORD}
 EOF
 
-    # Add WebSocket proxy to docker-compose.yml if provided
-    if [[ -n "$WEBSOCKET_PROXY" ]]; then
-        echo "      WEBSOCKET_PROXY: ${WEBSOCKET_PROXY}" >> docker-compose.yml
-    fi
+    # Add WebSocket proxies to docker-compose.yml if provided
+    for proxy in "${WEBSOCKET_PROXIES[@]}"; do
+        echo "      WEBSOCKET_PROXY: ${proxy}" >> docker-compose.yml
+    done
 
     cat <<EOF >> docker-compose.yml
     ports:
@@ -111,7 +125,7 @@ EOF
 
 # Function to view logs
 view_logs() {
-    echo "Viewing logs..."
+    echo "Viewing logs for the grass-node container..."
     docker logs grass-node
     echo
 }
@@ -119,9 +133,9 @@ view_logs() {
 # Function to display account details
 display_account() {
     echo "Current account details:"
-    echo "Email: $USER_EMAIL"
-    echo "Password: $USER_PASSWORD"
-    echo "WebSocket Proxy: ${WEBSOCKET_PROXY:-None}"
+    echo "Email: ${USER_EMAIL:-Not Set}"
+    echo "Password: ${USER_PASSWORD:-Not Set}"
+    echo "WebSocket Proxies: ${WEBSOCKET_PROXIES[*]:-None}"
 }
 
 # Main menu
