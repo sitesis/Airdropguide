@@ -1,13 +1,13 @@
 #!/bin/bash
 
-# ANSI escape codes for colors
+# Kode warna ANSI
 YELLOW='\033[1;33m'
 BLUE='\033[1;34m'
 GREEN='\033[1;32m'
 UNDERLINE_YELLOW='\033[1;4;33m'
-NC='\033[0m' # No Color
+NC='\033[0m' # Tanpa Warna
 
-# Function to display the logo
+# Fungsi untuk menampilkan logo
 display_logo() {
     echo -e "${YELLOW}
            _         _                   _   _           _      
@@ -19,80 +19,82 @@ display_logo() {
                                 | |                             
                                 |_|                             
 ${BLUE}
-               Join the Airdrop Node Now!${GREEN}
+               Bergabunglah dengan Airdrop Node Sekarang!${GREEN}
         ──────────────────────────────────────
-        🚀 Telegram Group: ${UNDERLINE_YELLOW}https://t.me/airdrop_node${NC}
+        🚀 Grup Telegram: ${UNDERLINE_YELLOW}https://t.me/airdrop_node${NC}
         ──────────────────────────────────────"
 }
 
-# Enable error handling
+# Mengaktifkan penanganan kesalahan
 set -e
 
-# Function to install Docker if not present
+# Fungsi untuk menginstal Docker jika belum ada
 install_docker() {
     if ! command -v docker &> /dev/null; then
-        echo "Docker not found. Installing Docker..."
+        echo "Docker tidak ditemukan. Menginstal Docker..."
         sudo apt update
         sudo apt install -y docker.io
         sudo systemctl start docker
         sudo systemctl enable docker
-        echo "Docker installed and running."
+        echo "Docker telah diinstal dan berjalan."
     else
-        echo "Docker is already installed."
+        echo "Docker sudah terinstal."
     fi
 }
 
-# Function to install Docker Compose if not present
+# Fungsi untuk menginstal Docker Compose jika belum ada
 install_docker_compose() {
     if ! command -v docker-compose &> /dev/null; then
-        echo "Docker Compose not found. Installing Docker Compose..."
+        echo "Docker Compose tidak ditemukan. Menginstal Docker Compose..."
         sudo curl -L "https://github.com/docker/compose/releases/download/v2.20.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
         sudo chmod +x /usr/local/bin/docker-compose
-        echo "Docker Compose installed."
+        echo "Docker Compose telah diinstal."
     else
-        echo "Docker Compose is already installed."
+        echo "Docker Compose sudah terinstal."
     fi
 }
 
-# Function to install the node and generate docker-compose.yml
+# Fungsi untuk menginstal node dan menghasilkan docker-compose.yml
 install_node() {
-    echo "To continue, please register using the following link:"
+    echo "Untuk melanjutkan, silakan daftar menggunakan tautan berikut:"
     echo -e "${YELLOW}https://app.getgrass.io/register/?referralCode=2G4AzIQX87ObykI${NC}"
-    read -p "Have you completed the registration? (y/n): " registered
+    read -p "Apakah Anda sudah menyelesaikan pendaftaran? (y/n): " registered
 
     if [[ ! "$registered" =~ ^[yY]$ ]]; then
-        echo "Please complete the registration and use referral code airdropnode to continue."
+        echo "Silakan selesaikan pendaftaran dan gunakan kode referal airdropnode untuk melanjutkan."
         return
     fi
 
-    # Create a directory for the grass container
-    mkdir -p "$HOME/grass_data"
+    # Minta direktori untuk menyimpan docker-compose.yml
+    read -p "Masukkan direktori untuk menyimpan docker-compose.yml (default: $HOME/grass_data): " save_directory
+    save_directory=${save_directory:-$HOME/grass_data} # Gunakan default jika kosong
 
-    # Prompt for user credentials
-    read -p "Enter your email: " USER_EMAIL
-    read -sp "Enter your password: " USER_PASSWORD
+    # Buat direktori jika belum ada
+    mkdir -p "$save_directory"
+
+    # Minta kredensial pengguna
+    read -p "Masukkan email Anda: " USER_EMAIL
+    read -sp "Masukkan kata sandi Anda: " USER_PASSWORD
     echo
 
-    # Initialize an array for WebSocket proxies
+    # Inisialisasi array untuk WebSocket proxies
     WEBSOCKET_PROXIES=()
 
-    # Prompt for WebSocket proxy URL
-    read -p "Enter WebSocket Proxy URL (leave blank if not needed): " WEBSOCKET_PROXY
+    # Minta URL proxy WebSocket pertama
+    while true; do
+        read -p "Masukkan URL Proxy WebSocket (kosongkan jika tidak diperlukan): " WEBSOCKET_PROXY
+        if [[ -n "$WEBSOCKET_PROXY" ]]; then
+            WEBSOCKET_PROXIES+=("$WEBSOCKET_PROXY")
+        fi
+        
+        read -p "Apakah Anda ingin menambahkan proxy lain? (y/n): " add_more
+        if [[ ! "$add_more" =~ ^[yY]$ ]]; then
+            break
+        fi
+    done
 
-    # If the input is blank, check if proxy.txt exists in the current directory
-    if [[ -z "$WEBSOCKET_PROXY" && -f "./proxy.txt" ]]; then
-        while IFS= read -r line; do
-            WEBSOCKET_PROXIES+=("$line")
-        done < "./proxy.txt"
-        echo "Using WebSocket Proxies from proxy.txt: ${WEBSOCKET_PROXIES[*]}"
-    elif [[ -n "$WEBSOCKET_PROXY" ]]; then
-        WEBSOCKET_PROXIES+=("$WEBSOCKET_PROXY")
-    else
-        echo "No WebSocket Proxy provided and proxy.txt not found in the current directory."
-    fi
-
-    # Create the docker-compose.yml file with the user credentials and optional WebSocket proxies
-    cat <<EOF > docker-compose.yml
+    # Buat file docker-compose.yml dengan kredensial pengguna dan proxy WebSocket opsional
+    cat <<EOF > "$save_directory/docker-compose.yml"
 version: "3.9"
 services:
   grass-node:
@@ -104,12 +106,12 @@ services:
       USER_PASSWORD: ${USER_PASSWORD}
 EOF
 
-    # Add WebSocket proxies to docker-compose.yml if provided
+    # Tambahkan proxy WebSocket ke docker-compose.yml jika ada
     for proxy in "${WEBSOCKET_PROXIES[@]}"; do
-        echo "      WEBSOCKET_PROXY: ${proxy}" >> docker-compose.yml
+        echo "      WEBSOCKET_PROXY: ${proxy}" >> "$save_directory/docker-compose.yml"
     done
 
-    cat <<EOF >> docker-compose.yml
+    cat <<EOF >> "$save_directory/docker-compose.yml"
     ports:
       - "5900:5900"
       - "6080:6080"
@@ -117,41 +119,41 @@ EOF
       - ./grass_data:/app/data
 EOF
 
-    # Run Docker Compose to start the container
-    docker-compose up -d
+    # Jalankan Docker Compose untuk memulai kontainer
+    (cd "$save_directory" && docker-compose up -d)
 
-    echo "Node installed successfully. Check the logs to confirm authentication."
+    echo "Node telah berhasil diinstal. Periksa log untuk memastikan otentikasi."
 }
 
-# Function to view logs
+# Fungsi untuk melihat log
 view_logs() {
-    echo "Viewing logs for the grass-node container..."
+    echo "Melihat log untuk kontainer grass-node..."
     docker logs grass-node
     echo
 }
 
-# Function to display account details
+# Fungsi untuk menampilkan detail akun
 display_account() {
-    echo "Current account details:"
-    echo "Email: ${USER_EMAIL:-Not Set}"
-    echo "Password: ${USER_PASSWORD:-Not Set}"
-    echo "WebSocket Proxies: ${WEBSOCKET_PROXIES[*]:-None}"
+    echo "Detail akun saat ini:"
+    echo "Email: ${USER_EMAIL:-Belum Diatur}"
+    echo "Kata Sandi: ${USER_PASSWORD:-Belum Diatur}"
+    echo "Proxy WebSocket: ${WEBSOCKET_PROXIES[*]:-Tidak Ada}"
 }
 
-# Main menu
+# Menu utama
 show_menu() {
     clear
-    display_logo  # Call the function to display the logo
-    echo "Please select an option:"
-    echo "1.  Install Node"
-    echo "2.  View Logs"
-    echo "3.  View Account Details"
-    echo "0.  Exit"
-    echo -n "Enter your choice [0-3]: "
+    display_logo  # Panggil fungsi untuk menampilkan logo
+    echo "Silakan pilih opsi:"
+    echo "1.  Instal Node"
+    echo "2.  Lihat Log"
+    echo "3.  Lihat Detail Akun"
+    echo "0.  Keluar"
+    echo -n "Masukkan pilihan Anda [0-3]: "
     read -r choice
 }
 
-# Main loop
+# Loop utama
 while true; do
     install_docker
     install_docker_compose
@@ -160,7 +162,7 @@ while true; do
         1) install_node ;;
         2) view_logs ;;
         3) display_account ;;
-        0) echo "Exiting..."; exit 0 ;;
-        *) echo "Invalid input. Please try again."; read -p "Press Enter to continue..." ;;
+        0) echo "Keluar..."; exit 0 ;;
+        *) echo "Input tidak valid. Silakan coba lagi."; read -p "Tekan Enter untuk melanjutkan..." ;;
     esac
 done
