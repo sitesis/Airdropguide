@@ -1,174 +1,97 @@
 #!/bin/bash
 
-# Kode warna ANSI
-YELLOW='\033[1;33m'
-BLUE='\033[1;34m'
-GREEN='\033[1;32m'
-UNDERLINE_YELLOW='\033[1;4;33m'
-NC='\033[0m' # Tanpa Warna
+curl -s https://raw.githubusercontent.com/choir94/Airdropguide/refs/heads/main/logo.sh | bash
+sleep 5
 
-# Fungsi untuk menampilkan logo
-display_logo() {
-    echo -e "${YELLOW}
-           _         _                   _   _           _      
-     /\   (_)       | |                 | \ | |         | |     
-    /  \   _ _ __ __| |_ __ ___  _ __   |  \| | ___   __| | ___ 
-   / /\ \ | | '__/ _\` | '__/ _ \| '_ \  | . \` |/ _ \ / _\` |/ _ \\
-  / ____ \| | | | (_| | | | (_) | |_) | | |\  | (_) | (_| |  __/
- /_/    \_\_|_|  \__,_|_|  \___/| .__/  |_| \_|\___/ \__,_|\___|
-                                | |                             
-                                |_|                             
-${BLUE}
-               Bergabunglah dengan Airdrop Node Sekarang!${GREEN}
-        ──────────────────────────────────────
-        🚀 Grup Telegram: ${UNDERLINE_YELLOW}https://t.me/airdrop_node${NC}
-        ──────────────────────────────────────"
+# ANSI escape codes for colors
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
+# Logging function
+log() {
+    echo -e "${YELLOW}[$(date +'%Y-%m-%d %H:%M:%S')] $1${NC}" >> setup_log.txt
 }
 
-# Mengaktifkan penanganan kesalahan
-set -e
-
-# Fungsi untuk menginstal Docker jika belum ada
+# Check and install Docker if not installed
 install_docker() {
     if ! command -v docker &> /dev/null; then
-        echo "Docker tidak ditemukan. Menginstal Docker..."
+        log "Docker tidak ditemukan. Menginstal Docker..."
         sudo apt update
-        sudo apt install -y docker.io
+        sudo apt install -y docker.io || { log "Gagal menginstal Docker"; exit 1; }
         sudo systemctl start docker
         sudo systemctl enable docker
-        echo "Docker telah diinstal dan berjalan."
+        log "Docker sudah diinstal dan dijalankan."
     else
-        echo "Docker sudah terinstal."
+        log "Docker sudah terinstal."
     fi
 }
 
-# Fungsi untuk menginstal Docker Compose jika belum ada
+# Check and install Docker Compose if not installed
 install_docker_compose() {
     if ! command -v docker-compose &> /dev/null; then
-        echo "Docker Compose tidak ditemukan. Menginstal Docker Compose..."
-        sudo curl -L "https://github.com/docker/compose/releases/download/v2.20.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-        sudo chmod +x /usr/local/bin/docker-compose
-        echo "Docker Compose telah diinstal."
+        log "Docker Compose tidak ditemukan. Menginstal Docker Compose..."
+        sudo curl -L "https://github.com/docker/compose/releases/download/v2.20.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose || { log "Gagal mendownload Docker Compose"; exit 1; }
+        sudo chmod +x /usr/local/bin/docker-compose || { log "Gagal mengatur izin untuk Docker Compose"; exit 1; }
+        log "Docker Compose sudah diinstal."
     else
-        echo "Docker Compose sudah terinstal."
+        log "Docker Compose sudah terinstal."
     fi
 }
 
-# Fungsi untuk menginstal node
-install_node() {
-    echo "Untuk melanjutkan, silakan daftar menggunakan tautan berikut:"
-    echo -e "${YELLOW}https://app.getgrass.io/register/?referralCode=2G4AzIQX87ObykI${NC}"
-    read -p "Apakah Anda sudah menyelesaikan pendaftaran? (y/n): " registered
+# Function to set up and run the grass node
+setup_grass_node() {
+    # Set up working directory
+    DIRECTORY="grass_node_directory"
+    mkdir -p "$DIRECTORY"
+    cd "$DIRECTORY" || { log "Gagal mengakses direktori $DIRECTORY"; exit 1; }
 
-    if [[ ! "$registered" =~ ^[yY]$ ]]; then
-        echo "Silakan selesaikan pendaftaran dan gunakan kode referal airdropnode untuk melanjutkan."
-        return
-    fi
-
-    # Minta direktori untuk menyimpan docker-compose.yml
-    read -p "Masukkan direktori untuk menyimpan docker-compose.yml (default: $HOME/grass_data): " save_directory
-    save_directory=${save_directory:-$HOME/grass_data} # Gunakan default jika kosong
-
-    # Buat direktori jika belum ada
-    mkdir -p "$save_directory"
-
-    # Minta kredensial pengguna
+    # Prompt for credentials
     read -p "Masukkan email Anda: " USER_EMAIL
     read -sp "Masukkan kata sandi Anda: " USER_PASSWORD
     echo
 
-    # Minta input untuk proxy IP dan port
-    PROXY_LIST=()
-    while true; do
-        read -p "Masukkan PROXY IP:PORT (SOCKS5) atau tekan Enter untuk selesai: " PROXY
-        if [ -z "$PROXY" ]; then
-            break
+    # Prompt for proxy input
+    echo "Masukkan static proxy IP:PORT (HTTP) jika ada, pisahkan dengan spasi untuk lebih dari satu, tekan Enter untuk melewati:"
+    read -r PROXY_INPUT
+
+    # Create array from proxy input
+    PROXIES=($PROXY_INPUT)
+
+    # Create environment string for proxy
+    PROXY_ENV=""
+    for PROXY in "${PROXIES[@]}"; do
+        if [ -n "$PROXY" ]; then
+            PROXY_ENV+="PROXY=${PROXY} "
         fi
-        PROXY_LIST+=("$PROXY")
     done
 
-    # Simpan proxy ke file proxy.txt
-    if [ ${#PROXY_LIST[@]} -gt 0 ]; then
-        printf "%s\n" "${PROXY_LIST[@]}" > "$save_directory/proxy.txt"
-        echo "Daftar proxy disimpan ke $save_directory/proxy.txt"
-    fi
-
-    # Format proxy untuk docker-compose.yml
-    PROXY_CONFIG=""
-    if [ ${#PROXY_LIST[@]} -gt 0 ]; then
-        PROXY_CONFIG="      - PROXY=${PROXY_LIST[*]}"
-    fi
-
-    # Buat file docker-compose.yml dengan kredensial pengguna
-    cat <<EOF > "$save_directory/docker-compose.yml"
+    # Create docker-compose.yml file
+    cat <<EOL > docker-compose.yml
 version: "3.9"
 services:
-  grass:
-    container_name: grass
+  grass-node:
+    container_name: grass-node
     hostname: my_device
-    image: airdropnode/grass
+    image: mrcolorrain/grass-node
     environment:
-      - GRASS_USER=${USER_EMAIL}
-      - GRASS_PASS=${USER_PASSWORD}
-      $PROXY_CONFIG
-    restart: unless-stopped
-EOF
+      USER_EMAIL: "$USER_EMAIL"
+      USER_PASSWORD: "$USER_PASSWORD"
+      $(echo $PROXY_ENV | xargs)  # Include proxy variables
+    ports:
+      - "5900:5900"
+      - "6080:6080"
+EOL
 
-    # Menjalankan Docker Compose
-    echo "Menjalankan Docker Compose di direktori: $save_directory"
-    (cd "$save_directory" && docker-compose up -d)
+    # Run Docker Compose
+    docker-compose up -d || { log "Gagal menjalankan Docker Compose"; exit 1; }
+    log "Node berhasil diinstal dan dijalankan."
 
-    echo "Node telah berhasil diinstal. Periksa log untuk memastikan otentikasi."
+    # Show specific logs from grass node
+    log "Menampilkan log spesifik dari node grass..."
+    docker-compose logs grass-node
 }
 
-# Fungsi untuk melihat log
-view_logs() {
-    # Dapatkan ID kontainer dari nama kontainer
-    CONTAINER_ID=$(docker ps -q -f "name=grass")
-    if [[ -z "$CONTAINER_ID" ]]; then
-        echo "Kontainer 'grass' tidak ditemukan."
-    else
-        echo "Melihat log untuk kontainer ID: $CONTAINER_ID..."
-        docker logs "$CONTAINER_ID"
-    fi
-    echo
-}
-
-# Fungsi untuk menampilkan detail akun
-display_account() {
-    echo "Detail akun saat ini:"
-    echo "Email: ${USER_EMAIL:-Belum Diatur}"
-    echo "Kata Sandi: ${USER_PASSWORD:-Belum Diatur}"
-    if [ ${#PROXY_LIST[@]} -gt 0 ]; then
-        echo "Proxies: ${PROXY_LIST[*]}"
-    else
-        echo "Proxies: Belum Diatur"
-    fi
-}
-
-# Menu utama
-show_menu() {
-    clear
-    display_logo  # Panggil fungsi untuk menampilkan logo
-    echo "Silakan pilih opsi:"
-    echo "1.  Instal Node"
-    echo "2.  Lihat Log"
-    echo "3.  Lihat Detail Akun"
-    echo "0.  Keluar"
-    echo -n "Masukkan pilihan Anda [0-3]: "
-    read -r choice
-}
-
-# Loop utama
-while true; do
-    install_docker
-    install_docker_compose
-    show_menu
-    case $choice in
-        1) install_node ;;
-        2) view_logs ;;
-        3) display_account ;;
-        0) echo "Keluar..."; exit 0 ;;
-        *) echo "Input tidak valid. Silakan coba lagi."; read -p "Tekan Enter untuk melanjutkan..." ;;
-    esac
-done
+# Execute main functions
+install_docker
+install_docker_compose
+setup_grass_node
