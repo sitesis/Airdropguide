@@ -89,14 +89,14 @@ install_node() {
 
     # Simpan proxy ke file proxy.txt
     if [ ${#PROXY_LIST[@]} -gt 0 ]; then
-        echo "${PROXY_LIST[@]}" > "$save_directory/proxy.txt"
+        printf "%s\n" "${PROXY_LIST[@]}" > "$save_directory/proxy.txt"
         echo "Daftar proxy disimpan ke $save_directory/proxy.txt"
     fi
 
     # Format proxy untuk docker-compose.yml
     PROXY_CONFIG=""
     if [ ${#PROXY_LIST[@]} -gt 0 ]; then
-        PROXY_CONFIG="-e PROXY=${PROXY_LIST[*]}"
+        PROXY_CONFIG="      - PROXY=${PROXY_LIST[*]}"
     fi
 
     # Buat file docker-compose.yml dengan kredensial pengguna
@@ -110,11 +110,12 @@ services:
     environment:
       - GRASS_USER=${USER_EMAIL}
       - GRASS_PASS=${USER_PASSWORD}
-      ${PROXY_CONFIG}
+      $PROXY_CONFIG
     restart: unless-stopped
 EOF
 
-    # Jalankan Docker Compose untuk memulai kontainer
+    # Menjalankan Docker Compose
+    echo "Menjalankan Docker Compose di direktori: $save_directory"
     (cd "$save_directory" && docker-compose up -d)
 
     echo "Node telah berhasil diinstal. Periksa log untuk memastikan otentikasi."
