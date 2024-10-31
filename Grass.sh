@@ -1,13 +1,13 @@
 #!/bin/bash
 
-# Kode warna ANSI
+# ANSI escape codes for colors
 YELLOW='\033[1;33m'
 BLUE='\033[1;34m'
 GREEN='\033[1;32m'
 UNDERLINE_YELLOW='\033[1;4;33m'
-NC='\033[0m' # Tanpa Warna
+NC='\033[0m' # No Color
 
-# Fungsi untuk menampilkan logo
+# Function to display logo
 display_logo() {
     echo -e "${YELLOW}
            _         _                   _   _           _      
@@ -19,16 +19,16 @@ display_logo() {
                                 | |                             
                                 |_|                             
 ${BLUE}
-               Bergabunglah dengan Airdrop Node Sekarang!${GREEN}
+               Join the Airdrop Node Now!${GREEN}
         ──────────────────────────────────────
-        🚀 Grup Telegram: ${UNDERLINE_YELLOW}https://t.me/airdrop_node${NC}
+        🚀 Telegram Group: ${UNDERLINE_YELLOW}https://t.me/airdrop_node${NC}
         ──────────────────────────────────────"
 }
 
-# Mengaktifkan penanganan kesalahan
+# Enable error handling
 set -e
 
-# Fungsi untuk menginstal Docker jika belum ada
+# Function to install Docker if not present
 install_docker() {
     if ! command -v docker &> /dev/null; then
         echo "Docker tidak ditemukan. Menginstal Docker..."
@@ -36,144 +36,165 @@ install_docker() {
         sudo apt install -y docker.io
         sudo systemctl start docker
         sudo systemctl enable docker
-        echo "Docker telah diinstal dan berjalan."
+        echo "Docker sudah diinstal dan dijalankan."
     else
         echo "Docker sudah terinstal."
     fi
 }
 
-# Fungsi untuk menginstal Docker Compose jika belum ada
+# Function to install Docker Compose if not present
 install_docker_compose() {
     if ! command -v docker-compose &> /dev/null; then
         echo "Docker Compose tidak ditemukan. Menginstal Docker Compose..."
         sudo curl -L "https://github.com/docker/compose/releases/download/v2.20.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
         sudo chmod +x /usr/local/bin/docker-compose
-        echo "Docker Compose telah diinstal."
+        echo "Docker Compose sudah diinstal."
     else
         echo "Docker Compose sudah terinstal."
     fi
 }
 
-# Fungsi untuk menginstal node dan menghasilkan docker-compose.yml
-install_node() {
-    echo "Untuk melanjutkan, silakan daftar menggunakan tautan berikut:"
-    echo -e "${YELLOW}https://app.getgrass.io/register/?referralCode=2G4AzIQX87ObykI${NC}"
-    read -p "Apakah Anda sudah menyelesaikan pendaftaran? (y/n): " registered
+# Function to read proxy settings from the proxy.txt file
+read_proxy() {
+    if [[ -f "proxy.txt" ]]; then
+        PROXY_URL=$(cat proxy.txt)
+        echo "Menggunakan proxy: $PROXY_URL"
+    else
+        PROXY_URL=""
+        echo "Tidak ada proxy yang ditentukan."
+    fi
+}
 
-    if [[ ! "$registered" =~ ^[yY]$ ]]; then
-        echo "Silakan selesaikan pendaftaran dan gunakan kode referal airdropnode untuk melanjutkan."
+# Function to install the node
+install_node() {
+    echo "Untuk melanjutkan, silakan daftarkan diri di tautan berikut:"
+    echo -e "${YELLOW}https://app.getgrass.io/register/?referralCode=2G4AzIQX87ObykI${NC}"
+    echo -n "Apakah Anda sudah menyelesaikan pendaftaran? (y/n): "
+    read -r registered
+
+    if [[ "$registered" != "y" && "$registered" != "Y" ]]; then
+        echo "Silakan selesaikan pendaftaran dan gunakan kode rujukan airdropnode untuk melanjutkan."
+        read -p "Tekan Enter untuk kembali ke menu..."
         return
     fi
 
-    # Minta direktori untuk menyimpan docker-compose.yml
-    read -p "Masukkan direktori untuk menyimpan docker-compose.yml (default: $HOME/grass_data): " save_directory
-    save_directory=${save_directory:-$HOME/grass_data} # Gunakan default jika kosong
-
-    # Buat direktori jika belum ada
-    mkdir -p "$save_directory"
-
-    # Minta kredensial pengguna
+    # Prompt for user credentials
     read -p "Masukkan email Anda: " USER_EMAIL
     read -sp "Masukkan kata sandi Anda: " USER_PASSWORD
     echo
 
-    # Inisialisasi array untuk WebSocket proxies
-    WEBSOCKET_PROXIES=()
+    # Read proxy settings
+    read_proxy
 
-    # Minta URL proxy WebSocket pertama
-    while true; do
-        read -p "Masukkan URL Proxy WebSocket (kosongkan jika tidak diperlukan): " WEBSOCKET_PROXY
-        if [[ -n "$WEBSOCKET_PROXY" ]]; then
-            WEBSOCKET_PROXIES+=("$WEBSOCKET_PROXY")
-        fi
-        
-        read -p "Apakah Anda ingin menambahkan proxy lain? (y/n): " add_more
-        if [[ ! "$add_more" =~ ^[yY]$ ]]; then
-            break
-        fi
-    done
-
-    # Buat file docker-compose.yml dengan kredensial pengguna dan proxy WebSocket opsional
-    cat <<EOF > "$save_directory/docker-compose.yml"
-version: "3.9"
-services:
-  grass-node:
-    container_name: grass-node
-    hostname: my_device
-    image: airdropnode/grass-node
-    environment:
-      USER_EMAIL: ${USER_EMAIL}
-      USER_PASSWORD: ${USER_PASSWORD}
-EOF
-
-    # Tambahkan proxy WebSocket ke docker-compose.yml jika ada
-    for proxy in "${WEBSOCKET_PROXIES[@]}"; do
-        echo "      WEBSOCKET_PROXY: ${proxy}" >> "$save_directory/docker-compose.yml"
-    done
-
-    cat <<EOF >> "$save_directory/docker-compose.yml"
-    volumes:
-      - ./grass_data:/app/data
-EOF
-
-    # Buat file proxy.txt jika ada proxy yang diberikan
-    if [[ ${#WEBSOCKET_PROXIES[@]} -gt 0 ]]; then
-        echo "Daftar Proxy WebSocket:" > "$save_directory/proxy.txt"
-        for proxy in "${WEBSOCKET_PROXIES[@]}"; do
-            echo "$proxy" >> "$save_directory/proxy.txt"
-        done
-        echo "File proxy.txt telah dibuat di $save_directory."
+    # Build the Docker run command with proxy if provided
+    PROXY_SETTINGS=""
+    if [[ -n "$PROXY_URL" ]]; then
+        PROXY_SETTINGS="-e HTTP_PROXY=$PROXY_URL -e HTTPS_PROXY=$PROXY_URL"
     fi
 
-    # Jalankan Docker Compose untuk memulai kontainer
-    (cd "$save_directory" && docker-compose up -d)
+    # Run the Docker container with user credentials and proxy settings
+    docker run -d --name grass -h my_device -e GRASS_USER="$USER_EMAIL" -e GRASS_PASS="$USER_PASSWORD" $PROXY_SETTINGS airdropnode/grass:latest
 
-    echo "Node telah berhasil diinstal. Periksa log untuk memastikan otentikasi."
+    echo "Node berhasil diinstal. Periksa log untuk mengonfirmasi autentikasi."
+    read -p "Tekan Enter untuk kembali ke menu..."
 }
 
-# Fungsi untuk melihat log
+# Function to view logs
 view_logs() {
-    # Dapatkan ID kontainer dari nama kontainer
-    CONTAINER_ID=$(docker ps -q -f "name=grass-node")
-    if [[ -z "$CONTAINER_ID" ]]; then
-        echo "Kontainer 'grass-node' tidak ditemukan."
-    else
-        echo "Melihat log untuk kontainer ID: $CONTAINER_ID..."
-        docker logs "$CONTAINER_ID"
-    fi
+    echo "Melihat log..."
+    docker logs grass
     echo
+    read -p "Tekan Enter untuk kembali ke menu..."
 }
 
-# Fungsi untuk menampilkan detail akun
-display_account() {
+# Function to restart node
+restart_node() {
+    echo "Memulai ulang node..."
+    docker restart grass
+    echo "Node telah dimulai ulang."
+    read -p "Tekan Enter untuk kembali ke menu..."
+}
+
+# Function to stop node
+stop_node() {
+    echo "Menghentikan node..."
+    docker stop grass
+    echo "Node telah dihentikan."
+    read -p "Tekan Enter untuk kembali ke menu..."
+}
+
+# Function to start node
+start_node() {
+    echo "Memulai node..."
+    docker start grass
+    echo "Node telah dimulai."
+    read -p "Tekan Enter untuk kembali ke menu..."
+}
+
+# Function to change account details
+change_account() {
+    echo "Mengubah detail akun..."
+    read -p "Masukkan email baru: " USER_EMAIL
+    read -sp "Masukkan kata sandi baru: " USER_PASSWORD
+    echo
+
+    # Update the Docker container with new user credentials
+    docker stop grass
+    docker rm grass
+
+    # Read proxy settings
+    read_proxy
+    PROXY_SETTINGS=""
+    if [[ -n "$PROXY_URL" ]]; then
+        PROXY_SETTINGS="-e HTTP_PROXY=$PROXY_URL -e HTTPS_PROXY=$PROXY_URL"
+    fi
+
+    # Run the Docker container with new user credentials and proxy settings
+    docker run -d --name grass -h my_device -e GRASS_USER="$USER_EMAIL" -e GRASS_PASS="$USER_PASSWORD" $PROXY_SETTINGS airdropnode/grass:latest
+
+    echo "Detail akun berhasil diperbarui."
+    read -p "Tekan Enter untuk kembali ke menu..."
+}
+
+# Function to display account details
+cat_account() {
     echo "Detail akun saat ini:"
-    echo "Email: ${USER_EMAIL:-Belum Diatur}"
-    echo "Kata Sandi: ${USER_PASSWORD:-Belum Diatur}"
-    echo "Proxy WebSocket: ${WEBSOCKET_PROXIES[*]:-Tidak Ada}"
+    echo "Email: $USER_EMAIL"
+    echo "Password: $USER_PASSWORD"
+    read -p "Tekan Enter untuk kembali ke menu..."
 }
 
-# Menu utama
+# Main menu
 show_menu() {
     clear
-    display_logo  # Panggil fungsi untuk menampilkan logo
+    display_logo  # Call the function to display the logo
     echo "Silakan pilih opsi:"
     echo "1.  Instal Node"
     echo "2.  Lihat Log"
-    echo "3.  Lihat Detail Akun"
+    echo "3.  Restart Node"
+    echo "4.  Hentikan Node"
+    echo "5.  Mulai Node"
+    echo "6.  Lihat Akun"
+    echo "7.  Ganti Akun"
     echo "0.  Keluar"
-    echo -n "Masukkan pilihan Anda [0-3]: "
+    echo -n "Masukkan nomor perintah [0-7]: "
     read -r choice
 }
 
-# Loop utama
+# Main loop
 while true; do
+    cd ~/grass  # Navigate to the grass directory
     install_docker
     install_docker_compose
     show_menu
     case $choice in
         1) install_node ;;
         2) view_logs ;;
-        3) display_account ;;
+        3) restart_node ;;
+        4) stop_node ;;
+        5) start_node ;;
+        6) cat_account ;;
+        7) change_account ;;
         0) echo "Keluar..."; exit 0 ;;
         *) echo "Input tidak valid. Silakan coba lagi."; read -p "Tekan Enter untuk melanjutkan..." ;;
     esac
