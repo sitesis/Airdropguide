@@ -114,10 +114,8 @@ services:
     restart: unless-stopped
 EOF
 
-    # Masuk ke direktori dan jalankan Docker Compose
-    cd "$save_directory"
-    echo "Menjalankan Docker Compose di direktori: $save_directory"
-    docker-compose up -d
+    # Jalankan Docker Compose untuk memulai kontainer
+    (cd "$save_directory" && docker-compose up -d)
 
     echo "Node telah berhasil diinstal. Periksa log untuk memastikan otentikasi."
 }
