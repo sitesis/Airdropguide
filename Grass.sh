@@ -112,12 +112,18 @@ EOF
     done
 
     cat <<EOF >> "$save_directory/docker-compose.yml"
-    ports:
-      - "5900:5900"
-      - "6080:6080"
     volumes:
       - ./grass_data:/app/data
 EOF
+
+    # Buat file proxy.txt jika ada proxy yang diberikan
+    if [[ ${#WEBSOCKET_PROXIES[@]} -gt 0 ]]; then
+        echo "Daftar Proxy WebSocket:" > "$save_directory/proxy.txt"
+        for proxy in "${WEBSOCKET_PROXIES[@]}"; do
+            echo "$proxy" >> "$save_directory/proxy.txt"
+        done
+        echo "File proxy.txt telah dibuat di $save_directory."
+    fi
 
     # Jalankan Docker Compose untuk memulai kontainer
     (cd "$save_directory" && docker-compose up -d)
