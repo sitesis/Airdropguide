@@ -127,8 +127,14 @@ EOF
 
 # Fungsi untuk melihat log
 view_logs() {
-    echo "Melihat log untuk kontainer grass-node..."
-    docker logs grass-node
+    # Dapatkan ID kontainer dari nama kontainer
+    CONTAINER_ID=$(docker ps -q -f "name=grass-node")
+    if [[ -z "$CONTAINER_ID" ]]; then
+        echo "Kontainer 'grass-node' tidak ditemukan."
+    else
+        echo "Melihat log untuk kontainer ID: $CONTAINER_ID..."
+        docker logs "$CONTAINER_ID"
+    fi
     echo
 }
 
