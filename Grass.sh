@@ -39,17 +39,25 @@ install_docker_compose() {
     fi
 }
 
-# Clone the grass repository
+# Clone the grass repository and enter it
 clone_grass_repo() {
     log "Mengkloning repositori grass..."
     git clone https://github.com/MsLolita/grass.git || { log "Gagal mengkloning repositori"; exit 1; }
-    log "Repositori berhasil dikloning."
+
+    # Check if the 'grass' directory exists and enter it
+    if [ -d "grass" ]; then
+        cd grass || { log "Gagal masuk ke direktori grass setelah kloning"; exit 1; }
+        log "Berhasil masuk ke direktori grass."
+    else
+        log "Direktori grass tidak ditemukan setelah kloning."
+        exit 1
+    fi
 }
 
 # Update accounts.txt with email and password
 update_accounts() {
-    cd grass || { log "Gagal mengakses direktori grass"; exit 1; }
-    cd data || { log "Gagal mengakses direktori grass/data"; exit 1; }
+    # Ensure we are in the grass directory, then enter data
+    cd grass/data || { log "Gagal mengakses direktori grass/data"; exit 1; }
 
     # Clear accounts.txt and write new email and password
     echo "Masukkan email Anda: "
@@ -63,8 +71,8 @@ update_accounts() {
 
 # Update proxies.txt with static proxy
 update_proxies() {
-    cd grass || { log "Gagal mengakses direktori grass"; exit 1; }
-    cd data || { log "Gagal mengakses direktori grass/data"; exit 1; }
+    # Ensure we are in the grass directory, then enter data
+    cd grass/data || { log "Gagal mengakses direktori grass/data"; exit 1; }
 
     # Clear proxies.txt and write new proxy
     echo "Masukkan static proxy IP:PORT: "
@@ -147,8 +155,7 @@ update_accounts
 update_proxies
 update_main_py
 
-# Navigate to grass directory and run Docker Compose
-cd grass || { log "Gagal masuk ke direktori grass"; exit 1; }
+# Run Docker Compose
 docker-compose up -d || { log "Gagal menjalankan Docker Compose"; exit 1; }
 log "Docker Compose berhasil dijalankan."
 
