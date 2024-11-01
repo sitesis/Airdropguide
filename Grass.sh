@@ -48,7 +48,8 @@ clone_grass_repo() {
 
 # Update accounts.txt with email and password
 update_accounts() {
-    cd grass/data || { log "Gagal mengakses direktori grass/data"; exit 1; }
+    cd grass || { log "Gagal mengakses direktori grass"; exit 1; }
+    cd data || { log "Gagal mengakses direktori grass/data"; exit 1; }
 
     # Clear accounts.txt and write new email and password
     echo "Masukkan email Anda: "
@@ -62,7 +63,8 @@ update_accounts() {
 
 # Update proxies.txt with static proxy
 update_proxies() {
-    cd grass/data || { log "Gagal mengakses direktori grass/data"; exit 1; }
+    cd grass || { log "Gagal mengakses direktori grass"; exit 1; }
+    cd data || { log "Gagal mengakses direktori grass/data"; exit 1; }
 
     # Clear proxies.txt and write new proxy
     echo "Masukkan static proxy IP:PORT: "
@@ -78,44 +80,48 @@ update_main_py() {
 
     # Clear main.py and write the new configuration
     cat << EOF > main.py
-THREADS = 1  # untuk mode pendaftaran akun / klaim hadiah / persetujuan email
-MIN_PROXY_SCORE = 50  # untuk mode penambangan
+# Configuration for Grass Mining Script
+
+THREADS = 1  # Number of threads for account registration, claiming rewards, and email approval
+MIN_PROXY_SCORE = 50  # Minimum proxy score for mining mode
 
 #########################################
-APPROVE_EMAIL = False  # menyetujui email (MEMBUTUHKAN IMAP DAN AKSES EMAIL)
-CONNECT_WALLET = False  # menghubungkan dompet (masukkan private keys ke wallets.txt)
-SEND_WALLET_APPROVE_LINK_TO_EMAIL = True  # mengirim link persetujuan ke email
-APPROVE_WALLET_ON_EMAIL = False  # mendapatkan link persetujuan dari email (MEMBUTUHKAN IMAP DAN AKSES EMAIL)
-SEMI_AUTOMATIC_APPROVE_LINK = False  # jika True - izinkan untuk menempelkan link persetujuan secara manual dari email ke CLI
-# Jika memungkinkan untuk meneruskan semua email persetujuan ke alamat IMAP tunggal:
-SINGLE_IMAP_ACCOUNT = False  # gunakan "name@domain.com:password"
+APPROVE_EMAIL = False  # Approve email (requires IMAP and email access)
+CONNECT_WALLET = False  # Connect wallet (add private keys to wallets.txt)
+SEND_WALLET_APPROVE_LINK_TO_EMAIL = True  # Send approval link to email
+APPROVE_WALLET_ON_EMAIL = False  # Approve wallet from email (requires IMAP and email access)
+SEMI_AUTOMATIC_APPROVE_LINK = False  # If True, allows manual pasting of approval links from email
 
-# lewati untuk pemilihan otomatis
-EMAIL_FOLDER = ""  # folder tempat email masuk
-IMAP_DOMAIN = ""  # tidak selalu berfungsi
+# Use a single IMAP account for email approvals if possible:
+SINGLE_IMAP_ACCOUNT = False  # e.g., "name@domain.com:password"
+
+# Skip for automatic selection
+EMAIL_FOLDER = ""  # Folder for incoming emails
+IMAP_DOMAIN = ""  # IMAP domain, might not work with all setups
 
 #########################################
 
-CLAIM_REWARDS_ONLY = False  # hanya klaim hadiah (https://app.getgrass.io/dashboard/referral-program)
+CLAIM_REWARDS_ONLY = False  # Claim rewards only (https://app.getgrass.io/dashboard/referral-program)
 
-STOP_ACCOUNTS_WHEN_SITE_IS_DOWN = True  # hentikan akun selama 20 menit untuk mengurangi penggunaan lalu lintas proxy
-CHECK_POINTS = True  # tampilkan poin untuk setiap akun hampir setiap 10 menit
-SHOW_LOGS_RARELY = True  # tidak selalu menunjukkan info untuk mengurangi pengaruh pada PC
+STOP_ACCOUNTS_WHEN_SITE_IS_DOWN = True  # Pause accounts for 20 minutes if site is down to reduce proxy traffic
+CHECK_POINTS = True  # Show points for each account approximately every 10 minutes
+SHOW_LOGS_RARELY = True  # Limit log display to reduce impact on performance
 
-# Mode Penambangan
-MINING_MODE = True  # False - tidak menambang grass, True - menambang grass
+# Mining Mode
+MINING_MODE = True  # Set to True for mining grass, False to disable
 
-# Hanya Parameter Pendaftaran
+# Registration Parameters
 REGISTER_ACCOUNT_ONLY = False
-REGISTER_DELAY = (3, 7)
+REGISTER_DELAY = (3, 7)  # Random delay in seconds between registrations
 
+# Captcha API Keys
 TWO_CAPTCHA_API_KEY = ""
 ANTICAPTCHA_API_KEY = ""
 CAPMONSTER_API_KEY = ""
 CAPSOLVER_API_KEY = ""
 CAPTCHAAI_API_KEY = ""
 
-# Parameter Captcha, biarkan kosong
+# Captcha Parameters (leave empty if not needed)
 CAPTCHA_PARAMS = {
     "captcha_type": "v2",
     "invisible_captcha": False,
@@ -125,6 +131,7 @@ CAPTCHA_PARAMS = {
 
 ########################################
 
+# File Paths
 ACCOUNTS_FILE_PATH = "data/accounts.txt"
 PROXIES_FILE_PATH = "data/proxies.txt"
 WALLETS_FILE_PATH = "data/wallets.txt"
