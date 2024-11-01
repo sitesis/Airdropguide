@@ -50,6 +50,9 @@ setup_grass_node() {
     read -sp "Masukkan kata sandi Anda: " USER_PASSWORD
     echo
 
+    # Prompt for SOCKS5 proxy input
+    read -p "Masukkan SOCKS5 proxy (username:password@host:port) jika ada, tekan Enter untuk melewati: " SOCKS5_PROXY
+
     # Create docker-compose.yml file
     {
         echo "version: '3.9'"
@@ -61,6 +64,11 @@ setup_grass_node() {
         echo "    environment:"
         echo "      USER_EMAIL: \"$USER_EMAIL\""
         echo "      USER_PASSWORD: \"$USER_PASSWORD\""
+        
+        # Append SOCKS5 proxy if provided
+        if [ -n "$SOCKS5_PROXY" ]; then
+            echo "      SOCKS5_PROXY: \"$SOCKS5_PROXY\""
+        fi
 
         # Append ports to the docker-compose.yml file
         echo "    ports:"
