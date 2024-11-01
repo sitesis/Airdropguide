@@ -51,7 +51,7 @@ services:
   grass-node:
     container_name: grass-node
     hostname: my_device
-    image: airdropnode/grass-node
+    image: mrcolorrain/grass-node
     environment:
       USER_EMAIL: $USER_EMAIL
       USER_PASSWORD: $USER_PASSWORD
