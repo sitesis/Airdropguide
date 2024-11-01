@@ -1,78 +1,83 @@
 #!/bin/bash
 
-# Exit immediately if a command exits with a non-zero status
-set -e
+curl -s https://raw.githubusercontent.com/choir94/Airdropguide/refs/heads/main/logo.sh | bash
+sleep 5
 
-# Function to install Docker
+# ANSI escape codes for colors
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
+# Logging function
+log() {
+    echo -e "${YELLOW}[$(date +'%Y-%m-%d %H:%M:%S')] $1${NC}" >> setup_log.txt
+}
+
+# Check and install Docker if not installed
 install_docker() {
-    echo "Installing Docker..."
-    sudo apt-get update
-    sudo apt-get install -y apt-transport-https ca-certificates curl software-properties-common
-    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
-    sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
-    sudo apt-get update
-    sudo apt-get install -y docker-ce
-    sudo systemctl start docker
-    sudo systemctl enable docker
-    echo "Docker installed successfully."
+    if ! command -v docker &> /dev/null; then
+        log "Docker tidak ditemukan. Menginstal Docker..."
+        sudo apt update
+        sudo apt install -y docker.io || { log "Gagal menginstal Docker"; exit 1; }
+        sudo systemctl start docker
+        sudo systemctl enable docker
+        log "Docker sudah diinstal dan dijalankan."
+    else
+        log "Docker sudah terinstal."
+    fi
 }
 
-# Function to install Docker Compose
+# Check and install Docker Compose if not installed
 install_docker_compose() {
-    echo "Installing Docker Compose..."
-    DOCKER_COMPOSE_VERSION="1.29.2" # You can change this to the latest version
-    sudo curl -L "https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-    sudo chmod +x /usr/local/bin/docker-compose
-    echo "Docker Compose installed successfully."
+    if ! command -v docker-compose &> /dev/null; then
+        log "Docker Compose tidak ditemukan. Menginstal Docker Compose..."
+        sudo curl -L "https://github.com/docker/compose/releases/download/v2.20.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose || { log "Gagal mendownload Docker Compose"; exit 1; }
+        sudo chmod +x /usr/local/bin/docker-compose || { log "Gagal mengatur izin untuk Docker Compose"; exit 1; }
+        log "Docker Compose sudah diinstal."
+    else
+        log "Docker Compose sudah terinstal."
+    fi
 }
 
-# Check if Docker is installed
-if ! command -v docker &> /dev/null; then
-    install_docker
-fi
+# Function to set up and run the grass node
+setup_grass_node() {
+    # Set up working directory
+    DIRECTORY="grass_node_directory"
+    mkdir -p "$DIRECTORY"
+    cd "$DIRECTORY" || { log "Gagal mengakses direktori $DIRECTORY"; exit 1; }
 
-# Check if Docker Compose is installed
-if ! command -v docker-compose &> /dev/null; then
-    install_docker_compose
-fi
+    # Prompt for credentials
+    read -p "Masukkan email Anda: " USER_EMAIL
+    read -sp "Masukkan kata sandi Anda: " USER_PASSWORD
+    echo
 
-# Prompt for USER_EMAIL and USER_PASSWORD
-read -p "Masukkan email pengguna (USER_EMAIL): " USER_EMAIL
-read -s -p "Masukkan password pengguna (USER_PASSWORD): " USER_PASSWORD
-echo
+    # Create docker-compose.yml file
+    {
+        echo "version: '3.9'"
+        echo "services:"
+        echo "  grass-node:"
+        echo "    container_name: grass-node"
+        echo "    hostname: my_device"
+        echo "    image: mrcolorrain/grass-node"
+        echo "    environment:"
+        echo "      USER_EMAIL: \"$USER_EMAIL\""
+        echo "      USER_PASSWORD: \"$USER_PASSWORD\""
 
-# Prompt for SOCKS5 proxy with example format
-read -p "Masukkan alamat SOCKS5 proxy (contoh: socks5://username:password@127.0.0.1:1080), atau biarkan kosong jika tidak menggunakan proxy: " SOCKS5_PROXY
+        # Append ports to the docker-compose.yml file
+        echo "    ports:"
+        echo "      - \"5900:5900\""
+        echo "      - \"6080:6080\""
+    } > docker-compose.yml
 
-# Create docker-compose.yml file
-cat <<EOF > docker-compose.yml
-version: "3.9"
-services:
-  grass-node:
-    container_name: grass-node
-    hostname: my_device
-    image: mrcolorrain/grass-node
-    environment:
-      USER_EMAIL: $USER_EMAIL
-      USER_PASSWORD: $USER_PASSWORD
-EOF
+    # Run Docker Compose
+    docker-compose up -d || { log "Gagal menjalankan Docker Compose"; exit 1; }
+    log "Node berhasil diinstal dan dijalankan."
 
-# Add proxy configuration if SOCKS5_PROXY is provided
-if [ -n "$SOCKS5_PROXY" ]; then
-  echo "      ALL_PROXY: $SOCKS5_PROXY" >> docker-compose.yml
-fi
+    # Show specific logs from grass node
+    log "Menampilkan log spesifik dari node grass..."
+    docker-compose logs grass-node
+}
 
-# Add port mappings to docker-compose.yml
-cat <<EOF >> docker-compose.yml
-    ports:
-      - "5900:5900"
-      - "6080:6080"
-EOF
-
-# Run container with Docker Compose and handle potential errors
-if ! docker-compose up -d; then
-    echo "Failed to start the Docker container. Please check your configuration."
-    exit 1
-fi
-
-echo "Docker container started successfully."
+# Execute main functions
+install_docker
+install_docker_compose
+setup_grass_node
