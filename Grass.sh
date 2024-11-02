@@ -10,95 +10,159 @@ NC='\033[0m' # No Color
 
 # Logging function
 log() {
-    echo -e "${YELLOW}[$(date +'%Y-%m-%d %H:%M:%S')] $1${NC}" | tee -a grass/setup_log.txt
+    echo -e "${YELLOW}[$(date +'%Y-%m-%d %H:%M:%S')] $1${NC}" >> setup_log.txt
 }
 
-# Check for root privileges
-if [ "$EUID" -ne 0 ]; then
-    echo "Please run as root (sudo)." 
+# Ensure data directory exists
+mkdir -p data
+
+# Check and install Docker if not installed
+install_docker() {
+    if ! command -v docker &> /dev/null; then
+        log "Docker tidak ditemukan. Menginstal Docker..."
+        if sudo apt update && sudo apt install -y docker.io; then
+            sudo systemctl start docker
+            sudo systemctl enable docker
+            log "Docker sudah diinstal dan dijalankan."
+        else
+            log "Gagal menginstal Docker."
+            exit 1
+        fi
+    else
+        log "Docker sudah terinstal."
+    fi
+}
+
+# Check and install Docker Compose if not installed
+install_docker_compose() {
+    DOCKER_COMPOSE_VERSION="v2.20.2"
+    if ! command -v docker-compose &> /dev/null; then
+        log "Docker Compose tidak ditemukan. Menginstal Docker Compose..."
+        if sudo curl -L "https://github.com/docker/compose/releases/download/$DOCKER_COMPOSE_VERSION/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose; then
+            sudo chmod +x /usr/local/bin/docker-compose
+            log "Docker Compose sudah diinstal."
+        else
+            log "Gagal mendownload Docker Compose."
+            exit 1
+        fi
+    else
+        log "Docker Compose sudah terinstal."
+    fi
+}
+
+# Function to validate email format
+is_valid_email() {
+    [[ "$1" =~ ^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$ ]]
+}
+
+# Function to create or replace accounts.txt
+create_accounts_file() {
+    echo "Masukkan email dan password dalam format email:password"
+    while true; do
+        read -p "Email: " email
+        if is_valid_email "$email"; then
+            read -sp "Password: " password
+            echo "$email:$password" > data/accounts.txt
+            echo ""  # For newline after password input
+            log "File accounts.txt telah diperbarui."
+            break
+        else
+            log "Format email tidak valid. Silakan coba lagi."
+        fi
+    done
+}
+
+# Function to create or replace proxies.txt
+create_proxies_file() {
+    echo "Masukkan proxy dalam format proxy:port"
+    while true; do
+        read -p "Masukkan proxy (atau ketik 'selesai' untuk mengakhiri): " proxy
+        if [[ "$proxy" == "selesai" ]]; then
+            break
+        fi
+        echo "$proxy" >> data/proxies.txt
+    done
+    log "File proxies.txt telah diperbarui."
+}
+
+# Function to update config.py
+update_config_file() {
+    cat <<EOF > data/config.py
+THREADS = 1
+MIN_PROXY_SCORE = 50
+
+APPROVE_EMAIL = False
+CONNECT_WALLET = False
+SEND_WALLET_APPROVE_LINK_TO_EMAIL = False
+APPROVE_WALLET_ON_EMAIL = False
+SEMI_AUTOMATIC_APPROVE_LINK = False
+SINGLE_IMAP_ACCOUNT = False
+
+EMAIL_FOLDER = ""
+IMAP_DOMAIN = ""
+
+CLAIM_REWARDS_ONLY = False
+STOP_ACCOUNTS_WHEN_SITE_IS_DOWN = True
+CHECK_POINTS = False
+SHOW_LOGS_RARELY = False
+
+MINING_MODE = True
+
+REGISTER_ACCOUNT_ONLY = False
+REGISTER_DELAY = (3, 7)
+
+TWO_CAPTCHA_API_KEY = ""
+ANTICAPTCHA_API_KEY = ""
+CAPMONSTER_API_KEY = ""
+CAPSOLVER_API_KEY = ""
+CAPTCHAAI_API_KEY = ""
+
+CAPTCHA_PARAMS = {
+    "captcha_type": "v2",
+    "invisible_captcha": False,
+    "sitekey": "6LeeT-0pAAAAAFJ5JnCpNcbYCBcAerNHlkK4nm6y",
+    "captcha_url": "https://app.getgrass.io/register"
+}
+
+ACCOUNTS_FILE_PATH = "data/accounts.txt"
+PROXIES_FILE_PATH = "data/proxies.txt"
+WALLETS_FILE_PATH = "data/wallets.txt"
+EOF
+    log "File config.py telah diperbarui."
+}
+
+# Run installation functions
+install_docker
+install_docker_compose
+
+# Clone the repository
+REPO_URL="https://github.com/MsLolita/grass.git"
+if output=$(git clone "$REPO_URL" 2>&1); then
+    log "Repository berhasil dikloning."
+else
+    log "Gagal mengkloning repository: $output"
     exit 1
 fi
 
-# Create grass directory
-mkdir -p grass
-cd grass || { echo "Failed to enter the grass directory"; exit 1; }
+# Navigate to the grass directory
+if cd grass; then
+    # Create or update accounts.txt and proxies.txt
+    create_accounts_file
+    create_proxies_file
 
-# Main installation function
-install_dependencies() {
-    log "Checking and installing dependencies..."
+    # Update config.py
+    update_config_file
 
-    # Check if Docker is installed
-    if ! command -v docker &> /dev/null; then
-        log "Docker is not installed. Installing Docker..."
-        curl -sSL -k https://get.docker.com | sh || { log "Failed to install Docker"; exit 1; }
-        sudo systemctl start docker
-        sudo systemctl enable docker
-        log "Docker installed and started successfully."
+    # Start Docker containers and build the application
+    if docker-compose up -d && docker build -t grass-app . && docker run grass-app; then
+        log "Aplikasi berhasil dibangun dan dijalankan."
     else
-        log "Docker is already installed."
+        log "Gagal membangun atau menjalankan aplikasi."
+        exit 1
     fi
+else
+    log "Gagal masuk ke direktori grass."
+    exit 1
+fi
 
-    # Install Docker Compose
-    if ! command -v docker-compose &> /dev/null; then
-        log "Installing Docker Compose..."
-        curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose || { log "Failed to download Docker Compose"; exit 1; }
-        chmod +x /usr/local/bin/docker-compose || { log "Failed to set permissions for Docker Compose"; exit 1; }
-        log "Docker Compose installed successfully."
-    else
-        log "Docker Compose is already installed."
-    fi
-}
-
-# Create docker-compose.yml file
-create_docker_compose() {
-    log "Creating docker-compose.yml file..."
-
-    # Prompt for email, password, and proxy
-    read -p "Enter your email: " USER_EMAIL
-    read -sp "Enter your password: " USER_PASSWORD
-    echo  # For a new line after password input
-    read -p "Enter your proxy (format: http://username:password@IP:PORT): " PROXY
-
-    cat <<EOL > docker-compose.yml
-version: "3.9"
-
-services:
-  grass-node:
-    container_name: grass-node
-    hostname: my_device
-    image: mrcolorrain/grass-node
-    environment:
-      USER_EMAIL: $USER_EMAIL  # User-provided email
-      USER_PASSWORD: $USER_PASSWORD  # User-provided password
-      HTTP_PROXY: $PROXY  # User-provided proxy
-      HTTPS_PROXY: $PROXY  # Use the same proxy for HTTPS
-    ports:
-      - "5900:5900"
-      - "6080:6080"
-    restart: unless-stopped  # Automatically restart the container unless it was manually stopped
-    volumes:
-      - grass-node-data:/data  # Persist data in a named volume
-
-volumes:
-  grass-node-data:  # Define a volume for persistent storage
-EOL
-
-    log "docker-compose.yml file created successfully."
-}
-
-# Start the Docker service
-start_services() {
-    log "Checking if grass-node service is already running..."
-    if [ $(docker ps -q -f name=grass-node) ]; then
-        log "grass-node service is already running."
-    else
-        log "Starting the grass-node service..."
-        docker-compose up -d || { log "Failed to start the service"; exit 1; }
-        log "grass-node service started successfully."
-    fi
-}
-
-# Call the installation and setup functions
-install_dependencies
-create_docker_compose
-start_services
+log "Proses instalasi selesai."
