@@ -46,33 +46,24 @@ clone_grass_repo() {
     log "Cloning the grass repository..."
     git clone https://github.com/MsLolita/grass.git || { log "Failed to clone repository"; exit 1; }
     log "Grass repository cloned successfully."
-
-    # Navigate to the grass directory
-    cd grass || { log "Failed to enter grass directory"; exit 1; }
 }
 
-# Update accounts.txt with email and password
-update_accounts() {
-    # Navigate to the data directory
-    cd data || { log "Failed to access grass/data directory"; exit 1; }
+# Update accounts.txt and proxies.txt with user input in the cloned repo
+update_account_and_proxy_files() {
+    # Navigate to the cloned grass repository and data folder
+    cd grass/data || { log "Failed to access grass/data directory"; exit 1; }
 
-    # Clear accounts.txt and write new email and password
+    # Update accounts.txt with email and password
     read -p "Enter your email: " user_email_input
     read -sp "Enter your password: " user_password_input
     echo
     echo "$user_email_input:$user_password_input" > accounts.txt
-    log "accounts.txt updated successfully."
-}
+    log "accounts.txt in grass/data updated successfully."
 
-# Update proxies.txt with static proxy
-update_proxies() {
-    # Navigate to the data directory
-    cd data || { log "Failed to access grass/data directory"; exit 1; }
-
-    # Clear proxies.txt and write new proxy
+    # Update proxies.txt with static proxy
     read -p "Enter static proxy IP:PORT: " static_proxy_input
     echo "$static_proxy_input" > proxies.txt
-    log "proxies.txt updated successfully."
+    log "proxies.txt in grass/data updated successfully."
 }
 
 # Run Docker Compose
@@ -86,8 +77,7 @@ start_container() {
 check_docker || install_docker
 install_docker_compose
 clone_grass_repo
-update_accounts
-update_proxies
+update_account_and_proxy_files
 start_container
 
 log "Setup completed."
