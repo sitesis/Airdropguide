@@ -46,43 +46,58 @@ clone_grass_repo() {
     log "Repositori berhasil dikloning."
 }
 
-# Create data directory if it doesn't exist
-create_data_directory() {
-    mkdir -p grass/data
-    log "Direktori grass/data berhasil dibuat (jika belum ada)."
+# Navigate to grass directory
+navigate_to_grass() {
+    cd grass || { log "Gagal masuk ke direktori grass"; exit 1; }
+}
+
+# Validate email format
+validate_email() {
+    [[ $1 =~ ^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$ ]] || { log "Format email tidak valid."; exit 1; }
+}
+
+# Validate proxy format
+validate_proxy() {
+    [[ $1 =~ ^http://[a-zA-Z0-9._%+-]+:[0-9]+$ ]] || { log "Format proxy tidak valid. Gunakan format http://username:password@ip_address:port"; exit 1; }
 }
 
 # Update accounts.txt with email and password
 update_accounts() {
-    cd grass/data || { log "Gagal mengakses direktori grass/data"; exit 1; }
+    # Check if accounts.txt exists and remove it
+    [ -f "data/accounts.txt" ] && rm -f "data/accounts.txt"
 
-    # Clear accounts.txt and write new email and password
     echo "Masukkan email Anda: "
     read -r USER_EMAIL
+    validate_email "$USER_EMAIL"
+
     echo "Masukkan kata sandi Anda: "
     read -r USER_PASSWORD
 
-    echo "$USER_EMAIL:$USER_PASSWORD" > accounts.txt
+    # Create data directory if it doesn't exist
+    mkdir -p data
+
+    echo "$USER_EMAIL:$USER_PASSWORD" > data/accounts.txt
     log "accounts.txt berhasil diperbarui."
 }
 
 # Update proxies.txt with static proxy
 update_proxies() {
-    cd grass/data || { log "Gagal mengakses direktori grass/data"; exit 1; }
+    # Check if proxies.txt exists and remove it
+    [ -f "data/proxies.txt" ] && rm -f "data/proxies.txt"
 
-    # Clear proxies.txt and write new proxy
-    echo "Masukkan static proxy IP:PORT: "
+    echo "Masukkan static proxy (format: http://username:password@ip_address:port): "
     read -r STATIC_PROXY
+    validate_proxy "$STATIC_PROXY"
 
-    echo "$STATIC_PROXY" > proxies.txt
+    # Ensure data directory exists
+    mkdir -p data
+
+    echo "$STATIC_PROXY" > data/proxies.txt
     log "proxies.txt berhasil diperbarui."
 }
 
 # Update main.py with specified content
 update_main_py() {
-    cd grass || { log "Gagal mengakses direktori grass"; exit 1; }
-
-    # Clear main.py and write the new configuration
     cat << EOF > main.py
 THREADS = 1  # untuk mode pendaftaran akun / klaim hadiah / persetujuan email
 MIN_PROXY_SCORE = 50  # untuk mode penambangan
@@ -93,10 +108,8 @@ CONNECT_WALLET = False  # menghubungkan dompet (masukkan private keys ke wallets
 SEND_WALLET_APPROVE_LINK_TO_EMAIL = True  # mengirim link persetujuan ke email
 APPROVE_WALLET_ON_EMAIL = False  # mendapatkan link persetujuan dari email (MEMBUTUHKAN IMAP DAN AKSES EMAIL)
 SEMI_AUTOMATIC_APPROVE_LINK = False  # jika True - izinkan untuk menempelkan link persetujuan secara manual dari email ke CLI
-# Jika memungkinkan untuk meneruskan semua email persetujuan ke alamat IMAP tunggal:
 SINGLE_IMAP_ACCOUNT = False  # gunakan "name@domain.com:password"
 
-# lewati untuk pemilihan otomatis
 EMAIL_FOLDER = ""  # folder tempat email masuk
 IMAP_DOMAIN = ""  # tidak selalu berfungsi
 
@@ -115,11 +128,11 @@ MINING_MODE = True  # False - tidak menambang grass, True - menambang grass
 REGISTER_ACCOUNT_ONLY = False
 REGISTER_DELAY = (3, 7)
 
-TWO_CAPTCHA_API_KEY = ""
-ANTICAPTCHA_API_KEY = ""
-CAPMONSTER_API_KEY = ""
-CAPSOLVER_API_KEY = ""
-CAPTCHAAI_API_KEY = ""
+TWO_CAPTCHA_API_KEY = "${TWO_CAPTCHA_API_KEY:-}"
+ANTICAPTCHA_API_KEY = "${ANTICAPTCHA_API_KEY:-}"
+CAPMONSTER_API_KEY = "${CAPMONSTER_API_KEY:-}"
+CAPSOLVER_API_KEY = "${CAPSOLVER_API_KEY:-}"
+CAPTCHAAI_API_KEY = "${CAPTCHAAI_API_KEY:-}"
 
 # Parameter Captcha, biarkan kosong
 CAPTCHA_PARAMS = {
@@ -142,17 +155,26 @@ EOF
 install_docker
 install_docker_compose
 clone_grass_repo
-create_data_directory
+navigate_to_grass
+
+# Ensure data directory exists
+mkdir -p data
+log "Direktori grass/data berhasil dibuat."
+
 update_accounts
 update_proxies
 update_main_py
 
-# Navigate to grass directory and run Docker Compose
-cd grass || { log "Gagal masuk ke direktori grass"; exit 1; }
+# Run Docker Compose
 docker-compose up -d || { log "Gagal menjalankan Docker Compose"; exit 1; }
 log "Docker Compose berhasil dijalankan."
 
 # Build and run the Docker image
-docker build -t grass-app . || { log "Gagal membangun Docker image"; exit 1; }
-docker run grass-app || { log "Gagal menjalankan Docker"; exit 1; }
-log "Aplikasi grass berhasil dijalankan."
+if [ -f Dockerfile ]; then
+    docker build -t grass-app . || { log "Gagal membangun Docker image"; exit 1; }
+    docker run grass-app || { log "Gagal menjalankan Docker"; exit 1; }
+    log "Aplikasi grass berhasil dijalankan."
+else
+    log "Dockerfile tidak ditemukan. Pastikan Anda berada di direktori yang benar."
+    exit 1
+fi
