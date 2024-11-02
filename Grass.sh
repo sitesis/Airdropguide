@@ -65,11 +65,11 @@ update_account_and_proxy_files() {
     echo "$user_email_input:$user_password_input" > accounts.txt
     log "accounts.txt created and updated successfully in grass/data."
 
-    # Get SOCKS5 proxy input from the user
-    read -p "Enter your SOCKS5 proxy (format: socks5://username:password@IP:PORT): " socks5_proxy_input
+    # Get HTTP proxy input from the user
+    read -p "Enter your HTTP proxy (format: http://username:password@IP:PORT): " http_proxy_input
 
     # Save the input to proxies.txt
-    echo "$socks5_proxy_input" > proxies.txt
+    echo "$http_proxy_input" > proxies.txt
     log "proxies.txt created and updated successfully in grass/data."
 
     # Create new config.py file with specified content
