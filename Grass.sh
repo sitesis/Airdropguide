@@ -10,8 +10,18 @@ NC='\033[0m' # No Color
 
 # Logging function
 log() {
-    echo -e "${YELLOW}[$(date +'%Y-%m-%d %H:%M:%S')] $1${NC}" >> setup_log.txt
+    echo -e "${YELLOW}[$(date +'%Y-%m-%d %H:%M:%S')] $1${NC}" | tee -a grass/setup_log.txt
 }
+
+# Check for root privileges
+if [ "$EUID" -ne 0 ]; then
+    echo "Please run as root (sudo)." 
+    exit 1
+fi
+
+# Create grass directory
+mkdir -p grass
+cd grass || { echo "Failed to enter the grass directory"; exit 1; }
 
 # Main installation function
 install_dependencies() {
@@ -37,117 +47,58 @@ install_dependencies() {
     else
         log "Docker Compose is already installed."
     fi
+}
 
-    # Clone the grass repository
-    if [ ! -d "grass" ]; then
-        log "Cloning the grass repository..."
-        git clone https://github.com/MsLolita/grass.git || { log "Failed to clone repository"; exit 1; }
-        log "Grass repository cloned successfully."
+# Create docker-compose.yml file
+create_docker_compose() {
+    log "Creating docker-compose.yml file..."
+
+    # Prompt for email, password, and proxy
+    read -p "Enter your email: " USER_EMAIL
+    read -sp "Enter your password: " USER_PASSWORD
+    echo  # For a new line after password input
+    read -p "Enter your proxy (format: http://username:password@IP:PORT): " PROXY
+
+    cat <<EOL > docker-compose.yml
+version: "3.9"
+
+services:
+  grass-node:
+    container_name: grass-node
+    hostname: my_device
+    image: mrcolorrain/grass-node
+    environment:
+      USER_EMAIL: $USER_EMAIL  # User-provided email
+      USER_PASSWORD: $USER_PASSWORD  # User-provided password
+      HTTP_PROXY: $PROXY  # User-provided proxy
+      HTTPS_PROXY: $PROXY  # Use the same proxy for HTTPS
+    ports:
+      - "5900:5900"
+      - "6080:6080"
+    restart: unless-stopped  # Automatically restart the container unless it was manually stopped
+    volumes:
+      - grass-node-data:/data  # Persist data in a named volume
+
+volumes:
+  grass-node-data:  # Define a volume for persistent storage
+EOL
+
+    log "docker-compose.yml file created successfully."
+}
+
+# Start the Docker service
+start_services() {
+    log "Checking if grass-node service is already running..."
+    if [ $(docker ps -q -f name=grass-node) ]; then
+        log "grass-node service is already running."
     else
-        log "Grass repository already exists."
+        log "Starting the grass-node service..."
+        docker-compose up -d || { log "Failed to start the service"; exit 1; }
+        log "grass-node service started successfully."
     fi
 }
 
-# Update accounts.txt and proxies.txt with user input
-update_account_and_proxy_files() {
-    # Navigate to the cloned grass repository and data folder
-    cd grass/data || { log "Failed to access grass/data directory"; exit 1; }
-
-    # Remove accounts.txt, proxies.txt, and config.py if they exist
-    rm -f accounts.txt proxies.txt config.py
-
-    # Get email and password from the user
-    read -p "Enter your email: " user_email_input
-    read -sp "Enter your password: " user_password_input
-    echo
-
-    # Save email and password to accounts.txt
-    echo "$user_email_input:$user_password_input" > accounts.txt
-    log "accounts.txt created and updated successfully in grass/data."
-
-    # Get HTTP proxy input from the user
-    read -p "Enter your HTTP proxy (format: http://username:password@IP:PORT): " http_proxy_input
-
-    # Save the input to proxies.txt
-    echo "$http_proxy_input" > proxies.txt
-    log "proxies.txt created and updated successfully in grass/data."
-
-    # Create new config.py file with specified content
-    cat << EOF > config.py
-THREADS = 1  # for register account / claim rewards mode / approve email mode
-MIN_PROXY_SCORE = 50  # for mining mode
-
-#########################################
-APPROVE_EMAIL = False  # approve email (NEEDED IMAP AND ACCESS TO EMAIL)
-CONNECT_WALLET = False  # connect wallet (put private keys in wallets.txt)
-SEND_WALLET_APPROVE_LINK_TO_EMAIL = False  # send approve link to email
-APPROVE_WALLET_ON_EMAIL = False  # get approve link from email (NEEDED IMAP AND ACCESS TO EMAIL)
-SEMI_AUTOMATIC_APPROVE_LINK = False # if True - allow to manual paste approve link from email to cli
-# If you have possibility to forward all approve mails to single IMAP address:
-SINGLE_IMAP_ACCOUNT = False # usage "name@domain.com:password"
-
-# skip for auto chosen
-EMAIL_FOLDER = ""  # folder where mails comes
-IMAP_DOMAIN = ""  # not always works
-
-#########################################
-
-CLAIM_REWARDS_ONLY = False  # claim tiers rewards only (https://app.getgrass.io/dashboard/referral-program)
-
-STOP_ACCOUNTS_WHEN_SITE_IS_DOWN = True  # stop account for 20 minutes, to reduce proxy traffic usage
-CHECK_POINTS = False  # show point for each account every nearly 10 minutes
-SHOW_LOGS_RARELY = False  # not always show info about actions to decrease pc influence
-
-# Mining mode
-MINING_MODE = True  # False - not mine grass, True - mine grass
-
-# REGISTER PARAMETERS ONLY
-REGISTER_ACCOUNT_ONLY = False
-REGISTER_DELAY = (3, 7)
-
-TWO_CAPTCHA_API_KEY = ""
-ANTICAPTCHA_API_KEY = ""
-CAPMONSTER_API_KEY = ""
-CAPSOLVER_API_KEY = ""
-CAPTCHAAI_API_KEY = ""
-
-# Captcha params, left empty
-CAPTCHA_PARAMS = {
-    "captcha_type": "v2",
-    "invisible_captcha": False,
-    "sitekey": "6LeeT-0pAAAAAFJ5JnCpNcbYCBcAerNHlkK4nm6y",
-    "captcha_url": "https://app.getgrass.io/register"
-}
-
-########################################
-
-ACCOUNTS_FILE_PATH = "data/accounts.txt"
-PROXIES_FILE_PATH = "data/proxies.txt"
-WALLETS_FILE_PATH = "data/wallets.txt"
-EOF
-
-    log "config.py created successfully in grass/data."
-}
-
-# Run Docker Compose to start the container
-start_container() {
-    cd .. # Go back to the grass directory
-    docker-compose up -d || { log "Failed to start Docker Compose"; exit 1; }
-    log "Docker container started successfully."
-}
-
-# Display setup logs
-display_logs() {
-    echo -e "${YELLOW}=== Setup Log ===${NC}"
-    cat setup_log.txt
-}
-
-# Execute main functions
+# Call the installation and setup functions
 install_dependencies
-update_account_and_proxy_files
-start_container
-
-log "Setup completed."
-
-# Display the logs after completion
-display_logs
+create_docker_compose
+start_services
