@@ -2,9 +2,6 @@
 
 set -e  # Exit immediately on error
 
-# Redirect output to a log file
-exec > >(tee -i setup.log) 2>&1
-
 # Function to update and upgrade the system
 update_system() {
     echo "Updating and upgrading the system..."
@@ -19,7 +16,7 @@ update_system() {
 # Function to install build tools
 install_build_tools() {
     echo "Installing build tools..."
-    if sudo apt install -qy curl git jq lz4 build-essential screen; then
+    if sudo apt install -qy curl git jq lz4 build-essential; then
         echo "Build tools installed successfully."
     else
         echo "Failed to install build tools."
@@ -67,10 +64,10 @@ install_docker() {
 
 # Function to install Docker Compose if not already installed
 install_docker_compose() {
-    STABLE_COMPOSE_VERSION="v2.10.2"  # Specify a stable version
     if ! command -v docker-compose &> /dev/null; then
         echo "Docker Compose not found. Installing Docker Compose..."
-        if sudo curl -L "https://github.com/docker/compose/releases/download/${STABLE_COMPOSE_VERSION}/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose; then
+        LATEST_COMPOSE_VERSION=$(curl -s https://api.github.com/repos/docker/compose/releases/latest | jq -r .tag_name)
+        if sudo curl -L "https://github.com/docker/compose/releases/download/${LATEST_COMPOSE_VERSION}/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose; then
             sudo chmod +x /usr/local/bin/docker-compose
             echo "Docker Compose installed successfully."
         else
@@ -79,24 +76,6 @@ install_docker_compose() {
         fi
     else
         echo "Docker Compose is already installed. Skipping installation."
-    fi
-}
-
-# Function to install Docker CLI Plugin for Docker Compose if not already installed
-install_docker_cli_plugin() {
-    DOCKER_CONFIG=${DOCKER_CONFIG:-$HOME/.docker}
-    if [ ! -f "$DOCKER_CONFIG/cli-plugins/docker-compose" ]; then
-        echo "Docker CLI plugin for Docker Compose not found. Installing plugin..."
-        mkdir -p "$DOCKER_CONFIG/cli-plugins"
-        if curl -SL "https://github.com/docker/compose/releases/latest/download/docker-compose-linux-x86_64" -o "$DOCKER_CONFIG/cli-plugins/docker-compose"; then
-            chmod +x "$DOCKER_CONFIG/cli-plugins/docker-compose"
-            echo "Docker CLI plugin for Docker Compose installed successfully."
-        else
-            echo "Failed to install Docker CLI plugin for Docker Compose."
-            exit 1
-        fi
-    else
-        echo "Docker CLI plugin for Docker Compose is already installed. Skipping installation."
     fi
 }
 
@@ -123,27 +102,48 @@ clone_repository() {
     echo "Moved into directory: $(pwd)"
 }
 
-# Function to deploy the container using a screen session
-deploy_container() {
-    if screen -list | grep -q "ritual"; then
-        echo "Screen session 'ritual' already exists. Please detach or remove it before proceeding."
-        exit 1
-    fi
+# Function to update configuration files
+update_configurations() {
+    echo "Updating configuration files..."
 
-    echo "Starting screen session named 'ritual' to deploy the container..."
+    # Prompt for the private key securely
+    read -sp "Enter your private key: " PRIVATE_KEY
+    echo
 
-    # Run all commands in a single screen session
-    screen -S ritual -d -m bash -c "
-        echo 'Pulling Docker image ritualnetwork/hello-world-infernet:latest...' &&
-        docker pull ritualnetwork/hello-world-infernet:latest &&
-        echo 'Image pulled successfully.' &&
-        echo 'Deploying the container...' &&
-        project=hello-world make deploy-container &&
-        echo 'Deployment complete. Press Ctrl+A then D to detach from this session.'
-    "
+    # Update the first config.json
+    CONFIG_FILE1=~/infernet-container-starter/deploy/config.json
+    echo "Updating $CONFIG_FILE1..."
+    jq --arg pk "$PRIVATE_KEY" '.RPC_URL = "https://mainnet.base.org/" | .Private_Key = $pk | .Registry = "0xe2F36C4E23D67F81fE0B278E80ee85Cf0ccA3c8d"' "$CONFIG_FILE1" | sponge "$CONFIG_FILE1"
 
-    echo "You can reattach to the screen session using: screen -r ritual"
-    echo "To view the container logs, use: docker logs -f <container_id_or_name>"
+    # Update the second config.json
+    CONFIG_FILE2=~/infernet-container-starter/projects/hello-world/container/config.json
+    echo "Updating $CONFIG_FILE2..."
+    jq --arg pk "$PRIVATE_KEY" '.RPC_URL = "https://mainnet.base.org/" | .Private_Key = $pk | .Registry = "0xe2F36C4E23D67F81fE0B278E80ee85Cf0ccA3c8d" | .trail_head_blocks = 3 | .snapshot_sync.sleep = 3 | .snapshot_sync.starting_sub_id = 160000 | .snapshot_sync.batch_size = 800 | .snapshot_sync.sync_period = 30' "$CONFIG_FILE2" | sponge "$CONFIG_FILE2"
+
+    # Update Deploy.s.sol for node version
+    DEPLOY_FILE=~/infernet-container-starter/projects/hello-world/contracts/script/Deploy.s.sol
+    echo "Updating node version in $DEPLOY_FILE..."
+    sed -i 's/^pragma solidity .*;$/pragma solidity 1.4.0;/' "$DEPLOY_FILE"
+
+    # Update Deploy.s.sol for sender's address
+    echo "Updating sender's address in $DEPLOY_FILE..."
+    sed -i "s/address sender = address(uint160(uint256(keccak256(abi.encodePacked(\"0xYOUR_PRIVATE_KEY\")))))/address sender = \"$PRIVATE_KEY\"/" "$DEPLOY_FILE"
+
+    # Update docker-compose.yaml
+    DOCKER_COMPOSE_FILE=~/infernet-container-starter/deploy/docker-compose.yaml
+    echo "Updating $DOCKER_COMPOSE_FILE..."
+    sed -i 's/image: my-image-name/image: your-new-image-name/' "$DOCKER_COMPOSE_FILE" # Replace with the correct image name
+}
+
+# Function to restart Docker containers
+restart_containers() {
+    echo "Restarting Docker containers..."
+    docker restart infernet-anvil || echo "Failed to restart infernet-anvil"
+    docker restart hello-world || echo "Failed to restart hello-world"
+    docker restart infernet-node || echo "Failed to restart infernet-node"
+    docker restart deploy-fluentbit-1 || echo "Failed to restart deploy-fluentbit-1"
+    docker restart deploy-redis-1 || echo "Failed to restart deploy-redis-1"
+    echo "Docker containers restarted successfully."
 }
 
 # Main function to run all installations and configurations
@@ -153,12 +153,12 @@ main() {
     install_build_tools
     install_docker
     install_docker_compose
-    install_docker_cli_plugin
     clone_repository
-    deploy_container
+    update_configurations
+    restart_containers
 
     # Display Docker and Docker Compose versions
-    echo "Installation, repository setup, and container deployment complete."
+    echo "Installation, repository setup, configuration updates, and container restarts complete."
     docker --version
     docker-compose --version
 }
