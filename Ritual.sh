@@ -106,43 +106,55 @@ clone_repository() {
 update_configurations() {
     echo "Updating configuration files..."
 
-    # Prompt for the private key securely
-    read -sp "Enter your private key: " PRIVATE_KEY
-    echo
+    # Update the first config.json if it exists
+    CONFIG_FILE1="/root/infernet-container-starter/deploy/config.json"
+    if [ -f "$CONFIG_FILE1" ]; then
+        echo "Updating $CONFIG_FILE1..."
+        jq '.RPC_URL = "https://mainnet.base.org/" | .Private_Key = "0xYOUR_PRIVATE_KEY" | .Registry = "0xe2F36C4E23D67F81fE0B278E80ee85Cf0ccA3c8d"' "$CONFIG_FILE1" > tmp.$$.json && mv tmp.$$.json "$CONFIG_FILE1"
+    else
+        echo "$CONFIG_FILE1 not found. Skipping this file."
+    fi
 
-    # Update the first config.json
-    CONFIG_FILE1=~/infernet-container-starter/deploy/config.json
-    echo "Updating $CONFIG_FILE1..."
-    jq --arg pk "$PRIVATE_KEY" '.RPC_URL = "https://mainnet.base.org/" | .Private_Key = $pk | .Registry = "0xe2F36C4E23D67F81fE0B278E80ee85Cf0ccA3c8d"' "$CONFIG_FILE1" | sponge "$CONFIG_FILE1"
+    # Update the second config.json if it exists
+    CONFIG_FILE2="/root/infernet-container-starter/projects/hello-world/container/config.json"
+    if [ -f "$CONFIG_FILE2" ]; then
+        echo "Updating $CONFIG_FILE2..."
+        jq '.RPC_URL = "https://mainnet.base.org/" | .Private_Key = "0xYOUR_PRIVATE_KEY" | .Registry = "0xe2F36C4E23D67F81fE0B278E80ee85Cf0ccA3c8d" | .trail_head_blocks = 3 | .snapshot_sync.sleep = 3 | .snapshot_sync.starting_sub_id = 160000 | .snapshot_sync.batch_size = 800 | .snapshot_sync.sync_period = 30' "$CONFIG_FILE2" > tmp.$$.json && mv tmp.$$.json "$CONFIG_FILE2"
+    else
+        echo "$CONFIG_FILE2 not found. Skipping this file."
+    fi
 
-    # Update the second config.json
-    CONFIG_FILE2=~/infernet-container-starter/projects/hello-world/container/config.json
-    echo "Updating $CONFIG_FILE2..."
-    jq --arg pk "$PRIVATE_KEY" '.RPC_URL = "https://mainnet.base.org/" | .Private_Key = $pk | .Registry = "0xe2F36C4E23D67F81fE0B278E80ee85Cf0ccA3c8d" | .trail_head_blocks = 3 | .snapshot_sync.sleep = 3 | .snapshot_sync.starting_sub_id = 160000 | .snapshot_sync.batch_size = 800 | .snapshot_sync.sync_period = 30' "$CONFIG_FILE2" | sponge "$CONFIG_FILE2"
+    # Update Deploy.s.sol for node version if it exists
+    DEPLOY_FILE="/root/infernet-container-starter/projects/hello-world/contracts/script/Deploy.s.sol"
+    if [ -f "$DEPLOY_FILE" ]; then
+        echo "Updating node version in $DEPLOY_FILE..."
+        sed -i 's/^pragma solidity .*;$/pragma solidity 1.4.0;/' "$DEPLOY_FILE"
 
-    # Update Deploy.s.sol for node version
-    DEPLOY_FILE=~/infernet-container-starter/projects/hello-world/contracts/script/Deploy.s.sol
-    echo "Updating node version in $DEPLOY_FILE..."
-    sed -i 's/^pragma solidity .*;$/pragma solidity 1.4.0;/' "$DEPLOY_FILE"
+        # Update sender's address in Deploy.s.sol
+        echo "Updating sender's address in $DEPLOY_FILE..."
+        sed -i 's/address sender = address(uint160(uint256(keccak256(abi.encodePacked("0xYOUR_PRIVATE_KEY")))))/address sender = "0xYOUR_PRIVATE_KEY"/' "$DEPLOY_FILE"
+    else
+        echo "$DEPLOY_FILE not found. Skipping this file."
+    fi
 
-    # Update Deploy.s.sol for sender's address
-    echo "Updating sender's address in $DEPLOY_FILE..."
-    sed -i "s/address sender = address(uint160(uint256(keccak256(abi.encodePacked(\"0xYOUR_PRIVATE_KEY\")))))/address sender = \"$PRIVATE_KEY\"/" "$DEPLOY_FILE"
-
-    # Update docker-compose.yaml
-    DOCKER_COMPOSE_FILE=~/infernet-container-starter/deploy/docker-compose.yaml
-    echo "Updating $DOCKER_COMPOSE_FILE..."
-    sed -i 's/image: my-image-name/image: your-new-image-name/' "$DOCKER_COMPOSE_FILE" # Replace with the correct image name
+    # Update docker-compose.yaml if it exists
+    DOCKER_COMPOSE_FILE="/root/infernet-container-starter/deploy/docker-compose.yaml"
+    if [ -f "$DOCKER_COMPOSE_FILE" ]; then
+        echo "Updating $DOCKER_COMPOSE_FILE..."
+        sed -i 's/image: my-image-name/image: your-new-image-name/' "$DOCKER_COMPOSE_FILE" # Replace with the correct image name
+    else
+        echo "$DOCKER_COMPOSE_FILE not found. Skipping this file."
+    fi
 }
 
 # Function to restart Docker containers
 restart_containers() {
     echo "Restarting Docker containers..."
-    docker restart infernet-anvil || echo "Failed to restart infernet-anvil"
-    docker restart hello-world || echo "Failed to restart hello-world"
-    docker restart infernet-node || echo "Failed to restart infernet-node"
-    docker restart deploy-fluentbit-1 || echo "Failed to restart deploy-fluentbit-1"
-    docker restart deploy-redis-1 || echo "Failed to restart deploy-redis-1"
+    docker restart infernet-anvil
+    docker restart hello-world
+    docker restart infernet-node
+    docker restart deploy-fluentbit-1
+    docker restart deploy-redis-1
     echo "Docker containers restarted successfully."
 }
 
