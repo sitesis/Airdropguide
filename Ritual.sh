@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e  # Exit immediately on error
+
 # Function to update and upgrade the system
 update_system() {
     echo "Updating and upgrading the system..."
@@ -83,7 +85,7 @@ install_docker_cli_plugin() {
     if [ ! -f "$DOCKER_CONFIG/cli-plugins/docker-compose" ]; then
         echo "Docker CLI plugin for Docker Compose not found. Installing plugin..."
         mkdir -p "$DOCKER_CONFIG/cli-plugins"
-        if curl -SL https://github.com/docker/compose/releases/download/v2.20.2/docker-compose-linux-x86_64 -o "$DOCKER_CONFIG/cli-plugins/docker-compose"; then
+        if curl -SL "https://github.com/docker/compose/releases/latest/download/docker-compose-linux-x86_64" -o "$DOCKER_CONFIG/cli-plugins/docker-compose"; then
             chmod +x "$DOCKER_CONFIG/cli-plugins/docker-compose"
             echo "Docker CLI plugin for Docker Compose installed successfully."
         else
@@ -120,17 +122,24 @@ clone_repository() {
 
 # Function to deploy the container using a screen session
 deploy_container() {
-    echo "Starting screen session named 'ritual' to deploy hello-world container..."
+    echo "Starting screen session named 'ritual' to deploy the container..."
 
     # Run the command in a detached screen session
     screen -dmS ritual bash -c "
-        export project=hello-world &&
-        make deploy-container
+        echo 'Pulling Docker image ritualnetwork/hello-world-infernet:latest...' &&
+        docker pull ritualnetwork/hello-world-infernet:latest &&
+        echo 'Image pulled successfully.' &&
+        echo 'Deploying the container...' &&
+        project=hello-world make deploy-container
     "
+
+    # Attach to the screen session to keep the user in the session
+    screen -r ritual
 }
 
 # Main function to run all installations and configurations
 main() {
+    echo "Starting installation and setup..."
     update_system
     install_build_tools
     install_docker
