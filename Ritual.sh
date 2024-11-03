@@ -2,6 +2,9 @@
 
 set -e  # Exit immediately on error
 
+# Redirect output to a log file
+exec > >(tee -i setup.log) 2>&1
+
 # Function to update and upgrade the system
 update_system() {
     echo "Updating and upgrading the system..."
@@ -64,10 +67,10 @@ install_docker() {
 
 # Function to install Docker Compose if not already installed
 install_docker_compose() {
+    STABLE_COMPOSE_VERSION="v2.10.2"  # Specify a stable version
     if ! command -v docker-compose &> /dev/null; then
         echo "Docker Compose not found. Installing Docker Compose..."
-        LATEST_COMPOSE_VERSION=$(curl -s https://api.github.com/repos/docker/compose/releases/latest | jq -r .tag_name)
-        if sudo curl -L "https://github.com/docker/compose/releases/download/${LATEST_COMPOSE_VERSION}/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose; then
+        if sudo curl -L "https://github.com/docker/compose/releases/download/${STABLE_COMPOSE_VERSION}/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose; then
             sudo chmod +x /usr/local/bin/docker-compose
             echo "Docker Compose installed successfully."
         else
@@ -122,19 +125,25 @@ clone_repository() {
 
 # Function to deploy the container using a screen session
 deploy_container() {
+    if screen -list | grep -q "ritual"; then
+        echo "Screen session 'ritual' already exists. Please detach or remove it before proceeding."
+        exit 1
+    fi
+
     echo "Starting screen session named 'ritual' to deploy the container..."
 
-    # Run the command in a detached screen session
-    screen -dmS ritual bash -c "
+    # Run all commands in a single screen session
+    screen -S ritual -d -m bash -c "
         echo 'Pulling Docker image ritualnetwork/hello-world-infernet:latest...' &&
         docker pull ritualnetwork/hello-world-infernet:latest &&
         echo 'Image pulled successfully.' &&
         echo 'Deploying the container...' &&
-        project=hello-world make deploy-container
+        project=hello-world make deploy-container &&
+        echo 'Deployment complete. Press Ctrl+A then D to detach from this session.'
     "
 
-    # Attach to the screen session to keep the user in the session
-    screen -r ritual
+    echo "You can reattach to the screen session using: screen -r ritual"
+    echo "To view the container logs, use: docker logs -f <container_id_or_name>"
 }
 
 # Main function to run all installations and configurations
