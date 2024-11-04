@@ -70,7 +70,39 @@ install_build_tools() {
 
 install_docker() {
   log "Installing Docker..."
-  if ! sudo apt install docker.io -y; then
+  # Set up the Docker repository
+  if ! sudo apt-get remove docker docker-engine docker.io containerd runc; then
+    log "Failed to remove old Docker versions."
+    echo -e "${RED}Failed to remove old Docker versions. Check setup.log for details.${NC}"
+    exit 1
+  fi
+  if ! sudo apt-get update; then
+    log "Failed to update package list."
+    echo -e "${RED}Failed to update package list. Check setup.log for details.${NC}"
+    exit 1
+  fi
+  if ! sudo apt-get install \
+    ca-certificates \
+    curl \
+    gnupg \
+    lsb-release; then
+    log "Failed to install prerequisites for Docker."
+    echo -e "${RED}Failed to install prerequisites for Docker. Check setup.log for details.${NC}"
+    exit 1
+  fi
+  if ! curl -fsSL https://download.docker.com/linux/$(lsb_release -si | tr '[:upper:]' '[:lower:]')/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg; then
+    log "Failed to add Docker GPG key."
+    echo -e "${RED}Failed to add Docker GPG key. Check setup.log for details.${NC}"
+    exit 1
+  fi
+  echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/$(lsb_release -si | tr '[:upper:]' '[:lower:]') $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+  
+  if ! sudo apt-get update; then
+    log "Failed to update package list after adding Docker repository."
+    echo -e "${RED}Failed to update package list after adding Docker repository. Check setup.log for details.${NC}"
+    exit 1
+  fi
+  if ! sudo apt-get install docker-ce docker-ce-cli containerd.io -y; then
     log "Docker installation failed!"
     echo -e "${RED}Docker installation failed. Check setup.log for details.${NC}"
     exit 1
@@ -153,7 +185,6 @@ configure_node_settings() {
   sed -i 's|"registry":.*|"registry": "0xe2F36C4E23D67F81fE0B278E80ee85Cf0ccA3c8d",|' "$CONFIG_PATH"
   sed -i 's|"trail_head_blocks":.*|"trail_head_blocks": 3,|' "$CONFIG_PATH"
 
-  log "Configuring hello-world container settings..."
   sed -i 's|"rpc_url":.*|"rpc_url": "https://mainnet.base.org/",|' "$HELLO_WORLD_CONFIG"
   sed -i "s|\"private_key\":.*|\"private_key\": \"$PRIVATE_KEY\",|" "$HELLO_WORLD_CONFIG"
   sed -i 's|"registry":.*|"registry": "0xe2F36C4E23D67F81fE0B278E80ee85Cf0ccA3c8d",|' "$HELLO_WORLD_CONFIG"
@@ -165,7 +196,7 @@ configure_node_settings() {
 
 restart_docker_containers() {
   log "Restarting Docker containers..."
-  if ! docker restart infernet-anvil hello-world infernet-node deploy-fluentbit-1 deploy-redis-1; then
+  if ! docker-compose restart; then
     log "Failed to restart Docker containers."
     echo -e "${RED}Failed to restart Docker containers. Check setup.log for details.${NC}"
     exit 1
@@ -176,64 +207,45 @@ restart_docker_containers() {
 
 install_foundry() {
   log "Installing Foundry..."
-  cd ~
-  mkdir -p foundry && cd foundry
   if ! curl -L https://foundry.paradigm.xyz | bash; then
-    log "Foundry installation failed!"
-    echo -e "${RED}Foundry installation failed. Check setup.log for details.${NC}"
+    log "Failed to install Foundry."
+    echo -e "${RED}Failed to install Foundry. Check setup.log for details.${NC}"
     exit 1
   fi
-  source ~/.bashrc
-  foundryup
-
-  log "Installing forge libraries in contracts directory..."
-  cd ~/infernet-container-starter/projects/hello-world/contracts
-  if ! forge install --no-commit foundry-rs/forge-std; then
-    log "Failed to install forge-std."
-    echo -e "${RED}Failed to install forge-std. Check setup.log for details.${NC}"
-    exit 1
-  fi
-  if ! forge install --no-commit openzeppelin/openzeppelin-contracts; then
-    log "Failed to install openzeppelin-contracts."
-    echo -e "${RED}Failed to install openzeppelin-contracts. Check setup.log for details.${NC}"
-    exit 1
-  fi
-  log "Foundry and libraries installed successfully."
-  echo -e "${GREEN}Foundry and libraries installed successfully.${NC}"
+  log "Foundry installed successfully."
+  echo -e "${GREEN}Foundry installed successfully.${NC}"
 }
 
 deploy_consumer_contract() {
-  echo -e "${YELLOW}Please enter your contract name to deploy:${NC}"
-  read CONTRACT_NAME
-  if [[ -z "$CONTRACT_NAME" ]]; then
-    echo -e "${RED}Contract name cannot be empty.${NC}"
-    return
-  fi
-
-  cd ~/infernet-container-starter/projects/hello-world
-  log "Deploying contract: $CONTRACT_NAME"
-  if ! forge create src/$CONTRACT_NAME.sol:$CONTRACT_NAME; then
-    log "Failed to deploy contract."
-    echo -e "${RED}Failed to deploy contract. Check setup.log for details.${NC}"
+  log "Deploying consumer contract..."
+  cd ~/infernet-container-starter/projects/hello-world || exit
+  if ! forge create src/Consumer.sol:Consumer --constructor-args "0xYourAddress" --private-key "$PRIVATE_KEY"; then
+    log "Failed to deploy consumer contract."
+    echo -e "${RED}Failed to deploy consumer contract. Check setup.log for details.${NC}"
     exit 1
   fi
-  log "Contract $CONTRACT_NAME deployed successfully."
-  echo -e "${GREEN}Contract $CONTRACT_NAME deployed successfully.${NC}"
+  log "Consumer contract deployed successfully."
+  echo -e "${GREEN}Consumer contract deployed successfully.${NC}"
 }
 
-initiate_request() {
-  log "Initiating request to Infernet node..."
-  # Replace this section with the actual request initiation code as needed.
-  echo -e "${GREEN}Request initiated successfully.${NC}"
+initiate_request_to_infernet_node() {
+  log "Initiating request to Infernet Node..."
+  cd ~/infernet-container-starter/projects/hello-world || exit
+  if ! curl -X POST http://localhost:8080/infernet/hello; then
+    log "Failed to initiate request to Infernet Node."
+    echo -e "${RED}Failed to initiate request to Infernet Node. Check setup.log for details.${NC}"
+    exit 1
+  fi
+  log "Request to Infernet Node initiated successfully."
+  echo -e "${GREEN}Request to Infernet Node initiated successfully.${NC}"
 }
 
 # Main script execution
 show_logo
 
-# Main menu loop
 while true; do
   show_menu
-  read option
+  read -r option
   case $option in
     1) update_packages ;;
     2) install_build_tools ;;
@@ -244,8 +256,8 @@ while true; do
     7) restart_docker_containers ;;
     8) install_foundry ;;
     9) deploy_consumer_contract ;;
-    10) initiate_request ;;
-    0) exit 0 ;;
+    10) initiate_request_to_infernet_node ;;
+    0) echo -e "${GREEN}Exiting...${NC}"; exit ;;
     *) echo -e "${RED}Invalid option. Please try again.${NC}" ;;
   esac
 done
