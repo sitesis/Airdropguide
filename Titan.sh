@@ -180,3 +180,5 @@ sudo systemctl status titand.service && titan-edge config show && titan-edge inf
 echo -e "\e[0m"
 
 echo -e "\e[1;94m###################### Installation completed successfully ######################\e[0m"
+echo -e "\n🎉 **Rampung! ** 🎉"
+echo -e "\n👉 **[Gabung Airdrop Node](https://t.me/airdrop_node)** 👈"
