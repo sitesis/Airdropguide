@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# Load logo
+curl -s https://raw.githubusercontent.com/choir94/Airdropguide/refs/heads/main/logo.sh | bash
+sleep 5
+
 # Set PATH and LD_LIBRARY_PATH
 export PATH=$PATH:/usr/local/titan
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib
