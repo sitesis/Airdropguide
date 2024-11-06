@@ -1,180 +1,125 @@
 #!/bin/bash
 
-# Load logo
+# Skrip instalasi logo
 curl -s https://raw.githubusercontent.com/choir94/Airdropguide/refs/heads/main/logo.sh | bash
 sleep 5
 
-# ANSI escape codes for colors
-YELLOW='\033[1;33m'
+# Colors for output
+GREEN='\033[0;32m'
 NC='\033[0m' # No Color
 
-# Logging function
-log() {
-    echo -e "${YELLOW}[$(date +'%Y-%m-%d %H:%M:%S')] $1${NC}" >> setup_log.txt
-}
-
-# Check and install Docker if not installed
-install_docker() {
-    if ! command -v docker &> /dev/null; then
-        log "Docker tidak ditemukan. Menginstal Docker..."
-        sudo apt update
-        sudo apt install -y docker.io || { log "Gagal menginstal Docker"; exit 1; }
-        sudo systemctl start docker
-        sudo systemctl enable docker
-        log "Docker sudah diinstal dan dijalankan."
-    else
-        log "Docker sudah terinstal."
-    fi
-}
-
-# Check and install Docker Compose if not installed
-install_docker_compose() {
-    if ! command -v docker-compose &> /dev/null; then
-        log "Docker Compose tidak ditemukan. Menginstal Docker Compose..."
-        sudo curl -L "https://github.com/docker/compose/releases/download/v2.20.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose || { log "Gagal mendownload Docker Compose"; exit 1; }
-        sudo chmod +x /usr/local/bin/docker-compose || { log "Gagal mengatur izin untuk Docker Compose"; exit 1; }
-        log "Docker Compose sudah diinstal."
-    else
-        log "Docker Compose sudah terinstal."
-    fi
-}
-
-# Clone the grass repository
-clone_grass_repo() {
-    log "Mengkloning repositori grass..."
-    git clone https://github.com/MsLolita/grass.git || { log "Gagal mengkloning repositori"; exit 1; }
-    log "Repositori berhasil dikloning."
-}
-
-# Navigate to grass directory
-navigate_to_grass() {
-    cd grass || { log "Gagal masuk ke direktori grass"; exit 1; }
-}
-
-# Validate email format
-validate_email() {
-    [[ $1 =~ ^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$ ]] || { log "Format email tidak valid."; exit 1; }
-}
-
-# Validate proxy format
-validate_proxy() {
-    [[ $1 =~ ^http://[a-zA-Z0-9._%+-]+:[0-9]+$ ]] || { log "Format proxy tidak valid. Gunakan format http://username:password@ip_address:port"; exit 1; }
-}
-
-# Update accounts.txt with email and password
-update_accounts() {
-    # Check if accounts.txt exists and remove it
-    [ -f "data/accounts.txt" ] && rm -f "data/accounts.txt"
-
-    echo "Masukkan email Anda: "
-    read -r USER_EMAIL
-    validate_email "$USER_EMAIL"
-
-    echo "Masukkan kata sandi Anda: "
-    read -r USER_PASSWORD
-
-    # Create data directory if it doesn't exist
-    mkdir -p data
-
-    echo "$USER_EMAIL:$USER_PASSWORD" > data/accounts.txt
-    log "accounts.txt berhasil diperbarui."
-}
-
-# Update proxies.txt with static proxy
-update_proxies() {
-    # Check if proxies.txt exists and remove it
-    [ -f "data/proxies.txt" ] && rm -f "data/proxies.txt"
-
-    echo "Masukkan static proxy (format: http://username:password@ip_address:port): "
-    read -r STATIC_PROXY
-    validate_proxy "$STATIC_PROXY"
-
-    # Ensure data directory exists
-    mkdir -p data
-
-    echo "$STATIC_PROXY" > data/proxies.txt
-    log "proxies.txt berhasil diperbarui."
-}
-
-# Update main.py with specified content
-update_main_py() {
-    cat << EOF > main.py
-THREADS = 1  # untuk mode pendaftaran akun / klaim hadiah / persetujuan email
-MIN_PROXY_SCORE = 50  # untuk mode penambangan
-
-#########################################
-APPROVE_EMAIL = False  # menyetujui email (MEMBUTUHKAN IMAP DAN AKSES EMAIL)
-CONNECT_WALLET = False  # menghubungkan dompet (masukkan private keys ke wallets.txt)
-SEND_WALLET_APPROVE_LINK_TO_EMAIL = True  # mengirim link persetujuan ke email
-APPROVE_WALLET_ON_EMAIL = False  # mendapatkan link persetujuan dari email (MEMBUTUHKAN IMAP DAN AKSES EMAIL)
-SEMI_AUTOMATIC_APPROVE_LINK = False  # jika True - izinkan untuk menempelkan link persetujuan secara manual dari email ke CLI
-SINGLE_IMAP_ACCOUNT = False  # gunakan "name@domain.com:password"
-
-EMAIL_FOLDER = ""  # folder tempat email masuk
-IMAP_DOMAIN = ""  # tidak selalu berfungsi
-
-#########################################
-
-CLAIM_REWARDS_ONLY = False  # hanya klaim hadiah (https://app.getgrass.io/dashboard/referral-program)
-
-STOP_ACCOUNTS_WHEN_SITE_IS_DOWN = True  # hentikan akun selama 20 menit untuk mengurangi penggunaan lalu lintas proxy
-CHECK_POINTS = True  # tampilkan poin untuk setiap akun hampir setiap 10 menit
-SHOW_LOGS_RARELY = True  # tidak selalu menunjukkan info untuk mengurangi pengaruh pada PC
-
-# Mode Penambangan
-MINING_MODE = True  # False - tidak menambang grass, True - menambang grass
-
-# Hanya Parameter Pendaftaran
-REGISTER_ACCOUNT_ONLY = False
-REGISTER_DELAY = (3, 7)
-
-TWO_CAPTCHA_API_KEY = "${TWO_CAPTCHA_API_KEY:-}"
-ANTICAPTCHA_API_KEY = "${ANTICAPTCHA_API_KEY:-}"
-CAPMONSTER_API_KEY = "${CAPMONSTER_API_KEY:-}"
-CAPSOLVER_API_KEY = "${CAPSOLVER_API_KEY:-}"
-CAPTCHAAI_API_KEY = "${CAPTCHAAI_API_KEY:-}"
-
-# Parameter Captcha, biarkan kosong
-CAPTCHA_PARAMS = {
-    "captcha_type": "v2",
-    "invisible_captcha": False,
-    "sitekey": "6LeeT-0pAAAAAFJ5JnCpNcbYCBcAerNHlkK4nm6y",
-    "captcha_url": "https://app.getgrass.io/register"
-}
-
-########################################
-
-ACCOUNTS_FILE_PATH = "data/accounts.txt"
-PROXIES_FILE_PATH = "data/proxies.txt"
-WALLETS_FILE_PATH = "data/wallets.txt"
-EOF
-    log "Isi main.py berhasil dihapus dan diganti dengan konfigurasi baru."
-}
-
-# Execute main functions
-install_docker
-install_docker_compose
-clone_grass_repo
-navigate_to_grass
-
-# Ensure data directory exists
-mkdir -p data
-log "Direktori grass/data berhasil dibuat."
-
-update_accounts
-update_proxies
-update_main_py
-
-# Run Docker Compose
-docker-compose up -d || { log "Gagal menjalankan Docker Compose"; exit 1; }
-log "Docker Compose berhasil dijalankan."
-
-# Build and run the Docker image
-if [ -f Dockerfile ]; then
-    docker build -t grass-app . || { log "Gagal membangun Docker image"; exit 1; }
-    docker run grass-app || { log "Gagal menjalankan Docker"; exit 1; }
-    log "Aplikasi grass berhasil dijalankan."
-else
-    log "Dockerfile tidak ditemukan. Pastikan Anda berada di direktori yang benar."
+# Ensure script is run as root
+if [ "$(id -u)" != "0" ]; then
+    echo -e "${GREEN}This script requires root access. Please run it as root or use 'sudo'.${NC}"
     exit 1
 fi
+
+# Update system and install dependencies
+echo -e "${GREEN}Updating system and installing dependencies...${NC}"
+apt-get update
+apt-get install -y \
+    ca-certificates \
+    curl \
+    gnupg \
+    lsb-release \
+    sudo
+
+# Add Docker's official GPG key
+echo -e "${GREEN}Adding Docker's official GPG key...${NC}"
+mkdir -p /etc/apt/keyrings
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+
+# Add Docker repository
+echo -e "${GREEN}Adding Docker repository...${NC}"
+echo \
+  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
+  $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+# Update again and install Docker and Docker Compose
+echo -e "${GREEN}Installing Docker Engine and Docker Compose...${NC}"
+apt-get update
+apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+
+# Ensure Docker service is running
+echo -e "${GREEN}Ensuring Docker service is running...${NC}"
+systemctl start docker
+systemctl enable docker
+
+# Verify Docker installation
+echo -e "${GREEN}Verifying Docker installation...${NC}"
+docker --version
+if [ $? -eq 0 ]; then
+    echo -e "${GREEN}Docker successfully installed and running!${NC}"
+else
+    echo -e "${GREEN}Error installing or starting Docker.${NC}"
+    exit 1
+fi
+
+# Check Docker permissions
+echo -e "${GREEN}Checking Docker socket permissions...${NC}"
+if ! groups $USER | grep &>/dev/null '\bdocker\b'; then
+    echo -e "${GREEN}Adding current user to the docker group...${NC}"
+    usermod -aG docker $USER
+    echo -e "${GREEN}User added to the docker group. Please log out and log back in to apply the changes.${NC}"
+    exit 1
+fi
+
+# Clone the repository and navigate to grass/data directory
+echo -e "${GREEN}Cloning repository...${NC}"
+git clone https://github.com/MsLolita/grass.git
+cd grass || { echo "Failed to navigate to the grass directory. Ensure the grass directory exists."; exit 1; }
+cd data || { echo "Failed to navigate to the data directory. Ensure the data directory exists within grass."; exit 1; }
+
+# Replace accounts.txt and proxies.txt
+echo -e "${GREEN}Setting up accounts and proxies...${NC}"
+read -p "Enter your email: " email
+read -s -p "Enter your password: " password
+echo -e "${email}:${password}" > accounts.txt
+echo -e "\nAccounts updated in accounts.txt."
+
+echo -e "\nEnter proxy addresses, one per line (finish with an empty line):"
+> proxies.txt  # Clear existing proxies
+while true; do
+    read -p "Proxy: " proxy
+    [[ -z "$proxy" ]] && break
+    echo "$proxy" >> proxies.txt
+done
+echo -e "Proxies updated in proxies.txt."
+
+# Modify config.py parameters
+echo -e "${GREEN}Updating config.py...${NC}"
+sed -i 's/^THREADS = .*/THREADS = 5/' config.py
+sed -i 's/^MIN_PROXY_SCORE = .*/MIN_PROXY_SCORE = 50/' config.py
+sed -i 's/^APPROVE_EMAIL = .*/APPROVE_EMAIL = False/' config.py
+sed -i 's/^CONNECT_WALLET = .*/CONNECT_WALLET = False/' config.py
+sed -i 's/^SEND_WALLET_APPROVE_LINK_TO_EMAIL = .*/SEND_WALLET_APPROVE_LINK_TO_EMAIL = False/' config.py
+sed -i 's/^APPROVE_WALLET_ON_EMAIL = .*/APPROVE_WALLET_ON_EMAIL = False/' config.py
+sed -i 's/^SEMI_AUTOMATIC_APPROVE_LINK = .*/SEMI_AUTOMATIC_APPROVE_LINK = False/' config.py
+sed -i 's/^CLAIM_REWARDS_ONLY = .*/CLAIM_REWARDS_ONLY = False/' config.py
+sed -i 's/^STOP_ACCOUNTS_WHEN_SITE_IS_DOWN = .*/STOP_ACCOUNTS_WHEN_SITE_IS_DOWN = True/' config.py
+sed -i 's/^CHECK_POINTS = .*/CHECK_POINTS = False/' config.py
+sed -i 's/^SHOW_LOGS_RARELY = .*/SHOW_LOGS_RARELY = False/' config.py
+sed -i 's/^MINING_MODE = .*/MINING_MODE = True/' config.py
+sed -i 's/^REGISTER_ACCOUNT_ONLY = .*/REGISTER_ACCOUNT_ONLY = False/' config.py
+sed -i 's/^REGISTER_DELAY = .*/REGISTER_DELAY = (3, 7)/' config.py
+echo -e "Configuration updated in config.py."
+
+# Navigate back to grass directory to build and run Docker container
+cd ..
+echo -e "${GREEN}Starting Docker containers with Docker Compose...${NC}"
+docker-compose up -d
+
+# Build Docker image
+echo -e "${GREEN}Building Docker image...${NC}"
+if [ -f "Dockerfile" ]; then
+    docker build -t grass-app .
+else
+    echo "Dockerfile not found. Please ensure the Dockerfile is in the grass directory."
+    exit 1
+fi
+
+# Run Docker container
+echo -e "${GREEN}Running the Docker container...${NC}"
+docker run grass-app
+
+echo -e "${GREEN}All operations completed successfully!${NC}"
