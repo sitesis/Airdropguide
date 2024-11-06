@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# Skrip instalasi logo
+curl -s https://raw.githubusercontent.com/choir94/Airdropguide/refs/heads/main/logo.sh | bash
+sleep 5
+
 # Update dan upgrade sistem
 echo "Memperbarui dan meng-upgrade sistem..."
 sudo apt update && sudo apt upgrade -y
@@ -101,3 +105,5 @@ else
 fi
 
 echo "Instalasi, setup, dan verifikasi selesai."
+echo -e "\n👉 **[Join Airdrop Node](https://t.me/airdrop_node)** 👈"
+
