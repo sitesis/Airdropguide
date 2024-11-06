@@ -1,183 +1,103 @@
 #!/bin/bash
 
-# Display logo
-curl -s https://raw.githubusercontent.com/choir94/Airdropguide/refs/heads/main/logo.sh | bash
-sleep 5
+# Update dan upgrade sistem
+echo "Memperbarui dan meng-upgrade sistem..."
+sudo apt update && sudo apt upgrade -y
 
-# Function to handle errors
-handle_error() {
-    echo "Error: $1"
+# Periksa dan install jq jika belum terpasang
+if ! command -v jq &> /dev/null; then
+    echo "jq tidak terpasang. Menginstall jq..."
+    sudo apt install jq -y
+fi
+
+# Periksa dan install Docker serta Docker Compose jika belum terpasang
+if ! command -v docker &> /dev/null || ! command -v docker-compose &> /dev/null; then
+    echo "Docker atau Docker Compose tidak terpasang. Harap instalasi sebelum menjalankan skrip ini."
     exit 1
-}
+fi
 
-# Install necessary packages if not already installed
-echo "Installing required packages..."
-sudo apt update || handle_error "Failed to update package list."
-sudo apt install -y curl || handle_error "Failed to install curl."
-
-# Check if Node.js is installed
-if command -v node >/dev/null 2>&1; then
-    echo "Node.js is already installed: $(node -v)"
+# Clone repositori Git Ink
+echo "Meng-clone repositori Git Ink..."
+if git clone https://github.com/inkonchain/node; then
+    echo "Repositori berhasil di-clone."
 else
-    # Install Node.js
-    echo "Installing Node.js..."
-    curl -fsSL https://deb.nodesource.com/setup_current.x | sudo -E bash - || handle_error "Failed to setup NodeSource."
-    sudo apt install -y nodejs || handle_error "Failed to install Node.js."
-    echo "Node.js installed: $(node -v)"
+    echo "Gagal meng-clone repositori. Pastikan URL benar dan koneksi internet stabil."
+    exit 1
 fi
 
-# Create project directory
-PROJECT_DIR=~/INKProject
-if [ ! -d "$PROJECT_DIR" ]; then
-    mkdir "$PROJECT_DIR" || handle_error "Failed to create project directory."
-    echo "Directory $PROJECT_DIR created."
+# Masuk ke direktori Ink
+if cd node; then
+    echo "Berpindah ke direktori Ink."
 else
-    echo "Directory $PROJECT_DIR already exists."
+    echo "Direktori Ink tidak ditemukan. Gagal masuk ke direktori."
+    exit 1
 fi
 
-# Navigate to project directory
-cd "$PROJECT_DIR" || handle_error "Failed to navigate to project directory."
-
-# Initialize npm project
-npm init -y || handle_error "Failed to initialize NPM project."
-echo "NPM project initialized."
-
-# Install Hardhat, Ethers.js, OpenZeppelin, and dotenv with error handling
-if ! npm install --save-dev hardhat @nomicfoundation/hardhat-toolbox ethers dotenv @openzeppelin/contracts; then
-    handle_error "Failed to install dependencies."
-fi
-echo "Dependencies installed: Hardhat, Ethers.js, OpenZeppelin, dotenv."
-
-# Prompt for private key and BlockScout API key securely
-read -sp "Enter your private key (with 0x prefix): " PRIVATE_KEY
-echo
-if [[ ! $PRIVATE_KEY =~ ^0x[a-fA-F0-9]{40}$ ]]; then
-    handle_error "Invalid private key format."
-fi
-
-read -p "Enter your BlockScout API key (leave empty if you don't have one): " BLOCKSCOUT_API_KEY
-
-# Create .env file
-{
-    echo "PRIVATE_KEY=$PRIVATE_KEY"
-    echo "INK_SEPOLIA_URL=https://rpc-gel-sepolia.inkonchain.com"
-    echo "BLOCKSCOUT_API_KEY=${BLOCKSCOUT_API_KEY:-}"
-} > .env || handle_error "Failed to create .env file."
-echo ".env file created."
-
-# Create contracts directory and INKToken.sol file
-mkdir -p contracts
-cat <<EOL > contracts/INKToken.sol
-// SPDX-License-Identifier: MIT
-pragma solidity ^0.8.19;
-
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-
-contract INKToken is ERC20 {
-    constructor() ERC20("INKToken", "NODE") {
-        _mint(msg.sender, 1_000_000 * 10 ** decimals());
-    }
-}
+# Buat file .env dan tambahkan konfigurasi
+echo "Membuat file .env dengan variabel lingkungan yang diperlukan..."
+cat <<EOL > .env
+L1_RPC_URL=https://ethereum-sepolia-rpc.publicnode.com
+L1_BEACON_URL=https://ethereum-sepolia-beacon-api.publicnode.com
 EOL
-echo "Contract INKToken.sol created."
+echo "File .env berhasil dibuat."
 
-# Create scripts directory and deploy.js file
-mkdir -p scripts
-cat <<EOL > scripts/deploy.js
-const { ethers } = require("hardhat");
-
-async function main() {
-    const [deployer] = await ethers.getSigners();
-    console.log("Deploying contracts with the account:", deployer.address);
-
-    const Token = await ethers.getContractFactory("INKToken");
-    const token = await Token.deploy();
-    await token.deployed();
-
-    console.log("INKToken deployed to:", token.address);
-    return token.address; // Return the token address
-}
-
-main().catch((error) => {
-    console.error(error);
-    process.exitCode = 1;
-});
-EOL
-echo "Deployment script deploy.js created."
-
-# Create .gitignore file
-cat <<EOL > .gitignore
-# Node modules
-node_modules/
-
-# Environment variables
-.env
-
-# Coverage files
-coverage/
-coverage.json
-
-# Hardhat files
-cache/
-artifacts/
-
-# Build files
-build/
-EOL
-echo ".gitignore file created."
-
-# Create hardhat.config.js file
-cat <<EOL > hardhat.config.js
-require("@nomicfoundation/hardhat-toolbox");
-require("dotenv").config();
-
-/** @type import('hardhat/config').HardhatUserConfig */
-module.exports = {
-  solidity: "0.8.19",
-  networks: {
-    inksepolia: {
-      url: process.env.INK_SEPOLIA_URL || "",
-      accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
-    },
-  },
-  etherscan: {
-    apiKey: {
-      inksepolia: process.env.BLOCKSCOUT_API_KEY,
-    },
-    customChains: [
-      {
-        network: "inksepolia",
-        chainId: 763373,
-        urls: {
-          apiURL: "https://explorer-sepolia.inkonchain.com/api/v2",
-          browserURL: "https://explorer-sepolia.inkonchain.com/",
-        },
-      },
-    ],
-  },
-};
-EOL
-echo "Hardhat configuration file hardhat.config.js created."
-
-# Deploy the contract
-echo "Deploying the contract..."
-DEPLOY_OUTPUT=$(npx hardhat run scripts/deploy.js --network inksepolia)
-
-# Display the output of the deployment
-echo "$DEPLOY_OUTPUT"
-
-# Extract the token address from the output
-TOKEN_ADDRESS=$(echo "$DEPLOY_OUTPUT" | grep -oE '0x[a-fA-F0-9]{40}')
-
-# Show the scan link for the token address
-if [ -n "$TOKEN_ADDRESS" ]; then
-    echo "===================="
-    echo "Check your token on the explorer: https://explorer-sepolia.inkonchain.com/address/$TOKEN_ADDRESS"
-    echo "===================="
+# Jalankan skrip setup
+if [ -f "./setup.sh" ]; then
+    echo "Menjalankan skrip setup..."
+    ./setup.sh
+    echo "Skrip setup berhasil dijalankan."
 else
-    echo "Unable to find the deployed token address."
+    echo "Skrip setup.sh tidak ditemukan. Pastikan skrip ini ada di direktori."
+    exit 1
 fi
 
-# Final message
-echo -e "\n🎉 Deployment complete! 🎉"
-echo -e "👉 Join the Airdrop Node: https://t.me/airdrop_node 👈"
+# Tampilkan kunci pribadi untuk disimpan
+if [ -f "var/secrets/jwt.txt" ]; then
+    echo "Menyimpan kunci pribadi Anda dengan aman..."
+    cp var/secrets/jwt.txt ~/jwt_backup.txt
+    echo "Kunci pribadi disimpan ke ~/jwt_backup.txt. Pastikan Anda menyimpannya dengan aman."
+else
+    echo "File kunci pribadi var/secrets/jwt.txt tidak ditemukan."
+fi
+
+# Mulai node dengan Docker Compose
+if [ -f "docker-compose.yml" ]; then
+    echo "Memulai node dengan Docker Compose..."
+    docker compose up -d
+    echo "Node berhasil dijalankan."
+else
+    echo "File docker-compose.yml tidak ditemukan. Pastikan Docker Compose telah dikonfigurasi dengan benar."
+    exit 1
+fi
+
+# Verifikasi status sinkronisasi
+echo "Memverifikasi status sinkronisasi..."
+sync_status=$(curl -X POST -H "Content-Type: application/json" --data \
+    '{"jsonrpc":"2.0","method":"optimism_syncStatus","params":[],"id":1}' \
+    http://localhost:9545 | jq)
+
+echo "Status sinkronisasi: $sync_status"
+
+# Ambil dan bandingkan nomor blok yang difinalisasi secara lokal dan jarak jauh
+echo "Mengambil nomor blok finalisasi terbaru dari node lokal dan RPC jarak jauh..."
+
+local_block=$(curl -s -X POST http://localhost:8545 -H "Content-Type: application/json" \
+  --data '{"jsonrpc":"2.0","method":"eth_getBlockByNumber","params":["finalized", false],"id":1}' \
+  | jq -r .result.number | sed 's/^0x//' | awk '{printf "%d\n", "0x" $0}')
+
+remote_block=$(curl -s -X POST https://rpc-gel-sepolia.inkonchain.com/ -H "Content-Type: application/json" \
+ --data '{"jsonrpc":"2.0","method":"eth_getBlockByNumber","params":["finalized", false],"id":1}' \
+ | jq -r .result.number | sed 's/^0x//' | awk '{printf "%d\n", "0x" $0}')
+
+echo "Blok finalisasi lokal: $local_block"
+echo "Blok finalisasi jarak jauh: $remote_block"
+
+# Bandingkan blok dan tampilkan hasilnya
+if [ "$local_block" -eq "$remote_block" ]; then
+    echo "Node lokal Anda sinkron dengan RPC jarak jauh."
+else
+    echo "Node lokal Anda tidak sinkron dengan RPC jarak jauh."
+    echo "Blok lokal pada $local_block, sedangkan blok jarak jauh pada $remote_block."
+fi
+
+echo "Instalasi, setup, dan verifikasi selesai."
