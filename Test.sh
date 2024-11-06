@@ -57,13 +57,13 @@ if [ "$user_input" == "y" ] || [ "$user_input" == "Y" ]; then
     read -s -p "Private Key: " private_key
     echo
 
-    # Pastikan Direktori `node/var/secrets/` Ada
-    mkdir -p node/var/secrets
+    # Pastikan Direktori var/secrets Ada
+    mkdir -p var/secrets
 
-    # Menyimpan Private Key ke file node/var/secrets/jwt.txt
-    echo -e "\n${CYAN}=== Menyimpan Private Key ke node/var/secrets/jwt.txt ===${NC}"
-    echo "$private_key" > node/var/secrets/jwt.txt
-    echo -e "${GREEN}Private Key berhasil disimpan di node/var/secrets/jwt.txt.${NC}"
+    # Menyimpan Private Key ke file var/secrets/jwt.txt
+    echo -e "\n${CYAN}=== Menyimpan Private Key ke var/secrets/jwt.txt ===${NC}"
+    echo "$private_key" > var/secrets/jwt.txt
+    echo -e "${GREEN}Private Key berhasil disimpan di var/secrets/jwt.txt.${NC}"
 else
     echo -e "${YELLOW}Private key tidak dimasukkan.${NC}"
 fi
