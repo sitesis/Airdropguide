@@ -47,32 +47,34 @@ fi
 echo -e "\n${CYAN}=== Memasuki Direktori Ink... ===${NC}"
 cd node || { echo -e "${RED}Gagal masuk ke direktori.${NC}"; exit 1; }
 
-# Buat File .env
+# Pilihan untuk Memasukkan Private Key
+echo -e "\n${YELLOW}=== Memasukkan Private Key ===${NC}"
+read -p "Apakah Anda ingin memasukkan private key Anda? (y/n): " user_input
+
+if [ "$user_input" == "y" ] || [ "$user_input" == "Y" ]; then
+    # Meminta Input Private Key
+    echo -e "\n${YELLOW}=== Masukkan Private Key Anda: ===${NC}"
+    read -s -p "Private Key: " private_key
+    echo
+
+    # Pastikan Direktori `node/var/secrets/` Ada
+    mkdir -p node/var/secrets
+
+    # Menyimpan Private Key ke file node/var/secrets/jwt.txt
+    echo -e "\n${CYAN}=== Menyimpan Private Key ke node/var/secrets/jwt.txt ===${NC}"
+    echo "$private_key" > node/var/secrets/jwt.txt
+    echo -e "${GREEN}Private Key berhasil disimpan di node/var/secrets/jwt.txt.${NC}"
+else
+    echo -e "${YELLOW}Private key tidak dimasukkan.${NC}"
+fi
+
+# Membuat File .env
 echo -e "\n${CYAN}=== Membuat File .env dengan Konfigurasi... ===${NC}"
 cat <<EOL > .env
 L1_RPC_URL=https://ethereum-sepolia-rpc.publicnode.com
 L1_BEACON_URL=https://ethereum-sepolia-beacon-api.publicnode.com
 EOL
 echo -e "${GREEN}File .env berhasil dibuat.${NC}"
-
-# Pilihan untuk Memasukkan Private Key
-echo -e "\n${YELLOW}=== Memasukkan Private Key ===${NC}"
-read -p "Apakah Anda ingin memasukkan private key Anda? (y/n): " user_input
-
-if [[ "$user_input" == "y" || "$user_input" == "Y" ]]; then
-    read -p "Masukkan Private Key Anda: " PRIVATE_KEY
-    echo -e "$PRIVATE_KEY" > var/secrets/jwt.txt
-    echo -e "${GREEN}Private key berhasil disimpan di jwt.txt.${NC}"
-else
-    JWT_FILE="var/secrets/jwt.txt"
-    if [ -f "$JWT_FILE" ]; then
-        PRIVATE_KEY=$(cat "$JWT_FILE")
-        echo -e "${GREEN}Private key dibaca dari jwt.txt.${NC}"
-    else
-        echo -e "${RED}File jwt.txt tidak ditemukan. Harap masukkan private key ke dalam file jwt.txt.${NC}"
-        exit 1
-    fi
-fi
 
 # Jalankan Setup
 echo -e "\n${CYAN}=== Menjalankan Skrip Setup... ===${NC}"
@@ -86,7 +88,7 @@ fi
 # Mulai Node dengan Docker Compose
 echo -e "\n${CYAN}=== Memulai Node dengan Docker Compose... ===${NC}"
 if [ -f "docker-compose.yml" ]; then
-    docker compose up -d
+    docker-compose up -d
     echo -e "${GREEN}Node berhasil dijalankan.${NC}"
 else
     echo -e "${RED}File docker-compose.yml tidak ditemukan.${NC}"
