@@ -1,90 +1,98 @@
 #!/bin/bash
 
-# Skrip instalasi logo
+# Warna
+NC='\033[0m'        # No Color
+RED='\033[0;31m'    # Merah
+GREEN='\033[0;32m'  # Hijau
+YELLOW='\033[0;33m' # Kuning
+BLUE='\033[0;34m'   # Biru
+CYAN='\033[0;36m'   # Cyan
+BOLD='\033[1m'      # Tebal
+
+# Instalasi Logo
+echo -e "${CYAN}=== Memuat Logo... ===${NC}"
 curl -s https://raw.githubusercontent.com/choir94/Airdropguide/refs/heads/main/logo.sh | bash
 sleep 5
 
-# Update dan upgrade sistem
-echo "Memperbarui dan meng-upgrade sistem..."
+# Update dan Upgrade Sistem
+echo -e "\n${YELLOW}=== Memperbarui dan Meng-upgrade Sistem... ===${NC}"
 sudo apt update && sudo apt upgrade -y
 
-# Periksa dan install jq jika belum terpasang
+# Periksa dan Install jq
+echo -e "\n${YELLOW}=== Memeriksa 'jq'... ===${NC}"
 if ! command -v jq &> /dev/null; then
-    echo "jq tidak terpasang. Menginstall jq..."
+    echo -e "${RED}'jq' tidak terpasang. Menginstall...${NC}"
     sudo apt install jq -y
+else
+    echo -e "${GREEN}'jq' sudah terpasang.${NC}"
 fi
 
-# Periksa dan install Docker serta Docker Compose jika belum terpasang
+# Periksa Docker & Docker Compose
+echo -e "\n${YELLOW}=== Memeriksa Docker dan Docker Compose... ===${NC}"
 if ! command -v docker &> /dev/null || ! command -v docker-compose &> /dev/null; then
-    echo "Docker atau Docker Compose tidak terpasang. Harap instalasi sebelum menjalankan skrip ini."
+    echo -e "${RED}Docker atau Docker Compose tidak ditemukan. Harap instalasi terlebih dahulu.${NC}"
     exit 1
 fi
 
-# Clone repositori Git Ink
-echo "Meng-clone repositori Git Ink..."
+# Clone Repositori Git Ink
+echo -e "\n${CYAN}=== Meng-clone Repositori Git Ink... ===${NC}"
 if git clone https://github.com/inkonchain/node; then
-    echo "Repositori berhasil di-clone."
+    echo -e "${GREEN}Repositori berhasil di-clone.${NC}"
 else
-    echo "Gagal meng-clone repositori. Pastikan URL benar dan koneksi internet stabil."
+    echo -e "${RED}Gagal meng-clone repositori. Periksa URL dan koneksi internet.${NC}"
     exit 1
 fi
 
-# Masuk ke direktori Ink
-if cd node; then
-    echo "Berpindah ke direktori Ink."
-else
-    echo "Direktori Ink tidak ditemukan. Gagal masuk ke direktori."
-    exit 1
-fi
+# Masuk ke Direktori Ink
+echo -e "\n${CYAN}=== Memasuki Direktori Ink... ===${NC}"
+cd node || { echo -e "${RED}Gagal masuk ke direktori.${NC}"; exit 1; }
 
-# Buat file .env dan tambahkan konfigurasi
-echo "Membuat file .env dengan variabel lingkungan yang diperlukan..."
+# Buat File .env
+echo -e "\n${CYAN}=== Membuat File .env dengan Konfigurasi... ===${NC}"
 cat <<EOL > .env
 L1_RPC_URL=https://ethereum-sepolia-rpc.publicnode.com
 L1_BEACON_URL=https://ethereum-sepolia-beacon-api.publicnode.com
 EOL
-echo "File .env berhasil dibuat."
+echo -e "${GREEN}File .env berhasil dibuat.${NC}"
 
-# Jalankan skrip setup
+# Jalankan Setup
+echo -e "\n${CYAN}=== Menjalankan Skrip Setup... ===${NC}"
 if [ -f "./setup.sh" ]; then
-    echo "Menjalankan skrip setup..."
-    ./setup.sh
-    echo "Skrip setup berhasil dijalankan."
+    ./setup.sh && echo -e "${GREEN}Skrip setup berhasil dijalankan.${NC}"
 else
-    echo "Skrip setup.sh tidak ditemukan. Pastikan skrip ini ada di direktori."
+    echo -e "${RED}Skrip setup.sh tidak ditemukan. Pastikan skrip ini ada di direktori.${NC}"
     exit 1
 fi
 
-# Tampilkan kunci pribadi untuk disimpan
+# Simpan Kunci Pribadi
+echo -e "\n${CYAN}=== Menyimpan Kunci Pribadi... ===${NC}"
 if [ -f "var/secrets/jwt.txt" ]; then
-    echo "Menyimpan kunci pribadi Anda dengan aman..."
     cp var/secrets/jwt.txt ~/jwt_backup.txt
-    echo "Kunci pribadi disimpan ke ~/jwt_backup.txt. Pastikan Anda menyimpannya dengan aman."
+    echo -e "${GREEN}Kunci pribadi disimpan ke ~/jwt_backup.txt.${NC}"
 else
-    echo "File kunci pribadi var/secrets/jwt.txt tidak ditemukan."
+    echo -e "${RED}File kunci pribadi tidak ditemukan.${NC}"
 fi
 
-# Mulai node dengan Docker Compose
+# Mulai Node dengan Docker Compose
+echo -e "\n${CYAN}=== Memulai Node dengan Docker Compose... ===${NC}"
 if [ -f "docker-compose.yml" ]; then
-    echo "Memulai node dengan Docker Compose..."
     docker compose up -d
-    echo "Node berhasil dijalankan."
+    echo -e "${GREEN}Node berhasil dijalankan.${NC}"
 else
-    echo "File docker-compose.yml tidak ditemukan. Pastikan Docker Compose telah dikonfigurasi dengan benar."
+    echo -e "${RED}File docker-compose.yml tidak ditemukan.${NC}"
     exit 1
 fi
 
-# Verifikasi status sinkronisasi
-echo "Memverifikasi status sinkronisasi..."
+# Verifikasi Status Sinkronisasi
+echo -e "\n${YELLOW}=== Memverifikasi Status Sinkronisasi... ===${NC}"
 sync_status=$(curl -X POST -H "Content-Type: application/json" --data \
     '{"jsonrpc":"2.0","method":"optimism_syncStatus","params":[],"id":1}' \
     http://localhost:9545 | jq)
 
-echo "Status sinkronisasi: $sync_status"
+echo -e "${CYAN}Status sinkronisasi: $sync_status${NC}"
 
-# Ambil dan bandingkan nomor blok yang difinalisasi secara lokal dan jarak jauh
-echo "Mengambil nomor blok finalisasi terbaru dari node lokal dan RPC jarak jauh..."
-
+# Ambil Nomor Blok Finalisasi
+echo -e "\n${YELLOW}=== Mengecek Nomor Blok Finalisasi Lokal dan Jarak Jauh... ===${NC}"
 local_block=$(curl -s -X POST http://localhost:8545 -H "Content-Type: application/json" \
   --data '{"jsonrpc":"2.0","method":"eth_getBlockByNumber","params":["finalized", false],"id":1}' \
   | jq -r .result.number | sed 's/^0x//' | awk '{printf "%d\n", "0x" $0}')
@@ -93,17 +101,16 @@ remote_block=$(curl -s -X POST https://rpc-gel-sepolia.inkonchain.com/ -H "Conte
  --data '{"jsonrpc":"2.0","method":"eth_getBlockByNumber","params":["finalized", false],"id":1}' \
  | jq -r .result.number | sed 's/^0x//' | awk '{printf "%d\n", "0x" $0}')
 
-echo "Blok finalisasi lokal: $local_block"
-echo "Blok finalisasi jarak jauh: $remote_block"
+echo -e "${CYAN}Blok finalisasi lokal: $local_block${NC}"
+echo -e "${CYAN}Blok finalisasi jarak jauh: $remote_block${NC}"
 
-# Bandingkan blok dan tampilkan hasilnya
+# Perbandingan Blok
 if [ "$local_block" -eq "$remote_block" ]; then
-    echo "Node lokal Anda sinkron dengan RPC jarak jauh."
+    echo -e "\n${GREEN}Node lokal Anda sinkron dengan RPC jarak jauh.${NC}"
 else
-    echo "Node lokal Anda tidak sinkron dengan RPC jarak jauh."
-    echo "Blok lokal pada $local_block, sedangkan blok jarak jauh pada $remote_block."
+    echo -e "\n${RED}Node lokal Anda tidak sinkron. Lokal: $local_block | Jarak Jauh: $remote_block.${NC}"
 fi
 
-echo "Instalasi, setup, dan verifikasi selesai."
-echo -e "\n👉 **[Join Airdrop Node](https://t.me/airdrop_node)** 👈"
-
+# Selesai
+echo -e "\n${GREEN}=== Instalasi, Setup, dan Verifikasi Selesai! ===${NC}"
+echo -e "\n👉 ${BOLD}[Join Airdrop Node](https://t.me/airdrop_node)👈${NC}"
