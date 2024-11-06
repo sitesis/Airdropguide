@@ -1,125 +1,126 @@
 #!/bin/bash
 
-# Skrip instalasi logo
+# Warna
+NC='\033[0m'        # No Color
+RED='\033[0;31m'    # Merah
+GREEN='\033[0;32m'  # Hijau
+YELLOW='\033[0;33m' # Kuning
+BLUE='\033[0;34m'   # Biru
+CYAN='\033[0;36m'   # Cyan
+BOLD='\033[1m'      # Tebal
+
+# Instalasi Logo
+echo -e "${CYAN}=== Memuat Logo... ===${NC}"
 curl -s https://raw.githubusercontent.com/choir94/Airdropguide/refs/heads/main/logo.sh | bash
 sleep 5
 
-# Colors for output
-GREEN='\033[0;32m'
-NC='\033[0m' # No Color
+# Update dan Upgrade Sistem
+echo -e "\n${YELLOW}=== Memperbarui dan Meng-upgrade Sistem... ===${NC}"
+sudo apt update && sudo apt upgrade -y
 
-# Ensure script is run as root
-if [ "$(id -u)" != "0" ]; then
-    echo -e "${GREEN}This script requires root access. Please run it as root or use 'sudo'.${NC}"
-    exit 1
-fi
-
-# Update system and install dependencies
-echo -e "${GREEN}Updating system and installing dependencies...${NC}"
-apt-get update
-apt-get install -y \
-    ca-certificates \
-    curl \
-    gnupg \
-    lsb-release \
-    sudo
-
-# Add Docker's official GPG key
-echo -e "${GREEN}Adding Docker's official GPG key...${NC}"
-mkdir -p /etc/apt/keyrings
-curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-
-# Add Docker repository
-echo -e "${GREEN}Adding Docker repository...${NC}"
-echo \
-  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
-  $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
-
-# Update again and install Docker and Docker Compose
-echo -e "${GREEN}Installing Docker Engine and Docker Compose...${NC}"
-apt-get update
-apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
-
-# Ensure Docker service is running
-echo -e "${GREEN}Ensuring Docker service is running...${NC}"
-systemctl start docker
-systemctl enable docker
-
-# Verify Docker installation
-echo -e "${GREEN}Verifying Docker installation...${NC}"
-docker --version
-if [ $? -eq 0 ]; then
-    echo -e "${GREEN}Docker successfully installed and running!${NC}"
+# Periksa dan Install jq
+echo -e "\n${YELLOW}=== Memeriksa 'jq'... ===${NC}"
+if ! command -v jq &> /dev/null; then
+    echo -e "${RED}'jq' tidak terpasang. Menginstall...${NC}"
+    sudo apt install jq -y
 else
-    echo -e "${GREEN}Error installing or starting Docker.${NC}"
+    echo -e "${GREEN}'jq' sudah terpasang.${NC}"
+fi
+
+# Periksa Docker & Docker Compose
+echo -e "\n${YELLOW}=== Memeriksa Docker dan Docker Compose... ===${NC}"
+if ! command -v docker &> /dev/null || ! command -v docker-compose &> /dev/null; then
+    echo -e "${RED}Docker atau Docker Compose tidak ditemukan. Harap instalasi terlebih dahulu.${NC}"
     exit 1
 fi
 
-# Check Docker permissions
-echo -e "${GREEN}Checking Docker socket permissions...${NC}"
-if ! groups $USER | grep &>/dev/null '\bdocker\b'; then
-    echo -e "${GREEN}Adding current user to the docker group...${NC}"
-    usermod -aG docker $USER
-    echo -e "${GREEN}User added to the docker group. Please log out and log back in to apply the changes.${NC}"
-    exit 1
-fi
-
-# Clone the repository and navigate to grass/data directory
-echo -e "${GREEN}Cloning repository...${NC}"
-git clone https://github.com/MsLolita/grass.git
-cd grass || { echo "Failed to navigate to the grass directory. Ensure the grass directory exists."; exit 1; }
-cd data || { echo "Failed to navigate to the data directory. Ensure the data directory exists within grass."; exit 1; }
-
-# Replace accounts.txt and proxies.txt
-echo -e "${GREEN}Setting up accounts and proxies...${NC}"
-read -p "Enter your email: " email
-read -s -p "Enter your password: " password
-echo -e "${email}:${password}" > accounts.txt
-echo -e "\nAccounts updated in accounts.txt."
-
-echo -e "\nEnter proxy addresses, one per line (finish with an empty line):"
-> proxies.txt  # Clear existing proxies
-while true; do
-    read -p "Proxy: " proxy
-    [[ -z "$proxy" ]] && break
-    echo "$proxy" >> proxies.txt
-done
-echo -e "Proxies updated in proxies.txt."
-
-# Modify config.py parameters
-echo -e "${GREEN}Updating config.py...${NC}"
-sed -i 's/^THREADS = .*/THREADS = 5/' config.py
-sed -i 's/^MIN_PROXY_SCORE = .*/MIN_PROXY_SCORE = 50/' config.py
-sed -i 's/^APPROVE_EMAIL = .*/APPROVE_EMAIL = False/' config.py
-sed -i 's/^CONNECT_WALLET = .*/CONNECT_WALLET = False/' config.py
-sed -i 's/^SEND_WALLET_APPROVE_LINK_TO_EMAIL = .*/SEND_WALLET_APPROVE_LINK_TO_EMAIL = False/' config.py
-sed -i 's/^APPROVE_WALLET_ON_EMAIL = .*/APPROVE_WALLET_ON_EMAIL = False/' config.py
-sed -i 's/^SEMI_AUTOMATIC_APPROVE_LINK = .*/SEMI_AUTOMATIC_APPROVE_LINK = False/' config.py
-sed -i 's/^CLAIM_REWARDS_ONLY = .*/CLAIM_REWARDS_ONLY = False/' config.py
-sed -i 's/^STOP_ACCOUNTS_WHEN_SITE_IS_DOWN = .*/STOP_ACCOUNTS_WHEN_SITE_IS_DOWN = True/' config.py
-sed -i 's/^CHECK_POINTS = .*/CHECK_POINTS = False/' config.py
-sed -i 's/^SHOW_LOGS_RARELY = .*/SHOW_LOGS_RARELY = False/' config.py
-sed -i 's/^MINING_MODE = .*/MINING_MODE = True/' config.py
-sed -i 's/^REGISTER_ACCOUNT_ONLY = .*/REGISTER_ACCOUNT_ONLY = False/' config.py
-sed -i 's/^REGISTER_DELAY = .*/REGISTER_DELAY = (3, 7)/' config.py
-echo -e "Configuration updated in config.py."
-
-# Navigate back to grass directory to build and run Docker container
-cd ..
-echo -e "${GREEN}Starting Docker containers with Docker Compose...${NC}"
-docker-compose up -d
-
-# Build Docker image
-echo -e "${GREEN}Building Docker image...${NC}"
-if [ -f "Dockerfile" ]; then
-    docker build -t grass-app .
+# Clone Repositori Git Ink
+echo -e "\n${CYAN}=== Meng-clone Repositori Git Ink... ===${NC}"
+if git clone https://github.com/inkonchain/node; then
+    echo -e "${GREEN}Repositori berhasil di-clone.${NC}"
 else
-    echo "Dockerfile not found. Please ensure the Dockerfile is in the grass directory."
+    echo -e "${RED}Gagal meng-clone repositori. Periksa URL dan koneksi internet.${NC}"
     exit 1
 fi
 
-# Run Docker container
-echo -e "${GREEN}Running the Docker container...${NC}"
-docker run grass-app
+# Masuk ke Direktori Ink
+echo -e "\n${CYAN}=== Memasuki Direktori Ink... ===${NC}"
+cd node || { echo -e "${RED}Gagal masuk ke direktori.${NC}"; exit 1; }
 
-echo -e "${GREEN}All operations completed successfully!${NC}"
+# Buat File .env
+echo -e "\n${CYAN}=== Membuat File .env dengan Konfigurasi... ===${NC}"
+cat <<EOL > .env
+L1_RPC_URL=https://ethereum-sepolia-rpc.publicnode.com
+L1_BEACON_URL=https://ethereum-sepolia-beacon-api.publicnode.com
+EOL
+echo -e "${GREEN}File .env berhasil dibuat.${NC}"
+
+# Pilihan untuk Memasukkan Private Key
+echo -e "\n${YELLOW}=== Memasukkan Private Key ===${NC}"
+read -p "Apakah Anda ingin memasukkan private key Anda? (y/n): " user_input
+
+if [[ "$user_input" == "y" || "$user_input" == "Y" ]]; then
+    read -p "Masukkan Private Key Anda: " PRIVATE_KEY
+    echo -e "$PRIVATE_KEY" > var/secrets/jwt.txt
+    echo -e "${GREEN}Private key berhasil disimpan di jwt.txt.${NC}"
+else
+    JWT_FILE="var/secrets/jwt.txt"
+    if [ -f "$JWT_FILE" ]; then
+        PRIVATE_KEY=$(cat "$JWT_FILE")
+        echo -e "${GREEN}Private key dibaca dari jwt.txt.${NC}"
+    else
+        echo -e "${RED}File jwt.txt tidak ditemukan. Harap masukkan private key ke dalam file jwt.txt.${NC}"
+        exit 1
+    fi
+fi
+
+# Jalankan Setup
+echo -e "\n${CYAN}=== Menjalankan Skrip Setup... ===${NC}"
+if [ -f "./setup.sh" ]; then
+    ./setup.sh && echo -e "${GREEN}Skrip setup berhasil dijalankan.${NC}"
+else
+    echo -e "${RED}Skrip setup.sh tidak ditemukan. Pastikan skrip ini ada di direktori.${NC}"
+    exit 1
+fi
+
+# Mulai Node dengan Docker Compose
+echo -e "\n${CYAN}=== Memulai Node dengan Docker Compose... ===${NC}"
+if [ -f "docker-compose.yml" ]; then
+    docker compose up -d
+    echo -e "${GREEN}Node berhasil dijalankan.${NC}"
+else
+    echo -e "${RED}File docker-compose.yml tidak ditemukan.${NC}"
+    exit 1
+fi
+
+# Verifikasi Status Sinkronisasi
+echo -e "\n${YELLOW}=== Memverifikasi Status Sinkronisasi... ===${NC}"
+sync_status=$(curl -X POST -H "Content-Type: application/json" --data \
+    '{"jsonrpc":"2.0","method":"optimism_syncStatus","params":[],"id":1}' \
+    http://localhost:9545 | jq)
+
+echo -e "${CYAN}Status sinkronisasi: $sync_status${NC}"
+
+# Ambil Nomor Blok Finalisasi
+echo -e "\n${YELLOW}=== Mengecek Nomor Blok Finalisasi Lokal dan Jarak Jauh... ===${NC}"
+local_block=$(curl -s -X POST http://localhost:8545 -H "Content-Type: application/json" \
+  --data '{"jsonrpc":"2.0","method":"eth_getBlockByNumber","params":["finalized", false],"id":1}' \
+  | jq -r .result.number | sed 's/^0x//' | awk '{printf "%d\n", "0x" $0}')
+
+remote_block=$(curl -s -X POST https://rpc-gel-sepolia.inkonchain.com/ -H "Content-Type: application/json" \
+ --data '{"jsonrpc":"2.0","method":"eth_getBlockByNumber","params":["finalized", false],"id":1}' \
+ | jq -r .result.number | sed 's/^0x//' | awk '{printf "%d\n", "0x" $0}')
+
+echo -e "${CYAN}Blok finalisasi lokal: $local_block${NC}"
+echo -e "${CYAN}Blok finalisasi jarak jauh: $remote_block${NC}"
+
+# Perbandingan Blok
+if [ "$local_block" -eq "$remote_block" ]; then
+    echo -e "\n${GREEN}Node lokal Anda sinkron dengan RPC jarak jauh.${NC}"
+else
+    echo -e "\n${RED}Node lokal Anda tidak sinkron. Lokal: $local_block | Jarak Jauh: $remote_block.${NC}"
+fi
+
+# Selesai
+echo -e "\n${GREEN}=== Instalasi, Setup, dan Verifikasi Selesai! ===${NC}"
+echo -e "\n👉 ${BOLD}[Join Airdrop Node](https://t.me/airdrop_node)👈${NC}"
