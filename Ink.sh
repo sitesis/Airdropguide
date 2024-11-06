@@ -47,10 +47,14 @@ fi
 echo -e "\n${CYAN}=== Memasuki Direktori Ink... ===${NC}"
 cd node || { echo -e "${RED}Gagal masuk ke direktori.${NC}"; exit 1; }
 
-# Buat File .env
+# Tanyakan L1_RPC_URL jika pengguna ingin mengubahnya
+echo -e "\n${YELLOW}=== Masukkan L1 RPC URL untuk sinkronisasi lebih cepat ===${NC}"
+read -p "L1 RPC URL (misalnya, https://ethereum-sepolia-rpc.publicnode.com): " L1_RPC_URL
+
+# Buat File .env dengan URL yang dimasukkan
 echo -e "\n${CYAN}=== Membuat File .env dengan Konfigurasi... ===${NC}"
 cat <<EOL > .env
-L1_RPC_URL=https://ethereum-sepolia-rpc.publicnode.com
+L1_RPC_URL=${L1_RPC_URL}
 L1_BEACON_URL=https://ethereum-sepolia-beacon-api.publicnode.com
 EOL
 echo -e "${GREEN}File .env berhasil dibuat.${NC}"
