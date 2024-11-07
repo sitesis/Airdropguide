@@ -12,79 +12,56 @@ HTTP_PORT="8545"
 WS_PORT="8546"
 
 # Step 1: Install dependencies (Go and C Compiler)
-echo "Checking and installing dependencies: Go and C Compiler..."
-if ! command -v go &> /dev/null; then
-    echo "Go is not installed. Installing Go..."
-    sudo apt update
-    sudo apt install -y golang-go
-else
-    echo "Go is already installed."
-fi
+echo "Installing dependencies: Go and C Compiler..."
+sudo apt update
+sudo apt install -y golang-1.19-go build-essential
 
-if ! dpkg -l | grep -q build-essential; then
-    echo "C Compiler (build-essential) is not installed. Installing..."
-    sudo apt install -y build-essential
-else
-    echo "C Compiler (build-essential) is already installed."
-fi
+# Set Go 1.19 as default
+sudo update-alternatives --install /usr/bin/go go /usr/lib/go-1.19/bin/go 1
+sudo update-alternatives --config go
 
 # Step 2: Clone and Build Geth Source
 echo "Cloning and building Geth from source..."
-if ! git clone https://github.com/ethereum/go-ethereum.git; then
-    echo "Error cloning Geth repository. Exiting..."
-    exit 1
-fi
-cd go-ethereum || { echo "Failed to enter go-ethereum directory. Exiting..."; exit 1; }
+git clone https://github.com/ethereum/go-ethereum.git
+cd go-ethereum
 
+# Remove toolchain directive if present
+echo "Removing toolchain directive from go.mod if present..."
+sed -i '/toolchain/d' go.mod
+
+# Clean up Go modules
+echo "Running go mod tidy..."
+go mod tidy
+
+# Build Geth
 echo "Building Geth..."
-if ! make geth; then
-    echo "Error building Geth. Exiting..."
-    exit 1
-fi
+make geth
 
 # Step 3: Download Genesis File
 echo "Downloading genesis.json from GitHub..."
-if ! curl -L $GENESIS_URL -o $GENESIS_FILE; then
-    echo "Error downloading genesis file. Exiting..."
-    exit 1
-fi
+curl -L $GENESIS_URL -o $GENESIS_FILE
 
 # Step 4: Initialize Geth Database
 echo "Initializing Geth database..."
-if ! $GETH_BUILD_DIR/geth init --datadir $NODE_DIR $GENESIS_FILE; then
-    echo "Error initializing Geth database. Exiting..."
-    exit 1
-fi
+$GETH_BUILD_DIR/geth init --datadir $NODE_DIR $GENESIS_FILE
 
 # Step 5: Create or Import Account (Optional for RPC node)
 echo "Do you want to create a new account? (y/n)"
-read -r create_account
+read create_account
 
 if [ "$create_account" == "y" ]; then
     echo "Creating new account..."
-    if ! $GETH_BUILD_DIR/geth --datadir $NODE_DIR account new; then
-        echo "Error creating account. Exiting..."
-        exit 1
-    fi
+    $GETH_BUILD_DIR/geth --datadir $NODE_DIR account new
 else
     echo "Importing existing account..."
     echo "Enter the path to your private key (e.g., ./privateKey.txt):"
-    read -r private_key_path
-
-    if [ ! -f "$private_key_path" ]; then
-        echo "Private key file not found. Exiting..."
-        exit 1
-    fi
-
-    if ! $GETH_BUILD_DIR/geth account import --datadir $NODE_DIR "$private_key_path"; then
-        echo "Error importing account. Exiting..."
-        exit 1
-    fi
+    read private_key_path
+    $GETH_BUILD_DIR/geth account import --datadir $NODE_DIR $private_key_path
 fi
 
 # Step 6: Start the Node (Validator or RPC)
 echo "Do you want to run a Validator node or RPC node? (Enter 'validator' or 'rpc')"
-read -r node_type
+read node_type
 
 if [ "$node_type" == "rpc" ]; then
     echo "Starting RPC node..."
@@ -102,26 +79,17 @@ if [ "$node_type" == "rpc" ]; then
         --ws \
         --ws.port $WS_PORT \
         --ws.addr 0.0.0.0 \
-        --ws.api eth,net,web3 &> rpc_node.log &
-
-    echo "RPC node started in the background. Logs can be found in rpc_node.log."
-
+        --ws.api eth,net,web3
 elif [ "$node_type" == "validator" ]; then
     echo "Starting Validator node..."
     echo "Enter your validator account address:"
-    read -r validator_address
+    read validator_address
     echo "Enter your validator account password file path:"
-    read -r validator_password_file
-
-    if [ ! -f "$validator_password_file" ]; then
-        echo "Password file not found. Exiting..."
-        exit 1
-    fi
-
+    read validator_password_file
     $GETH_BUILD_DIR/geth \
         --mine --miner.etherbase=$validator_address \
         --unlock $validator_address \
-        --password "$validator_password_file" \
+        --password $validator_password_file \
         --networkid $NETWORK_ID \
         --gcmode archive \
         --datadir $NODE_DIR \
@@ -135,10 +103,7 @@ elif [ "$node_type" == "validator" ]; then
         --ws \
         --ws.port $WS_PORT \
         --ws.addr 0.0.0.0 \
-        --ws.api eth,net,web3 &> validator_node.log &
-
-    echo "Validator node started in the background. Logs can be found in validator_node.log."
-
+        --ws.api eth,net,web3
 else
     echo "Invalid input. Please choose either 'rpc' or 'validator'."
     exit 1
