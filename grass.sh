@@ -15,6 +15,10 @@ if [ "$(id -u)" != "0" ]; then
     exit 1
 fi
 
+# Update and upgrade system packages
+echo -e "${GREEN}Updating and upgrading system packages...${NC}"
+sudo apt update && sudo apt upgrade -y
+
 # Check if Docker is already installed
 if command -v docker &> /dev/null; then
     echo -e "${GREEN}Docker is already installed. Skipping Docker installation.${NC}"
@@ -106,5 +110,6 @@ else
     echo -e "${RED}Failed to start the Docker container.${NC}"
     exit 1
 fi
-#Join Channel Telegram
+
+# Join Channel Telegram
 echo -e "\n👉 ${BOLD}[Join Airdrop Node](https://t.me/airdrop_node)👈${NC}"
