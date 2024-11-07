@@ -4,25 +4,34 @@
 GENESIS_URL="https://github.com/choir94/Airdropguide/raw/main/gnesis.json"
 GENESIS_FILE="./genesis.json"
 NODE_DIR="./nodes/node1"
-GETH_BUILD_DIR="./build/bin"
 NETWORK_ID="43521"
 BOOTNODES="enode://d511b4562fbf87ccf864bf8bf0536632594d5838fc2223cecdb35b30c3b281172c96201a8f9835164b1d8ec1e4d6b7542af917fab7aca891654dae50ce515bc0@18.138.235.45:30303,enode://9b5ae242c202d74db9ba8406d2e225f97bb79487eedba576f20fcf8d770488d6e5d0110b45bcaf01b107d4a429b6cfcb7dea4e07f8dbc9816e8409b0b147036e@18.143.193.46:30303"
 PORT="30303"
 HTTP_PORT="8545"
 WS_PORT="8546"
 
-# Function to install dependencies
-install_dependencies() {
-    echo "Installing dependencies: Go and C Compiler..."
+# Function to install Geth and dependencies
+install_geth() {
+    echo "Installing Geth and dependencies..."
+
+    # Update system and install dependencies
     sudo apt update
     sudo apt install -y golang-go build-essential
+
+    # Download and install Geth
+    wget https://gethstore.blob.core.windows.net/geth/v1.12.0/geth-linux-amd64-1.12.0-a181feb9.tar.gz
+    tar -xvzf geth-linux-amd64-1.12.0-a181feb9.tar.gz
+    sudo mv geth-linux-amd64-1.12.0-a181feb9/geth /usr/local/bin/
+    rm -rf geth-linux-amd64-1.12.0-a181feb9*
+
+    echo "Geth has been installed successfully."
 }
 
 # Function to check if Geth is installed
 check_geth_installation() {
     if ! command -v geth &> /dev/null; then
-        echo "Geth is not installed. Please install it first."
-        exit 1
+        echo "Geth is not installed. Installing now..."
+        install_geth
     else
         echo "Geth is already installed."
     fi
@@ -111,7 +120,7 @@ start_node() {
 # Main menu
 while true; do
     echo "Choose an option:"
-    echo "1. Install dependencies"
+    echo "1. Install Geth and dependencies"
     echo "2. Check Geth installation"
     echo "3. Download genesis.json"
     echo "4. Initialize Geth database"
@@ -121,7 +130,7 @@ while true; do
     read choice
 
     case $choice in
-        1) install_dependencies ;;
+        1) install_geth ;;
         2) check_geth_installation ;;
         3) download_genesis ;;
         4) initialize_geth ;;
