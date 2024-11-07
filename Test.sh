@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Set variables
-GENESIS_URL="https://github.com/choir94/Airdropguide/raw/main/gnesis.json"
+GENESIS_URL="https://github.com/choir94/Airdropguide/raw/main/genesis.json"
 GENESIS_FILE="./genesis.json"
 NODE_DIR="./nodes/node1"
 GETH_BUILD_DIR="./build/bin"
