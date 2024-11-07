@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Set variables
-GENESIS_URL="https://github.com/choir94/Airdropguide/raw/main/gnesis.json"
+GENESIS_URL="https://your-link-to-genesis-file/genesis.json"  # Ganti dengan URL genesis.json yang sesuai
 GENESIS_FILE="./genesis.json"
 NODE_DIR="./nodes/node1"
 NETWORK_ID="43521"
@@ -10,46 +10,37 @@ PORT="30303"
 HTTP_PORT="8545"
 WS_PORT="8546"
 
-# Function to install Geth and dependencies
+# Step 1: Install Geth if not installed
 install_geth() {
-    echo "Installing Geth and dependencies..."
-
-    # Update system and install dependencies
-    sudo apt update
-    sudo apt install -y golang-go build-essential
-
-    # Download and install Geth
-    wget https://gethstore.blob.core.windows.net/geth/v1.12.0/geth-linux-amd64-1.12.0-a181feb9.tar.gz
-    tar -xvzf geth-linux-amd64-1.12.0-a181feb9.tar.gz
-    sudo mv geth-linux-amd64-1.12.0-a181feb9/geth /usr/local/bin/
-    rm -rf geth-linux-amd64-1.12.0-a181feb9*
-
-    echo "Geth has been installed successfully."
-}
-
-# Function to check if Geth is installed
-check_geth_installation() {
     if ! command -v geth &> /dev/null; then
-        echo "Geth is not installed. Installing now..."
-        install_geth
+        echo "Geth not found. Installing Geth..."
+        sudo add-apt-repository -y ppa:ethereum/ethereum
+        sudo apt update
+        sudo apt install -y ethereum
     else
         echo "Geth is already installed."
     fi
 }
 
-# Function to download genesis.json
-download_genesis() {
-    echo "Downloading genesis.json from GitHub..."
-    curl -L $GENESIS_URL -o $GENESIS_FILE
+# Step 2: Create node directory
+create_node_directory() {
+    echo "Creating node data directory at $NODE_DIR..."
+    mkdir -p $NODE_DIR
 }
 
-# Function to initialize the Geth database
+# Step 3: Download genesis.json
+download_genesis() {
+    echo "Downloading genesis.json from $GENESIS_URL..."
+    curl -L -o $GENESIS_FILE $GENESIS_URL
+}
+
+# Step 4: Initialize Geth database
 initialize_geth() {
-    echo "Initializing Geth database..."
+    echo "Initializing Geth database with genesis.json..."
     geth init --datadir $NODE_DIR $GENESIS_FILE
 }
 
-# Function to create or import account
+# Step 5: Create or import account
 create_or_import_account() {
     echo "Do you want to create a new account? (y/n)"
     read create_account
@@ -65,7 +56,7 @@ create_or_import_account() {
     fi
 }
 
-# Function to start the node
+# Step 6: Start the node
 start_node() {
     echo "Do you want to run a Validator node or RPC node? (Enter 'validator' or 'rpc')"
     read node_type
@@ -120,8 +111,8 @@ start_node() {
 # Main menu
 while true; do
     echo "Choose an option:"
-    echo "1. Install Geth and dependencies"
-    echo "2. Check Geth installation"
+    echo "1. Install Geth"
+    echo "2. Create node directory"
     echo "3. Download genesis.json"
     echo "4. Initialize Geth database"
     echo "5. Create or import account"
@@ -131,7 +122,7 @@ while true; do
 
     case $choice in
         1) install_geth ;;
-        2) check_geth_installation ;;
+        2) create_node_directory ;;
         3) download_genesis ;;
         4) initialize_geth ;;
         5) create_or_import_account ;;
