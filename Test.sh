@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Set variables
-GENESIS_URL="https://github.com/choir94/Airdropguide/raw/main/genesis.json"
+GENESIS_URL="https://github.com/choir94/Airdropguide/raw/main/gnesis.json"
 GENESIS_FILE="./genesis.json"
 NODE_DIR="./nodes/node1"
 GETH_BUILD_DIR="./build/bin"
@@ -18,12 +18,14 @@ install_dependencies() {
     sudo apt install -y golang-go build-essential
 }
 
-# Function to build Geth from source
-build_geth() {
-    echo "Cloning and building Geth from source..."
-    git clone https://github.com/ethereum/go-ethereum.git
-    cd go-ethereum
-    make geth
+# Function to check if Geth is installed
+check_geth_installation() {
+    if ! command -v geth &> /dev/null; then
+        echo "Geth is not installed. Please install it first."
+        exit 1
+    else
+        echo "Geth is already installed."
+    fi
 }
 
 # Function to download genesis.json
@@ -35,7 +37,7 @@ download_genesis() {
 # Function to initialize the Geth database
 initialize_geth() {
     echo "Initializing Geth database..."
-    $GETH_BUILD_DIR/geth init --datadir $NODE_DIR $GENESIS_FILE
+    geth init --datadir $NODE_DIR $GENESIS_FILE
 }
 
 # Function to create or import account
@@ -45,12 +47,12 @@ create_or_import_account() {
 
     if [ "$create_account" == "y" ]; then
         echo "Creating new account..."
-        $GETH_BUILD_DIR/geth --datadir $NODE_DIR account new
+        geth --datadir $NODE_DIR account new
     else
         echo "Importing existing account..."
         echo "Enter the path to your private key (e.g., ./privateKey.txt):"
         read private_key_path
-        $GETH_BUILD_DIR/geth account import --datadir $NODE_DIR $private_key_path
+        geth account import --datadir $NODE_DIR $private_key_path
     fi
 }
 
@@ -61,7 +63,7 @@ start_node() {
 
     if [ "$node_type" == "rpc" ]; then
         echo "Starting RPC node..."
-        $GETH_BUILD_DIR/geth \
+        geth \
             --networkid $NETWORK_ID \
             --gcmode archive \
             --datadir $NODE_DIR \
@@ -82,7 +84,7 @@ start_node() {
         read validator_address
         echo "Enter your validator account password file path:"
         read validator_password_file
-        $GETH_BUILD_DIR/geth \
+        geth \
             --mine --miner.etherbase=$validator_address \
             --unlock $validator_address \
             --password $validator_password_file \
@@ -110,7 +112,7 @@ start_node() {
 while true; do
     echo "Choose an option:"
     echo "1. Install dependencies"
-    echo "2. Build Geth"
+    echo "2. Check Geth installation"
     echo "3. Download genesis.json"
     echo "4. Initialize Geth database"
     echo "5. Create or import account"
@@ -120,7 +122,7 @@ while true; do
 
     case $choice in
         1) install_dependencies ;;
-        2) build_geth ;;
+        2) check_geth_installation ;;
         3) download_genesis ;;
         4) initialize_geth ;;
         5) create_or_import_account ;;
