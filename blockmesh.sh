@@ -1,9 +1,5 @@
 #!/bin/bash
 
-# Skrip instalasi logo
-curl -s https://raw.githubusercontent.com/choir94/Airdropguide/refs/heads/main/logo.sh | bash
-sleep 5
-
 set -e
 
 log() {
@@ -33,10 +29,18 @@ DOCKER_GPG_URL="https://download.docker.com/linux/ubuntu/gpg"
 DOCKER_COMPOSE_URL="https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)"
 BLOCKMESH_API_URL="https://api.github.com/repos/block-mesh/block-mesh-monorepo/releases/latest"
 
-# Debug: Print the URLs to verify they are set correctly
-log "LOG" "DOCKER_GPG_URL: $DOCKER_GPG_URL"
-log "LOG" "DOCKER_COMPOSE_URL: $DOCKER_COMPOSE_URL"
-log "LOG" "BLOCKMESH_API_URL: $BLOCKMESH_API_URL"
+# Ask user if they have already registered on BlockMesh
+read -p "Apakah Anda sudah terdaftar di BlockMesh? (y/n): " is_registered
+
+if [[ "$is_registered" != "y" ]]; then
+    log "LANCAR" "Silakan daftar terlebih dahulu di https://app.blockmesh.xyz/register?invite_code=airdropnode"
+    read -p "Tekan Enter setelah selesai mendaftar atau N untuk keluar."
+    read -p "Setelah mendaftar, tekan 'y' untuk melanjutkan: " continue_registration
+    if [[ "$continue_registration" != "y" ]]; then
+        log "ERROR" "Proses dihentikan. Anda harus mendaftar terlebih dahulu."
+        exit 1
+    fi
+fi
 
 # Check if BlockMesh CLI container exists and stop/remove it if so
 if docker ps -a | grep -q "blockmesh-cli-container"; then
@@ -107,6 +111,14 @@ read -p "Masukkan Email: " email
 read -sp "Masukkan Password: " password
 echo
 
+# Confirm before proceeding
+read -p "Apakah Anda ingin melanjutkan proses pemasangan BlockMesh CLI dengan email $email? (y/n): " confirm_continue
+
+if [[ "$confirm_continue" != "y" ]]; then
+    log "ERROR" "Proses dihentikan. Anda memilih untuk tidak melanjutkan."
+    exit 1
+fi
+
 # Create Docker container for BlockMesh CLI
 log "LANCAR" "Membuat kontainer Docker untuk BlockMesh CLI..."
 docker run -d \
@@ -123,7 +135,14 @@ log "LANCAR" "Memeriksa status kontainer BlockMesh CLI..."
 docker ps -a | grep blockmesh-cli-container
 
 # Fetch logs for BlockMesh CLI container
-log "LANCAR" "Mengambil log untuk kontainer BlockMesh CLI (tekan Ctrl+C untuk berhenti)..."
+log "LANCAR" "Mengambil log untuk kontainer BlockMesh CLI (tekan N untuk berhenti)..."
+while true; do
+    read -p "Tekan 'N' untuk berhenti dari log: " user_input
+    if [[ "$user_input" == "N" || "$user_input" == "n" ]]; then
+        log "LANCAR" "Berhenti mengambil log BlockMesh CLI."
+        break
+    fi
+done
 docker logs -f blockmesh-cli-container
 
 log "LANCAR" "Pengaturan selesai dengan sukses."
