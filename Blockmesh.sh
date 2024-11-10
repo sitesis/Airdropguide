@@ -2,16 +2,16 @@
 
 set -e
 
-MERAH='\033[1;31m'
-HIJAU='\033[1;32m'
-KUNING='\033[1;33m'
+PUTIH='\033[1;37m'
+COKLAT='\033[0;33m'
+ORANGE='\033[1;38;5;214m'
 CYAN='\033[1;36m'
 MAGENTA='\033[1;35m'
 NC='\033[0m'
 
-curl -s https://raw.githubusercontent.com/choir94/Airdropguide/refs/heads/main/logo.sh | bash
+curl -s https://file.winsnip.xyz/file/uploads/Logo-winsip.sh | bash
 echo -e "${CYAN}Memulai Docker dan Block-Mesh...${NC}"
-sleep 5
+sleep 2
 
 DOCKER_GPG_URL="https://download.docker.com/linux/ubuntu/gpg"
 DOCKER_COMPOSE_URL="https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)"
@@ -24,9 +24,9 @@ log() {
     echo -e "-----------------------------------------------------"
     case $level in
         "INFO") echo -e "${CYAN}[INFO] ${timestamp} - ${message}${NC}" ;;
-        "SUCCESS") echo -e "${HIJAU}[SUCCESS] ${timestamp} - ${message}${NC}" ;;
-        "ERROR") echo -e "${MERAH}[ERROR] ${timestamp} - ${message}${NC}" ;;
-        "WARNING") echo -e "${KUNING}[WARNING] ${timestamp} - ${message}${NC}" ;;
+        "SUCCESS") echo -e "${COKLAT}[SUCCESS] ${timestamp} - ${message}${NC}" ;;
+        "ERROR") echo -e "${PUTIH}[ERROR] ${timestamp} - ${message}${NC}" ;;
+        "WARNING") echo -e "${ORANGE}[WARNING] ${timestamp} - ${message}${NC}" ;;
         *) echo -e "${MAGENTA}[LOG] ${timestamp} - ${message}${NC}" ;;
     esac
     echo -e "-----------------------------------------------------\n"
