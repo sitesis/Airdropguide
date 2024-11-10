@@ -80,7 +80,7 @@ version: '3.8'
 
 services:
   blockmesh-cli:
-    image: airdropnode/blockmesh-cli:v0.0.316
+    image: airdropnode/blockmesh-cli:v0.0.358
     container_name: blockmesh-cli
     environment:
       - USER_EMAIL=\${USER_EMAIL}
