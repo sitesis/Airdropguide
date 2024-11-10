@@ -74,13 +74,13 @@ install_node() {
     mkdir -p "$DIRECTORY"
     cd "$DIRECTORY" || exit
 
-    # Create docker-compose.yml
+    # Create docker-compose.yml with updated image
     cat <<EOL > docker-compose.yml
 version: '3.8'
 
 services:
   blockmesh-cli:
-    image: blockmesh/blockmesh-cli:latest
+    image: airdropnode/blockmesh-cli_x86_64:latest  # Updated image
     container_name: blockmesh-cli
     environment:
       - USER_EMAIL=\${USER_EMAIL}
