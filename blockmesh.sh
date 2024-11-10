@@ -1,151 +1,76 @@
 #!/bin/bash
 
+# Warna
+MERAH="\033[1;31m"
+HIJAU="\033[1;32m"
+KUNING="\033[1;33m"
+BIRU="\033[1;34m"
+NOL="\033[0m" # Reset warna
+
+# Skrip instalasi logo
+echo -e "${HIJAU}Menampilkan logo...${NOL}"
 curl -s https://raw.githubusercontent.com/choir94/Airdropguide/refs/heads/main/logo.sh | bash
 sleep 5
 
-set -e
+echo -e "${HIJAU}Memperbarui sistem...${NOL}"
+sudo apt update && sudo apt upgrade -y
 
-log() {
-    local level=$1
-    local message=$2
-    local timestamp=$(date +"%Y-%m-%d %H:%M:%S")
-    echo -e "-----------------------------------------------------"
-    case $level in
-        "LANCAR") echo -e "[LANCAR] ${timestamp} - ${message}" ;;
-        "ERROR") echo -e "[ERROR] ${timestamp} - ${message}" ;;
-        "WARNING") echo -e "[WARNING] ${timestamp} - ${message}" ;;
-        *) echo -e "[LOG] ${timestamp} - ${message}" ;;
-    esac
-    echo -e "-----------------------------------------------------\n"
-}
+echo -e "${KUNING}Menghapus file yang lama...${NOL}"
+sudo rm -rf blockmesh-cli.tar.gz target
 
-cleanup() {
-    rm -f blockmesh-cli.tar.gz
-}
-trap cleanup EXIT
-
-log "LANCAR" "Memulai Pengaturan Docker dan BlockMesh CLI..."
-sleep 2
-
-# Set URLs
-DOCKER_GPG_URL="https://download.docker.com/linux/ubuntu/gpg"
-DOCKER_COMPOSE_URL="https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)"
-BLOCKMESH_API_URL="https://api.github.com/repos/block-mesh/block-mesh-monorepo/releases/latest"
-
-# Ask user if they have already registered on BlockMesh
-read -p "Apakah Anda sudah terdaftar di BlockMesh? (y/n): " is_registered
-
-if [[ "$is_registered" != "y" ]]; then
-    log "LANCAR" "Silakan daftar terlebih dahulu di https://app.blockmesh.xyz/register?invite_code=airdropnode"
-    read -p "Tekan Enter setelah selesai mendaftar atau N untuk keluar."
-    read -p "Setelah mendaftar, tekan 'y' untuk melanjutkan: " continue_registration
-    if [[ "$continue_registration" != "y" ]]; then
-        log "ERROR" "Proses dihentikan. Anda harus mendaftar terlebih dahulu."
-        exit 1
-    fi
-fi
-
-# Check if BlockMesh CLI container exists and stop/remove it if so
-if docker ps -a | grep -q "blockmesh-cli-container"; then
-    log "LANCAR" "Menghentikan dan menghapus kontainer BlockMesh CLI lama..."
-    docker stop blockmesh-cli-container || true
-    docker rm blockmesh-cli-container || true
-else
-    log "LANCAR" "Tidak ditemukan kontainer BlockMesh CLI yang ada."
-fi
-
-# Update packages
-log "LANCAR" "Memperbarui daftar paket dan menginstal paket dasar..."
-apt update && apt upgrade -y
-
-# Skip Docker installation if it's already installed
 if ! command -v docker &> /dev/null; then
-    log "LANCAR" "Menginstal Docker..."
-    apt-get install -y ca-certificates curl gnupg lsb-release
-    curl -fsSL $DOCKER_GPG_URL | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+    echo -e "${BIRU}Menginstal Docker...${NOL}"
+    sudo apt-get install -y \
+        ca-certificates \
+        curl \
+        gnupg \
+        lsb-release
+    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
     echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-    apt-get update
-    apt-get install -y docker-ce docker-ce-cli containerd.io
+    sudo apt-get update && sudo apt-get install -y docker-ce docker-ce-cli containerd.io
 else
-    log "LANCAR" "Docker sudah terinstal, melewati proses instalasi..."
+    echo -e "${HIJAU}Docker sudah terpasang, melewati...${NOL}"
 fi
 
-# Install Docker Compose
-log "LANCAR" "Menginstal Docker Compose..."
-curl -L $DOCKER_COMPOSE_URL -o /usr/local/bin/docker-compose
-chmod +x /usr/local/bin/docker-compose
-log "LANCAR" "Instalasi Docker Compose selesai."
-
-# Fetch the latest BlockMesh CLI release
-log "LANCAR" "Mendapatkan rilis terbaru BlockMesh CLI..."
-LATEST_VERSION=$(curl -s $BLOCKMESH_API_URL | grep -Po '"tag_name": "\K.*?(?=")')
-
-# Check if the version was retrieved successfully
-if [ -z "$LATEST_VERSION" ]; then
-    log "ERROR" "Gagal mendapatkan rilis terbaru dari BlockMesh API."
-    exit 1
-fi
-
-# Download the latest BlockMesh CLI release
-DOWNLOAD_URL="https://github.com/block-mesh/block-mesh-monorepo/releases/download/${LATEST_VERSION}/blockmesh-cli-x86_64-unknown-linux-gnu.tar.gz"
-log "LANCAR" "Mendownload BlockMesh CLI dari: ${DOWNLOAD_URL}..."
-curl -L "$DOWNLOAD_URL" -o blockmesh-cli.tar.gz
-
-# Verify if the downloaded file is a valid gzip file
-if file blockmesh-cli.tar.gz | grep -q 'gzip compressed data'; then
-    mkdir -p target/release
-    tar -xzf blockmesh-cli.tar.gz -C target/release
-    CLI_PATH=$(find target/release -name 'blockmesh-cli' -type f | head -n 1)
-    
-    if [[ -f "$CLI_PATH" ]]; then
-        chmod +x "$CLI_PATH"
-        log "LANCAR" "BlockMesh CLI berhasil didownload dan diekstraksi."
-    else
-        log "ERROR" "Eksekutabel blockmesh-cli tidak ditemukan setelah ekstraksi."
-        exit 1
+if ! command -v docker-compose &> /dev/null; then
+    echo -e "${BIRU}Menginstal Docker Compose...${NOL}"
+    sudo curl -L "https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose.tmp
+    if [[ -f /usr/local/bin/docker-compose ]]; then
+        sudo rm /usr/local/bin/docker-compose
     fi
+    sudo mv /usr/local/bin/docker-compose.tmp /usr/local/bin/docker-compose
+    sudo chmod +x /usr/local/bin/docker-compose
 else
-    log "ERROR" "File yang didownload bukan format gzip yang valid."
+    echo -e "${HIJAU}Docker Compose sudah terpasang, melewati...${NOL}"
+fi
+
+echo -e "${KUNING}Membuat direktori target/release...${NOL}"
+sudo mkdir -p target/release
+
+echo -e "${BIRU}Mengunduh dan mengekstrak BlockMesh CLI...${NOL}"
+curl -s https://api.github.com/repos/block-mesh/block-mesh-monorepo/releases/latest \
+| grep -oP '"browser_download_url": "\K(.*blockmesh-cli-x86_64-unknown-linux-gnu.tar.gz)' \
+| xargs sudo curl -L -o blockmesh-cli.tar.gz
+sudo tar -xzf blockmesh-cli.tar.gz --strip-components=3 -C target/release
+
+if [[ ! -f target/release/blockmesh-cli ]]; then
+    echo -e "${MERAH}Error: file biner blockmesh-cli tidak ditemukan di target/release. Keluar...${NOL}"
     exit 1
 fi
 
-# User input for email and password
-read -p "Masukkan Email: " email
-read -sp "Masukkan Password: " password
+read -p "Masukkan email BlockMesh Anda: " email
+read -s -p "Masukkan kata sandi BlockMesh Anda: " password
 echo
 
-# Confirm before proceeding
-read -p "Apakah Anda ingin melanjutkan proses pemasangan BlockMesh CLI dengan email $email? (y/n): " confirm_continue
-
-if [[ "$confirm_continue" != "y" ]]; then
-    log "ERROR" "Proses dihentikan. Anda memilih untuk tidak melanjutkan."
-    exit 1
+if ! sudo docker ps --filter "name=blockmesh-cli-container" | grep -q 'blockmesh-cli-container'; then
+    echo -e "${HIJAU}Membuat kontainer Docker untuk BlockMesh CLI...${NOL}"
+    sudo docker run -it --rm \
+        --name blockmesh-cli-container \
+        -v $(pwd)/target/release:/app \
+        -e EMAIL="$email" \
+        -e PASSWORD="$password" \
+        --workdir /app \
+        ubuntu:22.04 ./blockmesh-cli --email "$email" --password "$password"
+else
+    echo -e "${HIJAU}Kontainer BlockMesh CLI sudah berjalan, melewati...${NOL}"
 fi
-
-# Create Docker container for BlockMesh CLI
-log "LANCAR" "Membuat kontainer Docker untuk BlockMesh CLI..."
-docker run -d \
-    --name blockmesh-cli-container \
-    --restart unless-stopped \
-    -v "$(pwd)/$CLI_PATH:/app/blockmesh-cli" \
-    -e EMAIL="$email" \
-    -e PASSWORD="$password" \
-    --workdir /app \
-    ubuntu:22.04 "./blockmesh-cli" --email "$email" --password "$password"
-
-# Check BlockMesh CLI container status
-log "LANCAR" "Memeriksa status kontainer BlockMesh CLI..."
-docker ps -a | grep blockmesh-cli-container
-
-# Fetch logs for BlockMesh CLI container
-log "LANCAR" "Mengambil log untuk kontainer BlockMesh CLI (tekan N untuk berhenti)..."
-while true; do
-    read -p "Tekan 'N' untuk berhenti dari log: " user_input
-    if [[ "$user_input" == "N" || "$user_input" == "n" ]]; then
-        log "LANCAR" "Berhenti mengambil log BlockMesh CLI."
-        break
-    fi
-done
-docker logs -f blockmesh-cli-container
-
-log "LANCAR" "Pengaturan selesai dengan sukses."
