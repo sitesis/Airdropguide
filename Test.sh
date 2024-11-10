@@ -1,133 +1,191 @@
 #!/bin/bash
 
-# Set variables
-GENESIS_URL="https://your-link-to-genesis-file/genesis.json"  # Ganti dengan URL genesis.json yang sesuai
-GENESIS_FILE="./genesis.json"
-NODE_DIR="./nodes/node1"
-NETWORK_ID="43521"
-BOOTNODES="enode://d511b4562fbf87ccf864bf8bf0536632594d5838fc2223cecdb35b30c3b281172c96201a8f9835164b1d8ec1e4d6b7542af917fab7aca891654dae50ce515bc0@18.138.235.45:30303,enode://9b5ae242c202d74db9ba8406d2e225f97bb79487eedba576f20fcf8d770488d6e5d0110b45bcaf01b107d4a429b6cfcb7dea4e07f8dbc9816e8409b0b147036e@18.143.193.46:30303"
-PORT="30303"
-HTTP_PORT="8545"
-WS_PORT="8546"
+# ANSI escape codes for colors
+YELLOW='\033[1;33m'
+BLUE='\033[1;34m'
+GREEN='\033[1;32m'
+UNDERLINE_YELLOW='\033[1;4;33m'
+NC='\033[0m' # No Color
 
-# Step 1: Install Geth if not installed
-install_geth() {
-    if ! command -v geth &> /dev/null; then
-        echo "Geth not found. Installing Geth..."
-        sudo add-apt-repository -y ppa:ethereum/ethereum
+# Function to display logo
+display_logo() {
+    echo -e "${YELLOW}
+           _         _                   _   _           _      
+     /\   (_)       | |                 | \ | |         | |     
+    /  \   _ _ __ __| |_ __ ___  _ __   |  \| | ___   __| | ___ 
+   / /\ \ | | '__/ _\` | '__/ _ \| '_ \  | . \` |/ _ \ / _\` |/ _ \\
+  / ____ \| | | | (_| | | | (_) | |_) | | |\  | (_) | (_| |  __/
+ /_/    \_\_|_|  \__,_|_|  \___/| .__/  |_| \_|\___/ \__,_|\___|
+                                | |                             
+                                |_|                             
+${BLUE}
+               Join the Airdrop Node Now!${GREEN}
+        ──────────────────────────────────────
+        🚀 Telegram Group: ${UNDERLINE_YELLOW}https://t.me/airdrop_node${NC}
+        ──────────────────────────────────────"
+}
+
+# Set directory name
+DIRECTORY="blockmesh_directory"
+
+# Enable error handling
+set -e
+
+# Check and install Docker if not present
+install_docker() {
+    if ! command -v docker &> /dev/null; then
+        echo "Docker tidak ditemukan. Menginstal Docker..."
         sudo apt update
-        sudo apt install -y ethereum
+        sudo apt install -y docker.io
+        sudo systemctl start docker
+        sudo systemctl enable docker
+        echo "Docker sudah diinstal dan dijalankan."
     else
-        echo "Geth is already installed."
+        echo "Docker sudah terinstal."
     fi
 }
 
-# Step 2: Create node directory
-create_node_directory() {
-    echo "Creating node data directory at $NODE_DIR..."
-    mkdir -p $NODE_DIR
-}
-
-# Step 3: Download genesis.json
-download_genesis() {
-    echo "Downloading genesis.json from $GENESIS_URL..."
-    curl -L -o $GENESIS_FILE $GENESIS_URL
-}
-
-# Step 4: Initialize Geth database
-initialize_geth() {
-    echo "Initializing Geth database with genesis.json..."
-    geth init --datadir $NODE_DIR $GENESIS_FILE
-}
-
-# Step 5: Create or import account
-create_or_import_account() {
-    echo "Do you want to create a new account? (y/n)"
-    read create_account
-
-    if [ "$create_account" == "y" ]; then
-        echo "Creating new account..."
-        geth --datadir $NODE_DIR account new
+# Check and install Docker Compose if not present
+install_docker_compose() {
+    if ! command -v docker-compose &> /dev/null; then
+        echo "Docker Compose tidak ditemukan. Menginstal Docker Compose..."
+        sudo curl -L "https://github.com/docker/compose/releases/download/v2.20.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+        sudo chmod +x /usr/local/bin/docker-compose
+        echo "Docker Compose sudah diinstal."
     else
-        echo "Importing existing account..."
-        echo "Enter the path to your private key (e.g., ./privateKey.txt):"
-        read private_key_path
-        geth account import --datadir $NODE_DIR $private_key_path
+        echo "Docker Compose sudah terinstal."
     fi
 }
 
-# Step 6: Start the node
+# Function to install the node
+install_node() {
+    echo "Untuk melanjutkan, silakan daftarkan diri di tautan berikut:"
+    echo -e "${YELLOW}https://app.blockmesh.xyz/register?invite_code=airdropnode${NC}"
+    echo -n "Apakah Anda sudah menyelesaikan pendaftaran? (y/n): "
+    read -r registered
+
+    if [[ "$registered" != "y" && "$registered" != "Y" ]]; then
+        echo "Silakan selesaikan pendaftaran dan gunakan kode rujukan airdropnode untuk melanjutkan."
+        read -p "Tekan Enter untuk kembali ke menu..."
+        return
+    fi
+
+    # Create directory if it does not exist
+    mkdir -p "$DIRECTORY"
+    cd "$DIRECTORY" || exit
+
+    # Create docker-compose.yml
+    cat <<EOL > docker-compose.yml
+version: '3.8'
+
+services:
+  blockmesh-cli:
+    image: airdropnode/blockmesh-cli:latest
+    container_name: blockmesh-cli
+    environment:
+      - USER_EMAIL=\${USER_EMAIL}
+      - USER_PASSWORD=\${USER_PASSWORD}
+    restart: unless-stopped
+EOL
+
+    # Prompt for user credentials
+    read -p "Masukkan email Anda: " USER_EMAIL
+    read -sp "Masukkan kata sandi Anda: " USER_PASSWORD
+    echo
+
+    # Create .env file with user credentials
+    cat <<EOL > .env
+USER_EMAIL=$USER_EMAIL
+USER_PASSWORD=$USER_PASSWORD
+EOL
+
+    docker-compose up -d
+    echo "Node berhasil diinstal. Periksa log untuk mengonfirmasi autentikasi."
+    read -p "Tekan Enter untuk kembali ke menu..."
+}
+
+# Function to view logs
+view_logs() {
+    echo "Melihat log..."
+    docker-compose logs
+    echo
+    read -p "Tekan Enter untuk kembali ke menu..."
+}
+
+# Function to restart node
+restart_node() {
+    echo "Memulai ulang node..."
+    docker-compose down
+    docker-compose up -d
+    echo "Node telah dimulai ulang."
+    read -p "Tekan Enter untuk kembali ke menu..."
+}
+
+# Function to stop node
+stop_node() {
+    echo "Menghentikan node..."
+    docker-compose down
+    echo "Node telah dihentikan."
+    read -p "Tekan Enter untuk kembali ke menu..."
+}
+
+# Function to start node
 start_node() {
-    echo "Do you want to run a Validator node or RPC node? (Enter 'validator' or 'rpc')"
-    read node_type
+    echo "Memulai node..."
+    docker-compose up -d
+    echo "Node telah dimulai."
+    read -p "Tekan Enter untuk kembali ke menu..."
+}
 
-    if [ "$node_type" == "rpc" ]; then
-        echo "Starting RPC node..."
-        geth \
-            --networkid $NETWORK_ID \
-            --gcmode archive \
-            --datadir $NODE_DIR \
-            --bootnodes $BOOTNODES \
-            --port $PORT \
-            --http.api eth,net,web3 \
-            --http \
-            --http.port $HTTP_PORT \
-            --http.addr 0.0.0.0 \
-            --http.vhosts "*" \
-            --ws \
-            --ws.port $WS_PORT \
-            --ws.addr 0.0.0.0 \
-            --ws.api eth,net,web3
-    elif [ "$node_type" == "validator" ]; then
-        echo "Starting Validator node..."
-        echo "Enter your validator account address:"
-        read validator_address
-        echo "Enter your validator account password file path:"
-        read validator_password_file
-        geth \
-            --mine --miner.etherbase=$validator_address \
-            --unlock $validator_address \
-            --password $validator_password_file \
-            --networkid $NETWORK_ID \
-            --gcmode archive \
-            --datadir $NODE_DIR \
-            --bootnodes $BOOTNODES \
-            --port $PORT \
-            --http.api eth,net,web3 \
-            --http \
-            --http.port $HTTP_PORT \
-            --http.addr 0.0.0.0 \
-            --http.vhosts "*" \
-            --ws \
-            --ws.port $WS_PORT \
-            --ws.addr 0.0.0.0 \
-            --ws.api eth,net,web3
-    else
-        echo "Invalid input. Please choose either 'rpc' or 'validator'."
-        exit 1
-    fi
+# Function to change account details
+change_account() {
+    echo "Mengubah detail akun..."
+    read -p "Masukkan email baru: " USER_EMAIL
+    read -sp "Masukkan kata sandi baru: " USER_PASSWORD
+    echo
+    echo "USER_EMAIL=${USER_EMAIL}" > .env
+    echo "USER_PASSWORD=${USER_PASSWORD}" >> .env
+    echo "Detail akun berhasil diperbarui."
+    read -p "Tekan Enter untuk kembali ke menu..."
+}
+
+# Function to display account details
+cat_account() {
+    cat .env
+    read -p "Tekan Enter untuk kembali ke menu..."
 }
 
 # Main menu
-while true; do
-    echo "Choose an option:"
-    echo "1. Install Geth"
-    echo "2. Create node directory"
-    echo "3. Download genesis.json"
-    echo "4. Initialize Geth database"
-    echo "5. Create or import account"
-    echo "6. Start Node"
-    echo "7. Exit"
-    read choice
+show_menu() {
+    clear
+    display_logo
+    echo "Silakan pilih opsi:"
+    echo "1.  Instal Node"
+    echo "2.  Lihat Log"
+    echo "3.  Restart Node"
+    echo "4.  Hentikan Node"
+    echo "5.  Mulai Node"
+    echo "6.  Lihat Akun"
+    echo "7.  Ganti Akun"
+    echo "0.  Keluar"
+    echo -n "Masukkan nomor perintah [0-7]: "
+    read -r choice
+}
 
+# Main loop
+while true; do
+    install_docker
+    install_docker_compose
+    show_menu
     case $choice in
-        1) install_geth ;;
-        2) create_node_directory ;;
-        3) download_genesis ;;
-        4) initialize_geth ;;
-        5) create_or_import_account ;;
-        6) start_node ;;
-        7) echo "Exiting..."; exit 0 ;;
-        *) echo "Invalid option. Please choose a valid option." ;;
+        1) install_node ;;
+        2) view_logs ;;
+        3) restart_node ;;
+        4) stop_node ;;
+        5) start_node ;;
+        6) cat_account ;;
+        7) change_account ;;
+        0) echo "Keluar..."; exit 0 ;;
+        *) echo "Input tidak valid. Silakan coba lagi."; read -p "Tekan Enter untuk melanjutkan..." ;;
     esac
 done
