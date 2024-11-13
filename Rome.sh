@@ -123,8 +123,8 @@ module.exports = {
   networks: {
     rome: {
       url: "https://rome.testnet.romeprotocol.xyz/",
-      chainId: 200001,  # Memperbarui ID rantai ke 200001 (Rome Testnet)
-      accounts: [`0x\${process.env.PRIVATE_KEY}`],  # Menggunakan kunci pribadi dari variabel lingkungan
+      chainId: 200001, // Memperbarui ID rantai ke 200001 (Rome Testnet)
+      accounts: [process.env.PRIVATE_KEY], // Menggunakan kunci pribadi dari variabel lingkungan
     },
   },
 };
