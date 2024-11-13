@@ -1,48 +1,37 @@
 #!/bin/bash
 
-# Fungsi untuk mencetak pesan dengan warna
-print_color() {
-    case $1 in
-        "green") echo -e "\033[32m$2\033[0m" ;;  # Hijau
-        "blue") echo -e "\033[34m$2\033[0m" ;;   # Biru
-        "yellow") echo -e "\033[33m$2\033[0m" ;; # Kuning
-        "red") echo -e "\033[31m$2\033[0m" ;;    # Merah
-        "bold") echo -e "\033[1m$2\033[0m" ;;    # Tebal
-        *) echo -e "$2" ;;                        # Default
-    esac
-}
-
+# Menampilkan logo
 curl -s https://raw.githubusercontent.com/choir94/Airdropguide/refs/heads/main/logo.sh | bash
 sleep 5
 
 # Mengecek apakah Node.js sudah terinstal
 if command -v node >/dev/null 2>&1; then
-    print_color "green" "Node.js sudah terinstal: $(node -v)"
+    echo -e "\e[32mNode.js sudah terinstal: $(node -v)\e[0m"
 else
-    # Memperbarui daftar paket
+    # Update daftar paket
     sudo apt update
 
-    # Menginstal curl jika belum terinstal
+    # Install curl jika belum terinstal
     sudo apt install -y curl
 
-    # Mengunduh dan menginstal Node.js versi terbaru menggunakan NodeSource
+    # Download dan install Node.js versi terbaru
     curl -fsSL https://deb.nodesource.com/setup_current.x | sudo -E bash -
     sudo apt install -y nodejs
 
     # Verifikasi instalasi
-    print_color "green" "Node.js dan npm versi terbaru sudah terinstal."
+    echo -e "\e[32mNode.js dan npm versi terbaru telah terinstal.\e[0m"
     node -v
     npm -v
 fi
 
 # Membuat direktori proyek
-PROJECT_DIR=~/soneium
+PROJECT_DIR=~/AirdropNodeProject
 
-if [ ! -d "$PROJECT_DIR" ];then
+if [ ! -d "$PROJECT_DIR" ]; then
     mkdir "$PROJECT_DIR"
-    print_color "green" "Direktori $PROJECT_DIR sudah dibuat."
+    echo -e "\e[32mDirektori $PROJECT_DIR telah dibuat.\e[0m"
 else
-    print_color "yellow" "Direktori $PROJECT_DIR sudah ada."
+    echo -e "\e[32mDirektori $PROJECT_DIR sudah ada.\e[0m"
 fi
 
 # Masuk ke direktori proyek
@@ -50,25 +39,25 @@ cd "$PROJECT_DIR" || exit
 
 # Inisialisasi proyek NPM
 npm init -y
-print_color "green" "Proyek NPM sudah diinisialisasi."
+echo -e "\e[32mProyek NPM telah diinisialisasi.\e[0m"
 
-# Instalasi Hardhat, Ethers.js, OpenZeppelin, dan dotenv
+# Install Hardhat, Ethers.js, OpenZeppelin, dan dotenv
 npm install --save-dev hardhat @nomiclabs/hardhat-ethers ethers @openzeppelin/contracts dotenv
-print_color "green" "Hardhat, Ethers.js, OpenZeppelin, dan dotenv sudah diinstal."
+echo -e "\e[32mHardhat, Ethers.js, OpenZeppelin, dan dotenv telah diinstal.\e[0m"
 
-# Memulai proyek Hardhat
+# Inisialisasi proyek Hardhat
 npx hardhat init -y
-print_color "green" "Proyek Hardhat sudah dibuat dengan konfigurasi kosong."
+echo -e "\e[32mProyek Hardhat telah dibuat dengan konfigurasi kosong.\e[0m"
 
 # Membuat folder contracts dan scripts
 mkdir contracts && mkdir scripts
-print_color "green" "Folder 'contracts' dan 'scripts' sudah dibuat."
+echo -e "\e[32mFolder 'contracts' dan 'scripts' telah dibuat.\e[0m"
 
-# Meminta input nama token dari pengguna, dengan default AirdropNode
+# Meminta input nama token dari pengguna
 read -p "Masukkan nama token (default: AirdropNode): " TOKEN_NAME
-TOKEN_NAME=${TOKEN_NAME:-AirdropNode} # Gunakan default jika tidak ada input
+TOKEN_NAME="${TOKEN_NAME:-AirdropNode}"
 
-# Membuat file kontrak dengan nama token yang dipilih
+# Membuat file token.sol dengan nama yang dimasukkan
 cat <<EOL > contracts/$TOKEN_NAME.sol
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
@@ -77,50 +66,50 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 contract $TOKEN_NAME is ERC20 {
     constructor() ERC20("$TOKEN_NAME", "${TOKEN_NAME:0:3}") {
-        _mint(msg.sender, 1000000e18); // Mint 1 juta $TOKEN_NAME token ke alamat deployer
+        _mint(msg.sender, 1000000e18); // Mint 1 juta token untuk alamat deployer
     }
 }
 EOL
-print_color "green" "File '$TOKEN_NAME.sol' sudah dibuat di folder 'contracts'."
+echo -e "\e[32mFile '$TOKEN_NAME.sol' telah dibuat di folder 'contracts'.\e[0m"
 
-# Mengkompilasi kontrak
+# Mengompilasi kontrak
 npx hardhat compile
-print_color "green" "Kontrak sudah dikompilasi."
+echo -e "\e[32mKontrak telah dikompilasi.\e[0m"
 
 # Membuat file .env
 touch .env
-print_color "green" "File '.env' sudah dibuat di direktori proyek."
+echo -e "\e[32mFile '.env' telah dibuat di direktori proyek.\e[0m"
 
 # Meminta input private key dari pengguna
 read -p "Masukkan private key Anda: " PRIVATE_KEY
 echo "PRIVATE_KEY=$PRIVATE_KEY" > .env
-print_color "yellow" "Private key Anda sudah disimpan di file .env."
+echo -e "\e[32mPrivate key Anda telah disimpan di file .env.\e[0m"
 
 # Membuat file .gitignore
 cat <<EOL > .gitignore
-# Contoh kode .gitignore
+# Sample .gitignore code
 # Node modules
 node_modules/
 
 # Environment variables
 .env
 
-# File Coverage
+# Coverage files
 coverage/
 coverage.json
 
-# File hasil generate Typechain
+# Typechain generated files
 typechain/
 typechain-types/
 
-# File Hardhat
+# Hardhat files
 cache/
 artifacts/
 
-# File build
+# Build files
 build/
 EOL
-print_color "green" "File '.gitignore' sudah dibuat dengan contoh kode."
+echo -e "\e[32mFile '.gitignore' telah dibuat dengan contoh kode.\e[0m"
 
 # Membuat file hardhat.config.js
 cat <<EOL > hardhat.config.js
@@ -134,13 +123,13 @@ module.exports = {
   solidity: "0.8.20",
   networks: {
     soneium: {
-      url: "https://soneium-minato.blockscout.com", // RPC URL untuk Soneium
+      url: "https://rpc.minato.soneium.org",  # URL RPC untuk Soneium
       accounts: [PK],
     },
   },
 };
 EOL
-print_color "green" "File 'hardhat.config.js' sudah diisi dengan konfigurasi Hardhat untuk Soneium."
+echo -e "\e[32mFile 'hardhat.config.js' telah diisi dengan konfigurasi Hardhat untuk Soneium.\e[0m"
 
 # Membuat file deploy.js di folder scripts
 cat <<EOL > scripts/deploy.js
@@ -153,7 +142,7 @@ async function main() {
     const Token = await ethers.getContractFactory("$TOKEN_NAME");
     const token = await Token.deploy();
 
-    console.log("$TOKEN_NAME deployed to:", token.address);
+    console.log("$TOKEN_NAME dideploy ke:", token.address);
 }
 
 main().catch((error) => {
@@ -161,28 +150,28 @@ main().catch((error) => {
     process.exit(1);
 });
 EOL
-print_color "green" "File 'deploy.js' sudah dibuat di folder 'scripts'."
+echo -e "\e[32mFile 'deploy.js' telah dibuat di folder 'scripts'.\e[0m"
 
 # Menjalankan skrip deploy
-print_color "blue" "Menjalankan skrip deploy..."
+echo -e "\e[33mMenjalankan skrip deploy...\e[0m"
 DEPLOY_OUTPUT=$(npx hardhat run --network soneium scripts/deploy.js)
 
 # Menampilkan output deploy
-print_color "blue" "$DEPLOY_OUTPUT"
+echo "$DEPLOY_OUTPUT"
 
 # Menampilkan informasi penting
-print_color "green" "\nProyek Soneium sudah disiapkan dan kontrak sudah dideploy!"
+echo -e "\nProyek AirdropNode telah disiapkan dan kontrak telah dideploy!"
 
-# Mengambil alamat token dari output deploy
+# Mendapatkan alamat token dari output deploy
 TOKEN_ADDRESS=$(echo "$DEPLOY_OUTPUT" | grep -oE '0x[a-fA-F0-9]{40}')
 
 # Menampilkan pesan untuk memeriksa alamat di explorer
 if [ -n "$TOKEN_ADDRESS" ]; then
-    print_color "blue" "Silakan periksa alamat token Anda di explorer: https://soneium-minato.blockscout.com/address/$TOKEN_ADDRESS"
+    echo -e "Silakan periksa alamat token Anda di explorer: https://soneium-minato.blockscout.com/address/$TOKEN_ADDRESS"
 else
-    print_color "red" "Tidak dapat menemukan alamat token yang sudah dideploy."
+    echo "Tidak dapat menemukan alamat token yang sudah dideploy."
 fi
 
-# Gabung ke AirdropNode Telegram
-print_color "green" "\n🎉 **Selesai!** 🎉"
-print_color "blue" "\n👉 **[Gabung AirdropNode Node](https://t.me/airdrop_node)** 👈"
+# Menampilkan pesan untuk bergabung dengan Airdrop Node
+echo -e "\n🎉 **Selesai!** 🎉"
+echo -e "\n👉 **[Gabung Airdrop Node](https://t.me/airdrop_node)** 👈"
