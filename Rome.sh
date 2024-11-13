@@ -57,9 +57,14 @@ echo "Folder 'contracts' dan 'scripts' telah dibuat."
 read -p "Masukkan nama token Anda: " TOKEN_NAME
 read -p "Masukkan simbol token Anda: " TOKEN_SYMBOL
 
-# Menyimpan nama dan simbol token ke dalam file .env
+# Meminta pengguna untuk memasukkan private key
+read -sp "Masukkan private key Anda: " PRIVATE_KEY
+echo
+
+# Menyimpan nama, simbol token, dan private key ke dalam file .env
 echo "TOKEN_NAME=$TOKEN_NAME" > .env
 echo "TOKEN_SYMBOL=$TOKEN_SYMBOL" >> .env
+echo "PRIVATE_KEY=$PRIVATE_KEY" >> .env
 
 # Membuat file AirdropNode.sol
 cat <<EOL > contracts/AirdropNode.sol
@@ -118,7 +123,7 @@ module.exports = {
     rome: {
       url: "https://rome.testnet.romeprotocol.xyz/",
       chainId: 5115,
-      accounts: [\`0x\${process.env.PRIVATE_KEY}\`],
+      accounts: [\`0x\${process.env.PRIVATE_KEY}\`],  // Memasukkan private key dari .env
     },
   },
 };
