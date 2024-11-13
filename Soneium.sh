@@ -37,21 +37,28 @@ fi
 # Masuk ke direktori proyek
 cd "$PROJECT_DIR" || exit
 
-# Menginisialisasi proyek NPM
-npm init -y
-echo "Proyek NPM telah diinisialisasi."
+# Menginisialisasi proyek NPM (jika belum ada)
+if [ ! -f "package.json" ]; then
+    npm init -y
+    echo "Proyek NPM telah diinisialisasi."
+fi
 
-# Menginstal Hardhat, Ethers.js, OpenZeppelin, dan dotenv
-npm install --save-dev hardhat @nomiclabs/hardhat-ethers ethers @openzeppelin/contracts dotenv
-echo "Hardhat, Ethers.js, OpenZeppelin, dan dotenv telah diinstal."
+# Menginstal Hardhat, Ethers.js, OpenZeppelin, dan dotenv (jika belum terinstal)
+if ! npm list --depth=0 | grep -q 'hardhat'; then
+    npm install --save-dev hardhat @nomiclabs/hardhat-ethers ethers @openzeppelin/contracts dotenv
+    echo "Hardhat, Ethers.js, OpenZeppelin, dan dotenv telah diinstal."
+fi
 
-# Memulai proyek Hardhat
-npx hardhat init -y
-echo "Proyek Hardhat telah dibuat dengan konfigurasi default."
+# Membuat folder contracts dan scripts (jika belum ada)
+if [ ! -d "contracts" ]; then
+    mkdir contracts
+    echo "Folder 'contracts' telah dibuat."
+fi
 
-# Membuat folder contracts dan scripts
-mkdir contracts && mkdir scripts
-echo "Folder 'contracts' dan 'scripts' telah dibuat."
+if [ ! -d "scripts" ]; then
+    mkdir scripts
+    echo "Folder 'scripts' telah dibuat."
+fi
 
 # Membuat file kontrak SoneiumToken.sol
 cat <<EOL > contracts/SoneiumToken.sol
@@ -72,17 +79,20 @@ echo "File 'SoneiumToken.sol' telah dibuat di folder 'contracts'."
 npx hardhat compile
 echo "Kontrak telah dikompilasi."
 
-# Membuat file .env
-touch .env
-echo "File '.env' telah dibuat di direktori proyek."
+# Membuat file .env (jika belum ada)
+if [ ! -f ".env" ]; then
+    touch .env
+    echo "File '.env' telah dibuat di direktori proyek."
+fi
 
 # Mengambil input private key dari pengguna
 read -p "Masukkan private key Anda: " PRIVATE_KEY
 echo "PRIVATE_KEY=$PRIVATE_KEY" > .env
 echo "Private key Anda telah disimpan di file .env."
 
-# Membuat file .gitignore
-cat <<EOL > .gitignore
+# Membuat file .gitignore (jika belum ada)
+if [ ! -f ".gitignore" ]; then
+    cat <<EOL > .gitignore
 # Sample .gitignore code
 # Node modules
 node_modules/
@@ -105,10 +115,12 @@ artifacts/
 # Build files
 build/
 EOL
-echo "File '.gitignore' telah dibuat dengan contoh kode."
+    echo "File '.gitignore' telah dibuat dengan contoh kode."
+fi
 
-# Membuat file hardhat.config.js
-cat <<EOL > hardhat.config.js
+# Membuat file hardhat.config.js (jika belum ada)
+if [ ! -f "hardhat.config.js" ]; then
+    cat <<EOL > hardhat.config.js
 /** @type import('hardhat/config').HardhatUserConfig */
 require('dotenv').config();
 require("@nomiclabs/hardhat-ethers");
@@ -125,10 +137,12 @@ module.exports = {
   },
 };
 EOL
-echo "File 'hardhat.config.js' telah diisi dengan konfigurasi Hardhat untuk Soneium."
+    echo "File 'hardhat.config.js' telah diisi dengan konfigurasi Hardhat untuk Soneium."
+fi
 
-# Membuat file deploy.js di folder scripts
-cat <<EOL > scripts/deploy.js
+# Membuat file deploy.js di folder scripts (jika belum ada)
+if [ ! -f "scripts/deploy.js" ]; then
+    cat <<EOL > scripts/deploy.js
 const { ethers } = require("hardhat");
 
 async function main() {
@@ -146,7 +160,8 @@ main().catch((error) => {
     process.exit(1);
 });
 EOL
-echo "File 'deploy.js' telah dibuat di folder 'scripts'."
+    echo "File 'deploy.js' telah dibuat di folder 'scripts'."
+fi
 
 # Menjalankan skrip deploy
 echo "Menjalankan skrip deploy..."
