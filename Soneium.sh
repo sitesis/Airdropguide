@@ -1,66 +1,58 @@
 #!/bin/bash
 
-# Menampilkan logo (opsional)
 curl -s https://raw.githubusercontent.com/choir94/Airdropguide/refs/heads/main/logo.sh | bash
 sleep 5
 
-# Memeriksa apakah Node.js sudah terinstal
+# Mriksa apa Node.js wis diinstal
 if command -v node >/dev/null 2>&1; then
-    echo "Node.js sudah terinstal: $(node -v)"
+    echo "Node.js wis diinstal: $(node -v)"
 else
-    # Memperbarui daftar paket
+    # Nganyari dhaptar paket
     sudo apt update
 
-    # Menginstal curl jika belum terinstal
+    # Instal curl yen durung diinstal
     sudo apt install -y curl
 
-    # Mengunduh dan menginstal Node.js versi terbaru menggunakan NodeSource
+    # Ngundhuh lan nginstal Node.js versi paling anyar nggunakake NodeSource
     curl -fsSL https://deb.nodesource.com/setup_current.x | sudo -E bash -
     sudo apt install -y nodejs
 
-    # Memverifikasi instalasi
-    echo "Node.js dan npm versi terbaru telah diinstal."
+    # Verifikasi instalasi
+    echo "Node.js lan npm versi paling anyar wis diinstal."
     node -v
     npm -v
 fi
 
-# Membuat direktori proyek
+# Gawe direktori proyek
 PROJECT_DIR=~/SoneiumProject
 
-if [ ! -d "$PROJECT_DIR" ]; then
+if [ ! -d "$PROJECT_DIR" ];then
     mkdir "$PROJECT_DIR"
-    echo "Direktori $PROJECT_DIR telah dibuat."
+    echo "Direktori $PROJECT_DIR wis digawe."
 else
-    echo "Direktori $PROJECT_DIR sudah ada."
+    echo "Direktori $PROJECT_DIR wis ana."
 fi
 
-# Masuk ke direktori proyek
+# Mlebu direktori proyek
 cd "$PROJECT_DIR" || exit
 
-# Menginisialisasi proyek NPM (jika belum ada)
-if [ ! -f "package.json" ]; then
-    npm init -y
-    echo "Proyek NPM telah diinisialisasi."
-fi
+# Inisialisasi proyek NPM
+npm init -y
+echo "Proyek NPM wis diinisialisasi."
 
-# Menginstal Hardhat, Ethers.js, OpenZeppelin, dan dotenv (jika belum terinstal)
-if ! npm list --depth=0 | grep -q 'hardhat'; then
-    npm install --save-dev hardhat @nomiclabs/hardhat-ethers ethers @openzeppelin/contracts dotenv
-    echo "Hardhat, Ethers.js, OpenZeppelin, dan dotenv telah diinstal."
-fi
+# Instal Hardhat, Ethers.js, OpenZeppelin, lan dotenv
+npm install --save-dev hardhat @nomiclabs/hardhat-ethers ethers @openzeppelin/contracts dotenv
+echo "Hardhat, Ethers.js, OpenZeppelin, lan dotenv wis diinstal."
 
-# Membuat folder contracts dan scripts (jika belum ada)
-if [ ! -d "contracts" ]; then
-    mkdir contracts
-    echo "Folder 'contracts' telah dibuat."
-fi
+# Miwiti proyek Hardhat
+npx hardhat init -y
+echo "Proyek Hardhat wis digawe nganggo konfigurasi kosong."
 
-if [ ! -d "scripts" ]; then
-    mkdir scripts
-    echo "Folder 'scripts' telah dibuat."
-fi
+# Gawe folder contracts lan scripts
+mkdir contracts && mkdir scripts
+echo "Folder 'contracts' lan 'scripts' wis digawe."
 
-# Membuat file kontrak SoneiumToken.sol
+# Gawe file SoneiumToken.sol
 cat <<EOL > contracts/SoneiumToken.sol
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
@@ -69,30 +61,27 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 contract SoneiumToken is ERC20 {
     constructor() ERC20("SoneiumToken", "SNT") {
-        _mint(msg.sender, 1000000e18); // Mint 1 juta token Soneium ke alamat deployer
+        _mint(msg.sender, 1000000e18); // Mint 1 million Soneium tokens to the deployer's address
     }
 }
 EOL
-echo "File 'SoneiumToken.sol' telah dibuat di folder 'contracts'."
+echo "File 'SoneiumToken.sol' wis digawe ing folder 'contracts'."
 
-# Mengompilasi kontrak
+# Ngompilasi kontrak
 npx hardhat compile
-echo "Kontrak telah dikompilasi."
+echo "Kontrak wis dikompilasi."
 
-# Membuat file .env (jika belum ada)
-if [ ! -f ".env" ]; then
-    touch .env
-    echo "File '.env' telah dibuat di direktori proyek."
-fi
+# Gawe file .env
+touch .env
+echo "File '.env' wis digawe ing direktori proyek."
 
-# Mengambil input private key dari pengguna
-read -p "Masukkan private key Anda: " PRIVATE_KEY
+# Njupuk input kunci privat saka pangguna
+read -p "Lebokna private key sampeyan: " PRIVATE_KEY
 echo "PRIVATE_KEY=$PRIVATE_KEY" > .env
-echo "Private key Anda telah disimpan di file .env."
+echo "Private key sampeyan wis disimpen ing file .env."
 
-# Membuat file .gitignore (jika belum ada)
-if [ ! -f ".gitignore" ]; then
-    cat <<EOL > .gitignore
+# Gawe file .gitignore
+cat <<EOL > .gitignore
 # Sample .gitignore code
 # Node modules
 node_modules/
@@ -115,12 +104,10 @@ artifacts/
 # Build files
 build/
 EOL
-    echo "File '.gitignore' telah dibuat dengan contoh kode."
-fi
+echo "File '.gitignore' wis digawe nganggo conto kode."
 
-# Membuat file hardhat.config.js (jika belum ada)
-if [ ! -f "hardhat.config.js" ]; then
-    cat <<EOL > hardhat.config.js
+# Gawe file hardhat.config.js
+cat <<EOL > hardhat.config.js
 /** @type import('hardhat/config').HardhatUserConfig */
 require('dotenv').config();
 require("@nomiclabs/hardhat-ethers");
@@ -137,12 +124,10 @@ module.exports = {
   },
 };
 EOL
-    echo "File 'hardhat.config.js' telah diisi dengan konfigurasi Hardhat untuk Soneium."
-fi
+echo "File 'hardhat.config.js' wis diisi karo konfigurasi Hardhat kanggo Soneium."
 
-# Membuat file deploy.js di folder scripts (jika belum ada)
-if [ ! -f "scripts/deploy.js" ]; then
-    cat <<EOL > scripts/deploy.js
+# Gawe file deploy.js ing folder scripts
+cat <<EOL > scripts/deploy.js
 const { ethers } = require("hardhat");
 
 async function main() {
@@ -160,33 +145,32 @@ main().catch((error) => {
     process.exit(1);
 });
 EOL
-    echo "File 'deploy.js' telah dibuat di folder 'scripts'."
-fi
+echo "File 'deploy.js' wis digawe ing folder 'scripts'."
 
-# Menjalankan skrip deploy
-echo "Menjalankan skrip deploy..."
+# Mlakokake skrip deploy
+echo "Mlakokake skrip deploy..."
 DEPLOY_OUTPUT=$(npx hardhat run --network soneium scripts/deploy.js)
 
-# Menampilkan output deploy
+# Tampilake output deploy
 echo "$DEPLOY_OUTPUT"
 
-# Menampilkan informasi penting
-echo -e "\nProyek Soneium telah disiapkan dan kontrak telah dideploy!"
+# Tampilake informasi penting
+echo -e "\nProyek Soneium wis disiapake lan kontrak wis dideploy!"
 
-# Mengambil alamat token dari output deploy
+# Njupuk alamat token saka output deploy
 TOKEN_ADDRESS=$(echo "$DEPLOY_OUTPUT" | grep -oE '0x[a-fA-F0-9]{40}')
 
-# Menampilkan pesan untuk memeriksa alamat di explorer
+# Tampilake pesen kanggo mriksa alamat ing explorer
 if [ -n "$TOKEN_ADDRESS" ]; then
-    echo -e "Silakan periksa alamat token Anda di explorer: https://soneium-minato.blockscout.com/address/$TOKEN_ADDRESS"
+    echo -e "Monggo dipriksa alamat token sampeyan ing explorer: https://soneium-minato.blockscout.com/address/$TOKEN_ADDRESS"
 else
-    echo "Alamat token yang dideploy tidak ditemukan."
+    echo "Ora bisa nemokake alamat token sing wis dideploy."
 fi
 
 # Verifikasi kontrak
 echo -e "\nMemverifikasi kontrak..."
 npx hardhat verify --network soneium $TOKEN_ADDRESS "SoneiumToken" "SNT"
 
-# Ajak gabung ke Airdrop Node
-echo -e "\n🎉 **Selesai!** 🎉"
+# Gabung Airdrop Node
+echo -e "\n🎉 **Rampung!** 🎉"
 echo -e "\n👉 **[Gabung Airdrop Node](https://t.me/airdrop_node)** 👈"
