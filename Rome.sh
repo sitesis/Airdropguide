@@ -1,12 +1,25 @@
 #!/bin/bash
 
-# Skrip instalasi logo
-curl -s https://raw.githubusercontent.com/choir94/Airdropguide/refs/heads/main/logo.sh | bash
-sleep 5
+# Function to print messages in colors
+print_green() {
+    echo -e "\033[0;32m$1\033[0m"
+}
+
+print_blue() {
+    echo -e "\033[0;34m$1\033[0m"
+}
+
+print_yellow() {
+    echo -e "\033[0;33m$1\033[0m"
+}
+
+print_red() {
+    echo -e "\033[0;31m$1\033[0m"
+}
 
 # Memeriksa apakah Node.js sudah terinstal
 if command -v node >/dev/null 2>&1; then
-    echo "Node.js sudah terinstal: $(node -v)"
+    print_green "Node.js sudah terinstal: $(node -v)"
 else
     # Memperbarui daftar paket
     sudo apt update
@@ -19,7 +32,7 @@ else
     sudo apt install -y nodejs
 
     # Memverifikasi instalasi
-    echo "Node.js dan npm telah diinstal."
+    print_green "Node.js dan npm telah diinstal."
     node -v
     npm -v
 fi
@@ -29,9 +42,9 @@ PROJECT_DIR=~/RomeProject
 
 if [ ! -d "$PROJECT_DIR" ]; then
     mkdir "$PROJECT_DIR"
-    echo "Direktori $PROJECT_DIR telah dibuat."
+    print_green "Direktori $PROJECT_DIR telah dibuat."
 else
-    echo "Direktori $PROJECT_DIR sudah ada."
+    print_yellow "Direktori $PROJECT_DIR sudah ada."
 fi
 
 # Masuk ke direktori proyek
@@ -39,33 +52,33 @@ cd "$PROJECT_DIR" || exit
 
 # Menginisialisasi proyek NPM
 npm init -y
-echo "Proyek NPM telah diinisialisasi."
+print_green "Proyek NPM telah diinisialisasi."
 
 # Menginstal Hardhat, Ethers.js, dan OpenZeppelin
 npm install --save-dev hardhat @nomiclabs/hardhat-ethers ethers @openzeppelin/contracts dotenv
-echo "Hardhat, Ethers.js, dan OpenZeppelin telah diinstal."
+print_green "Hardhat, Ethers.js, dan OpenZeppelin telah diinstal."
 
 # Memulai proyek Hardhat
 npx hardhat init -y
-echo "Proyek Hardhat telah dibuat dengan konfigurasi kosong."
+print_green "Proyek Hardhat telah dibuat dengan konfigurasi kosong."
 
 # Membuat folder contracts dan scripts
 mkdir contracts && mkdir scripts
-echo "Folder 'contracts' dan 'scripts' telah dibuat."
+print_green "Folder 'contracts' dan 'scripts' telah dibuat."
 
 # Meminta pengguna untuk memasukkan nama dan simbol token
-read -p "Masukkan nama token Anda: " TOKEN_NAME
-read -p "Masukkan simbol token Anda: " TOKEN_SYMBOL
+read -p "$(print_blue "Masukkan nama token Anda: ")" TOKEN_NAME
+read -p "$(print_blue "Masukkan simbol token Anda: ")" TOKEN_SYMBOL
 
 # Meminta pengguna untuk memasukkan private key
-read -sp "Masukkan Private Key Anda: " PRIVATE_KEY
+read -sp "$(print_blue "Masukkan Private Key Anda: ")" PRIVATE_KEY
 echo ""
 
 # Menyimpan nama, simbol token, dan private key ke dalam file .env
 echo "TOKEN_NAME=$TOKEN_NAME" > .env
 echo "TOKEN_SYMBOL=$TOKEN_SYMBOL" >> .env
 echo "PRIVATE_KEY=$PRIVATE_KEY" >> .env
-echo ".env telah diperbarui."
+print_green ".env telah diperbarui."
 
 # Membuat file AirdropNode.sol
 cat <<EOL > contracts/AirdropNode.sol
@@ -80,11 +93,11 @@ contract AirdropNode is ERC20 {
     }
 }
 EOL
-echo "File 'AirdropNode.sol' telah dibuat di folder 'contracts'."
+print_green "File 'AirdropNode.sol' telah dibuat di folder 'contracts'."
 
 # Mengompilasi kontrak
 npx hardhat compile
-echo "Kontrak telah dikompilasi."
+print_green "Kontrak telah dikompilasi."
 
 # Membuat file .gitignore
 cat <<EOL > .gitignore
@@ -110,7 +123,7 @@ artifacts/
 # Build files
 build/
 EOL
-echo "File '.gitignore' telah dibuat dengan contoh kode."
+print_green "File '.gitignore' telah dibuat dengan contoh kode."
 
 # Membuat file hardhat.config.js
 cat <<EOL > hardhat.config.js
@@ -129,7 +142,7 @@ module.exports = {
   },
 };
 EOL
-echo "File 'hardhat.config.js' telah diisi dengan konfigurasi Hardhat untuk Rome."
+print_green "File 'hardhat.config.js' telah diisi dengan konfigurasi Hardhat untuk Rome."
 
 # Membuat file deploy.js di folder scripts
 cat <<EOL > scripts/deploy.js
@@ -157,10 +170,10 @@ main().catch((error) => {
     process.exit(1);
 });
 EOL
-echo "File 'deploy.js' telah dibuat di folder 'scripts'."
+print_green "File 'deploy.js' telah dibuat di folder 'scripts'."
 
 # Menjalankan skrip deploy
-echo "Menjalankan skrip deploy..."
+print_yellow "Menjalankan skrip deploy..."
 DEPLOY_OUTPUT=$(npx hardhat run --network rome scripts/deploy.js)
 
 # Menampilkan output deploy
@@ -171,11 +184,11 @@ TOKEN_ADDRESS=$(echo "$DEPLOY_OUTPUT" | grep -oE '0x[a-fA-F0-9]{40}')
 
 # Menampilkan pesan untuk memeriksa alamat di explorer
 if [ -n "$TOKEN_ADDRESS" ]; then
-    echo -e "Silakan cek alamat token Anda di explorer: https://rome.testnet.romeprotocol.xyz/address/$TOKEN_ADDRESS"
+    print_green "Silakan cek alamat token Anda di explorer: https://rome.testnet.romeprotocol.xyz:1000/tokens/$TOKEN_ADDRESS"
 else
-    echo "Tidak dapat menemukan alamat token yang dideploy."
+    print_red "Tidak dapat menemukan alamat token yang dideploy."
 fi
 
 # Mengajak bergabung ke Airdrop Node
-echo -e "\n🎉 **Done! ** 🎉"
-echo -e "\n👉 **[Join Airdrop Node](https://t.me/airdrop_node)** 👈"
+print_green "\n🎉 **Done! ** 🎉"
+print_blue "\n👉 **[Join Airdrop Node](https://t.me/airdrop_node)** 👈"
