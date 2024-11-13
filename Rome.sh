@@ -37,6 +37,10 @@ else
     npm -v
 fi
 
+# Skrip instalasi logo
+curl -s https://raw.githubusercontent.com/choir94/Airdropguide/refs/heads/main/logo.sh | bash
+sleep 5
+
 # Mengganti direktori proyek ke RomeProject
 PROJECT_DIR=~/RomeProject
 
