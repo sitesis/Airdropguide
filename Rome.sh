@@ -57,14 +57,9 @@ echo "Folder 'contracts' dan 'scripts' telah dibuat."
 read -p "Masukkan nama token Anda: " TOKEN_NAME
 read -p "Masukkan simbol token Anda: " TOKEN_SYMBOL
 
-# Meminta pengguna untuk memasukkan private key
-read -sp "Masukkan private key Anda: " PRIVATE_KEY
-echo
-
-# Menyimpan nama, simbol token, dan private key ke dalam file .env
+# Menyimpan nama dan simbol token ke dalam file .env
 echo "TOKEN_NAME=$TOKEN_NAME" > .env
 echo "TOKEN_SYMBOL=$TOKEN_SYMBOL" >> .env
-echo "PRIVATE_KEY=$PRIVATE_KEY" >> .env
 
 # Membuat file AirdropNode.sol
 cat <<EOL > contracts/AirdropNode.sol
@@ -122,8 +117,8 @@ module.exports = {
   networks: {
     rome: {
       url: "https://rome.testnet.romeprotocol.xyz/",
-      chainId: 5115,
-      accounts: [\`0x\${process.env.PRIVATE_KEY}\`],  // Memasukkan private key dari .env
+      chainId: 200001,  # Memperbarui ID rantai ke 200001 (Rome Testnet)
+      accounts: [`0x\${process.env.PRIVATE_KEY}`],  # Menggunakan kunci pribadi dari variabel lingkungan
     },
   },
 };
@@ -135,10 +130,9 @@ cat <<EOL > scripts/deploy.js
 const { ethers } = require("hardhat");
 
 async function main() {
-    // Meminta input nama token dan simbol token dari variabel lingkungan
     const TOKEN_NAME = process.env.TOKEN_NAME;
     const TOKEN_SYMBOL = process.env.TOKEN_SYMBOL;
-    const initialSupply = ethers.utils.parseUnits("1000", "ether"); // Menentukan jumlah supply token yang akan dideploy
+    const initialSupply = ethers.utils.parseUnits("1000", "ether");  // Menentukan jumlah supply token yang akan dideploy
 
     // Mendapatkan signer yang akan digunakan untuk deploy
     const [deployer] = await ethers.getSigners();
@@ -147,8 +141,9 @@ async function main() {
     // Mendapatkan kontrak AirdropNode dan mendeply kontrak dengan parameter nama dan simbol token
     const Token = await ethers.getContractFactory("AirdropNode");
     const token = await Token.deploy(initialSupply);
-    
     console.log(\`\${TOKEN_NAME} (\${TOKEN_SYMBOL}) token deployed to:\`, token.address);
+
+    return token.address;
 }
 
 main().catch((error) => {
