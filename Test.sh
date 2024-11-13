@@ -40,7 +40,7 @@ npm init -y
 echo "Proyek NPM telah diinisialisasi."
 
 # Install Hardhat, Ethers.js, OpenZeppelin, dotenv, dan plugin etherscan
-npm install --save-dev hardhat @nomiclabs/hardhat-ethers ethers @openzeppelin/contracts dotenv @nomiclabs/hardhat-etherscan
+npm install --save-dev hardhat @nomiclabs/hardhat-ethers ethers @openzeppelin/contracts dotenv @nomiclabs/hardhat-verify
 echo "Hardhat, Ethers.js, OpenZeppelin, dotenv, dan plugin etherscan telah diinstal."
 
 # Inisialisasi proyek Hardhat
@@ -79,6 +79,11 @@ read -p "Masukkan private key Anda: " PRIVATE_KEY
 echo "PRIVATE_KEY=$PRIVATE_KEY" > .env
 echo "Private key Anda telah disimpan di file .env."
 
+# Meminta input API key untuk Blockscout dari pengguna
+read -p "Masukkan API key Blockscout Anda: " ETHERSCAN_API_KEY
+echo "ETHERSCAN_API_KEY=$ETHERSCAN_API_KEY" >> .env
+echo "API key Blockscout Anda telah disimpan di file .env."
+
 # Membuat file .gitignore
 cat <<EOL > .gitignore
 # Sample .gitignore code
@@ -110,7 +115,7 @@ cat <<EOL > hardhat.config.js
 /** @type import('hardhat/config').HardhatUserConfig */
 require('dotenv').config();
 require("@nomiclabs/hardhat-ethers");
-require('@nomiclabs/hardhat-etherscan');
+require('@nomiclabs/hardhat-verify');
 
 const PK = process.env.PRIVATE_KEY;
 const ETHERSCAN_API_KEY = process.env.ETHERSCAN_API_KEY; // API key untuk Blockscout
