@@ -53,24 +53,20 @@ echo -e "\e[32mProyek Hardhat telah dibuat dengan konfigurasi kosong.\e[0m"
 mkdir contracts && mkdir scripts
 echo -e "\e[32mFolder 'contracts' dan 'scripts' telah dibuat.\e[0m"
 
-# Meminta input nama token dari pengguna
-read -p "Masukkan nama token (default: AirdropNode): " TOKEN_NAME
-TOKEN_NAME="${TOKEN_NAME:-AirdropNode}"
-
-# Membuat file token.sol dengan nama yang dimasukkan
-cat <<EOL > contracts/$TOKEN_NAME.sol
+# Membuat file AirdropNodeToken.sol
+cat <<EOL > contracts/AirdropNodeToken.sol
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
-contract $TOKEN_NAME is ERC20 {
-    constructor() ERC20("$TOKEN_NAME", "${TOKEN_NAME:0:3}") {
-        _mint(msg.sender, 1000000e18); // Mint 1 juta token untuk alamat deployer
+contract AirdropNodeToken is ERC20 {
+    constructor() ERC20("AirdropNode", "AND") {
+        _mint(msg.sender, 1000000e18); // Mint 1 juta AirdropNode token untuk alamat deployer
     }
 }
 EOL
-echo -e "\e[32mFile '$TOKEN_NAME.sol' telah dibuat di folder 'contracts'.\e[0m"
+echo -e "\e[32mFile 'AirdropNodeToken.sol' telah dibuat di folder 'contracts'.\e[0m"
 
 # Mengompilasi kontrak
 npx hardhat compile
@@ -123,7 +119,7 @@ module.exports = {
   solidity: "0.8.20",
   networks: {
     soneium: {
-      url: "https://rpc.minato.soneium.org",  # URL RPC untuk Soneium
+      url: "https://rpc.minato.soneium.org",  // URL RPC untuk Soneium yang diperbarui
       accounts: [PK],
     },
   },
@@ -139,10 +135,10 @@ async function main() {
     const [deployer] = await ethers.getSigners();
     const initialSupply = ethers.utils.parseUnits("1000000", "ether");
 
-    const Token = await ethers.getContractFactory("$TOKEN_NAME");
+    const Token = await ethers.getContractFactory("AirdropNodeToken");
     const token = await Token.deploy();
 
-    console.log("$TOKEN_NAME dideploy ke:", token.address);
+    console.log("Token dideploy ke:", token.address);
 }
 
 main().catch((error) => {
