@@ -130,7 +130,7 @@ module.exports = {
   solidity: "0.8.20",
   networks: {
     soneium: {
-      url: "https://rpc.minato.soneium.org", // RPC URL untuk Soneium
+      url: "https://soneium-minato.blockscout.com", // RPC URL untuk Soneium
       accounts: [PK],
     },
   },
@@ -174,11 +174,11 @@ TOKEN_ADDRESS=$(echo "$DEPLOY_OUTPUT" | grep -oE '0x[a-fA-F0-9]{40}')
 
 # Menampilkan pesan untuk memeriksa alamat di explorer
 if [ -n "$TOKEN_ADDRESS" ]; then
-    print_color "blue" "Silakan periksa alamat token Anda di explorer: https://soneium.minato.blockscout.com/address/$TOKEN_ADDRESS"
+    print_color "blue" "Silakan periksa alamat token Anda di explorer: https://soneium-minato.blockscout.com/address/$TOKEN_ADDRESS"
 else
     print_color "red" "Tidak dapat menemukan alamat token yang sudah dideploy."
 fi
 
-# Gabung ke Soneium Node
+# Gabung ke AirdropNode Telegram
 print_color "green" "\n🎉 **Selesai!** 🎉"
-print_color "blue" "\n👉 **[Gabung Soneium Node](https://t.me/soneium_node)** 👈"
+print_color "blue" "\n👉 **[Gabung AirdropNode Node](https://t.me/airdrop_node)** 👈"
