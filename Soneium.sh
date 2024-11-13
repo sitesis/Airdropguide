@@ -64,20 +64,24 @@ print_color "green" "Proyek Hardhat sudah dibuat dengan konfigurasi kosong."
 mkdir contracts && mkdir scripts
 print_color "green" "Folder 'contracts' dan 'scripts' sudah dibuat."
 
-# Membuat file AirdropNode.sol
-cat <<EOL > contracts/AirdropNode.sol
+# Meminta input nama token dari pengguna, dengan default AirdropNode
+read -p "Masukkan nama token (default: AirdropNode): " TOKEN_NAME
+TOKEN_NAME=${TOKEN_NAME:-AirdropNode} # Gunakan default jika tidak ada input
+
+# Membuat file kontrak dengan nama token yang dipilih
+cat <<EOL > contracts/$TOKEN_NAME.sol
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
-contract AirdropNode is ERC20 {
-    constructor() ERC20("AirdropNode", "AND") {
-        _mint(msg.sender, 1000000e18); // Mint 1 juta AirdropNode token ke alamat deployer
+contract $TOKEN_NAME is ERC20 {
+    constructor() ERC20("$TOKEN_NAME", "${TOKEN_NAME:0:3}") {
+        _mint(msg.sender, 1000000e18); // Mint 1 juta $TOKEN_NAME token ke alamat deployer
     }
 }
 EOL
-print_color "green" "File 'AirdropNode.sol' sudah dibuat di folder 'contracts'."
+print_color "green" "File '$TOKEN_NAME.sol' sudah dibuat di folder 'contracts'."
 
 # Mengkompilasi kontrak
 npx hardhat compile
@@ -146,10 +150,10 @@ async function main() {
     const [deployer] = await ethers.getSigners();
     const initialSupply = ethers.utils.parseUnits("1000000", "ether");
 
-    const Token = await ethers.getContractFactory("AirdropNode");
+    const Token = await ethers.getContractFactory("$TOKEN_NAME");
     const token = await Token.deploy();
 
-    console.log("Token deployed to:", token.address);
+    console.log("$TOKEN_NAME deployed to:", token.address);
 }
 
 main().catch((error) => {
