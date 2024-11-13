@@ -57,9 +57,15 @@ echo "Folder 'contracts' dan 'scripts' telah dibuat."
 read -p "Masukkan nama token Anda: " TOKEN_NAME
 read -p "Masukkan simbol token Anda: " TOKEN_SYMBOL
 
-# Menyimpan nama dan simbol token ke dalam file .env
+# Meminta pengguna untuk memasukkan private key
+read -sp "Masukkan Private Key Anda: " PRIVATE_KEY
+echo ""
+
+# Menyimpan nama, simbol token, dan private key ke dalam file .env
 echo "TOKEN_NAME=$TOKEN_NAME" > .env
 echo "TOKEN_SYMBOL=$TOKEN_SYMBOL" >> .env
+echo "PRIVATE_KEY=$PRIVATE_KEY" >> .env
+echo ".env telah diperbarui."
 
 # Membuat file AirdropNode.sol
 cat <<EOL > contracts/AirdropNode.sol
