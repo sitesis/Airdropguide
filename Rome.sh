@@ -38,6 +38,7 @@ else
 fi
 
 # Skrip instalasi logo
+
 curl -s https://raw.githubusercontent.com/choir94/Airdropguide/refs/heads/main/logo.sh | bash
 sleep 5
 
@@ -183,15 +184,10 @@ DEPLOY_OUTPUT=$(npx hardhat run --network rome scripts/deploy.js)
 # Menampilkan output deploy
 echo "$DEPLOY_OUTPUT"
 
-# Mengambil alamat token dari output deploy
-TOKEN_ADDRESS=$(echo "$DEPLOY_OUTPUT" | grep -oE '0x[a-fA-F0-9]{40}')
+# Menampilkan link hasil deploy di explorer
+print_green "\nToken Anda telah berhasil dideploy. 
 
-# Menampilkan pesan untuk memeriksa alamat di explorer
-if [ -n "$TOKEN_ADDRESS" ]; then
-    print_green "Silakan cek alamat token Anda di explorer: https://rome.testnet.romeprotocol.xyz:1000/tokens/$TOKEN_ADDRESS"
-else
-    print_red "Tidak dapat menemukan alamat token yang dideploy."
-fi
+Cek token Anda di explorer: https://rome.testnet.romeprotocol.xyz:1000/tokens"
 
 # Mengajak bergabung ke Airdrop Node
 print_green "\n🎉 **Done! ** 🎉"
