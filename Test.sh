@@ -48,20 +48,32 @@ echo -e "${KUNING}Membuat direktori target/release...${NOL}"
 sudo mkdir -p target/release
 
 echo -e "${BIRU}Mengunduh dan mengekstrak Blockless CLI...${NOL}"
+# Download the latest release tarball using GitHub API
 curl -s https://api.github.com/repos/blocklessnetwork/cli/releases/latest \
 | grep -oP '"browser_download_url": "\K(.*bls-linux-x64-blockless-cli.tar.gz)' \
 | xargs sudo curl -L -o blockless-cli.tar.gz
-sudo tar -xzf blockless-cli.tar.gz --strip-components=3 -C target/release
 
+# Extract the tarball manually
+if [ -f blockless-cli.tar.gz ]; then
+    echo -e "${HIJAU}Mengekstrak blockless-cli.tar.gz...${NOL}"
+    sudo tar -xzf blockless-cli.tar.gz --strip-components=3 -C target/release
+else
+    echo -e "${MERAH}Error: File blockless-cli.tar.gz tidak ditemukan. Keluar...${NOL}"
+    exit 1
+fi
+
+# Verify that the binary exists in the target directory
 if [[ ! -f target/release/blockless-cli ]]; then
     echo -e "${MERAH}Error: file biner blockless-cli tidak ditemukan di target/release. Keluar...${NOL}"
     exit 1
 fi
 
+# Request user input for Blockless credentials
 read -p "Masukkan email Blockless Anda: " email
 read -s -p "Masukkan kata sandi Blockless Anda: " password
 echo
 
+# Check if Docker container for Blockless CLI is already running
 if ! sudo docker ps --filter "name=blockless-cli-container" | grep -q 'blockless-cli-container'; then
     echo -e "${HIJAU}Membuat kontainer Docker untuk Blockless CLI...${NOL}"
     sudo docker run -it --rm \
