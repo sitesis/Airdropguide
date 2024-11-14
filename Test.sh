@@ -16,8 +16,7 @@ echo -e "${HIJAU}Memperbarui sistem...${NOL}"
 sudo apt update && sudo apt upgrade -y
 
 echo -e "${KUNING}Menghapus file yang lama...${NOL}"
-# Menghapus file lama
-sudo rm -rf blockless-cli.tar.gz
+sudo rm -rf blockmesh-cli.tar.gz target
 
 if ! command -v docker &> /dev/null; then
     echo -e "${BIRU}Menginstal Docker...${NOL}"
@@ -45,39 +44,44 @@ else
     echo -e "${HIJAU}Docker Compose sudah terpasang, melewati...${NOL}"
 fi
 
-echo -e "${KUNING}Mengunduh Blockless CLI...${NOL}"
-# Mengunduh Blockless CLI langsung ke direktori saat ini
-curl -s -L https://github.com/blocklessnetwork/cli/releases/download/v0.3.0/bls-linux-arm64-blockless-cli.tar.gz -o blockless-cli.tar.gz
+echo -e "${KUNING}Membuat direktori target/release...${NOL}"
+sudo mkdir -p target/release
 
-# Mengekstrak file ke direktori saat ini
-if [[ -f blockless-cli.tar.gz ]]; then
-    sudo tar -xzf blockless-cli.tar.gz --strip-components=3
-else
-    echo -e "${MERAH}Error: File blockless-cli.tar.gz tidak ditemukan. Keluar...${NOL}"
-    exit 1
+echo -e "${BIRU}Mengunduh dan mengekstrak Blockless CLI...${NOL}"
+curl -L "https://github.com/blocklessnetwork/cli/releases/download/v0.3.0/bls-linux-arm64-blockless-cli.tar.gz" -o blockmesh-cli.tar.gz
+
+# Coba ekstrak ulang jika file binary tidak ditemukan
+if ! sudo tar -xzf blockmesh-cli.tar.gz --strip-components=3 -C target/release; then
+    echo -e "${MERAH}Error: Ekstraksi file gagal, coba unduh ulang...${NOL}"
+    rm -rf blockmesh-cli.tar.gz target
+    curl -L "https://github.com/blocklessnetwork/cli/releases/download/v0.3.0/bls-linux-arm64-blockless-cli.tar.gz" -o blockmesh-cli.tar.gz
+    if ! sudo tar -xzf blockmesh-cli.tar.gz --strip-components=3 -C target/release; then
+        echo -e "${MERAH}Error: Ekstraksi ulang gagal. Keluar...${NOL}"
+        exit 1
+    fi
 fi
 
-# Verifikasi apakah file biner blockless-cli ada
-if [[ ! -f blockless-cli ]]; then
-    echo -e "${MERAH}Error: File biner blockless-cli tidak ditemukan. Keluar...${NOL}"
+# Pengecekan lebih kuat untuk memastikan file binary ada
+if [[ ! -f target/release/blockmesh-cli ]]; then
+    echo -e "${MERAH}Error: file biner blockmesh-cli tidak ditemukan di target/release. Keluar...${NOL}"
     exit 1
 else
-    echo -e "${HIJAU}File biner blockless-cli ditemukan.${NOL}"
+    echo -e "${HIJAU}File binary blockmesh-cli ditemukan di target/release.${NOL}"
 fi
 
-read -p "Masukkan email Blockless Anda: " email
-read -s -p "Masukkan kata sandi Blockless Anda: " password
+read -p "Masukkan email BlockMesh Anda: " email
+read -s -p "Masukkan kata sandi BlockMesh Anda: " password
 echo
 
-if ! sudo docker ps --filter "name=blockless-cli-container" | grep -q 'blockless-cli-container'; then
-    echo -e "${HIJAU}Membuat kontainer Docker untuk Blockless CLI...${NOL}"
+if ! sudo docker ps --filter "name=blockmesh-cli-container" | grep -q 'blockmesh-cli-container'; then
+    echo -e "${HIJAU}Membuat kontainer Docker untuk BlockMesh CLI...${NOL}"
     sudo docker run -it --rm \
-        --name blockless-cli-container \
-        -v $(pwd):/app \
+        --name blockmesh-cli-container \
+        -v $(pwd)/target/release:/app \
         -e EMAIL="$email" \
         -e PASSWORD="$password" \
         --workdir /app \
-        ubuntu:22.04 ./blockless-cli --email "$email" --password "$password"
+        ubuntu:22.04 ./blockmesh-cli --email "$email" --password "$password"
 else
-    echo -e "${HIJAU}Kontainer Blockless CLI sudah berjalan, melewati...${NOL}"
+    echo -e "${HIJAU}Kontainer BlockMesh CLI sudah berjalan, melewati...${NOL}"
 fi
