@@ -50,10 +50,15 @@ fi
 echo -e "${KUNING}Membuat direktori target/release...${NOL}"
 sudo mkdir -p target/release
 
-# Mengunduh BLS CLI v0.3.0
+# Mengunduh BLS CLI v0.3.0 menggunakan API baru
 echo -e "${BIRU}Mengunduh dan mengekstrak BLS CLI...${NOL}"
-URL="https://github.com/blocklessnetwork/cli/releases/download/v0.3.0/bls-linux-x64-blockless-cli-v0.3.0.tar.gz"
-curl -L -o bls-cli.tar.gz $URL
+URL="https://api.github.com/repos/blocklessnetwork/cli/releases/tags/v0.3.0"
+DOWNLOAD_URL=$(curl -s $URL | jq -r '.assets[] | select(.name | test("bls-linux-x64-blockless-cli.*.tar.gz")) | .browser_download_url')
+if [[ -z "$DOWNLOAD_URL" ]]; then
+    echo -e "${MERAH}Gagal menemukan URL untuk unduhan BLS CLI v0.3.0. Keluar...${NOL}"
+    exit 1
+fi
+curl -L -o bls-cli.tar.gz $DOWNLOAD_URL
 
 # Memeriksa apakah file berhasil diunduh
 if [[ ! -f bls-cli.tar.gz ]]; then
