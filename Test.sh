@@ -47,7 +47,7 @@ else
 fi
 
 # Menentukan nama target dan folder yang disesuaikan
-TARGET_FILENAME="blockless-cli-linux-arm64.tar.gz"  # Nama file target yang baru
+TARGET_FILENAME="bls-linux-arm64-blockless-cli.tar.gz"  # Nama file target yang baru
 TARGET_DIR="blockless-cli"  # Nama direktori tujuan
 
 # Membuat direktori untuk target dan release
@@ -84,10 +84,10 @@ read -s -p "Masukkan kata sandi akun Blockless Anda: " password
 echo
 
 # Membuat dan menjalankan kontainer Docker jika belum berjalan
-if ! sudo docker ps --filter "name=blockless-cli-container-v2" | grep -q 'blockless-cli-container-v2'; then
+if ! sudo docker ps --filter "name=bls-cli-container" | grep -q 'bls-cli-container'; then
     echo -e "${HIJAU}Membuat kontainer Docker untuk Blockless CLI...${NOL}"
     sudo docker run -it --rm \
-        --name blockless-cli-container-v2 \
+        --name bls-cli-container \
         -v $(pwd)/"$TARGET_DIR/release":/app \
         -e EMAIL="$email" \
         -e PASSWORD="$password" \
