@@ -18,6 +18,7 @@ sudo apt update && sudo apt upgrade -y
 echo -e "${KUNING}Menghapus file yang lama...${NOL}"
 sudo rm -rf bls-cli.tar.gz target
 
+# Memastikan Docker terinstal
 if ! command -v docker &> /dev/null; then
     echo -e "${BIRU}Menginstal Docker...${NOL}"
     sudo apt-get install -y \
@@ -32,6 +33,7 @@ else
     echo -e "${HIJAU}Docker sudah terpasang, melewati...${NOL}"
 fi
 
+# Memastikan Docker Compose terinstal
 if ! command -v docker-compose &> /dev/null; then
     echo -e "${BIRU}Menginstal Docker Compose...${NOL}"
     sudo curl -L "https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose.tmp
@@ -44,32 +46,36 @@ else
     echo -e "${HIJAU}Docker Compose sudah terpasang, melewati...${NOL}"
 fi
 
-echo -e "${KUNING}Membuat direktori target/release...${NOL}"
-sudo mkdir -p target/release
+# Menentukan nama target dan folder yang disesuaikan
+TARGET_FILENAME="blockless-cli-linux-arm64.tar.gz"  # Nama file target yang baru
+TARGET_DIR="blockless-cli"  # Nama direktori tujuan
 
-echo -e "${BIRU}Mengunduh dan mengekstrak Blockless CLI...${NOL}"
+# Membuat direktori untuk target dan release
+echo -e "${KUNING}Membuat direktori $TARGET_DIR/release...${NOL}"
+sudo mkdir -p "$TARGET_DIR/release"
 
-# Link terbaru untuk mengunduh Blockless CLI (berdasarkan rilis terbaru)
-LATEST_RELEASE_URL="https://github.com/blocklessnetwork/cli/releases/download/v0.3.0/bls-linux-arm64-blockless-cli.tar.gz"
-curl -L "$LATEST_RELEASE_URL" -o bls-cli.tar.gz
+# Mengunduh dan mengekstrak file
+LATEST_RELEASE_URL="https://github.com/blocklessnetwork/cli/releases/download/v0.3.0/$TARGET_FILENAME"
+echo -e "${BIRU}Mengunduh dan mengekstrak $TARGET_FILENAME...${NOL}"
+curl -L "$LATEST_RELEASE_URL" -o "$TARGET_FILENAME"
 
 # Coba ekstrak ulang jika file binary tidak ditemukan
-if ! sudo tar -xzf bls-cli.tar.gz --strip-components=1 -C target/release; then
+if ! sudo tar -xzf "$TARGET_FILENAME" --strip-components=1 -C "$TARGET_DIR/release"; then
     echo -e "${MERAH}Error: Ekstraksi file gagal, coba unduh ulang...${NOL}"
-    rm -rf bls-cli.tar.gz target
-    curl -L "$LATEST_RELEASE_URL" -o bls-cli.tar.gz
-    if ! sudo tar -xzf bls-cli.tar.gz --strip-components=1 -C target/release; then
+    rm -rf "$TARGET_FILENAME" "$TARGET_DIR"
+    curl -L "$LATEST_RELEASE_URL" -o "$TARGET_FILENAME"
+    if ! sudo tar -xzf "$TARGET_FILENAME" --strip-components=1 -C "$TARGET_DIR/release"; then
         echo -e "${MERAH}Error: Ekstraksi ulang gagal. Keluar...${NOL}"
         exit 1
     fi
 fi
 
 # Pengecekan lebih kuat untuk memastikan file binary ada
-if [[ ! -f target/release/bls ]]; then
-    echo -e "${MERAH}Error: file biner bls tidak ditemukan di target/release. Keluar...${NOL}"
+if [[ ! -f "$TARGET_DIR/release/bls" ]]; then
+    echo -e "${MERAH}Error: file biner bls tidak ditemukan di $TARGET_DIR/release. Keluar...${NOL}"
     exit 1
 else
-    echo -e "${HIJAU}File binary bls ditemukan di target/release.${NOL}"
+    echo -e "${HIJAU}File binary bls ditemukan di $TARGET_DIR/release.${NOL}"
 fi
 
 # Mengubah prompt untuk email dan kata sandi Blockless
@@ -77,11 +83,12 @@ read -p "Masukkan email akun Blockless Anda: " email
 read -s -p "Masukkan kata sandi akun Blockless Anda: " password
 echo
 
-if ! sudo docker ps --filter "name=bls-cli-container" | grep -q 'bls-cli-container'; then
+# Membuat dan menjalankan kontainer Docker jika belum berjalan
+if ! sudo docker ps --filter "name=blockless-cli-container-v2" | grep -q 'blockless-cli-container-v2'; then
     echo -e "${HIJAU}Membuat kontainer Docker untuk Blockless CLI...${NOL}"
     sudo docker run -it --rm \
-        --name bls-cli-container \
-        -v $(pwd)/target/release:/app \
+        --name blockless-cli-container-v2 \
+        -v $(pwd)/"$TARGET_DIR/release":/app \
         -e EMAIL="$email" \
         -e PASSWORD="$password" \
         --workdir /app \
