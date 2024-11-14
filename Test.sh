@@ -47,7 +47,7 @@ else
 fi
 
 # Menentukan nama target dan folder yang disesuaikan
-TARGET_FILENAME="bls-linux-arm64-blockless-cli.tar.gz"  # Nama file target yang baru
+TARGET_FILENAME="bls-linux-x64-blockless-cli.tar.gz"  # Nama file target yang baru
 TARGET_DIR="blockless-cli"  # Nama direktori tujuan
 
 # Membuat direktori untuk target dan release
