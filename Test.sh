@@ -59,7 +59,11 @@ LATEST_RELEASE_URL="https://github.com/blocklessnetwork/cli/releases/download/v0
 echo -e "${BIRU}Mengunduh dan mengekstrak $TARGET_FILENAME...${NOL}"
 curl -L "$LATEST_RELEASE_URL" -o "$TARGET_FILENAME"
 
-# Coba ekstrak ulang jika file binary tidak ditemukan
+# Menampilkan isi arsip untuk memverifikasi file
+echo -e "${BIRU}Menampilkan isi arsip...${NOL}"
+tar -tzf "$TARGET_FILENAME"
+
+# Ekstrak arsip
 if ! sudo tar -xzf "$TARGET_FILENAME" --strip-components=1 -C "$TARGET_DIR/release"; then
     echo -e "${MERAH}Error: Ekstraksi file gagal, coba unduh ulang...${NOL}"
     rm -rf "$TARGET_FILENAME" "$TARGET_DIR"
@@ -76,6 +80,7 @@ if [[ ! -f "$TARGET_DIR/release/bls" ]]; then
     exit 1
 else
     echo -e "${HIJAU}File binary bls ditemukan di $TARGET_DIR/release.${NOL}"
+    sudo chmod +x "$TARGET_DIR/release/bls"
 fi
 
 # Mengubah prompt untuk email dan kata sandi Blockless
