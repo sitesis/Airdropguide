@@ -52,9 +52,16 @@ sudo mkdir -p target/release
 
 # Mengunduh dan mengekstrak Blockless CLI
 echo -e "${BIRU}Mengunduh dan mengekstrak Blockless CLI...${NOL}"
-curl -s https://api.github.com/repos/blocklessnetwork/cli/releases/latest \
-| grep -oP '"browser_download_url": "\K(.*blockless-cli-x86_64-unknown-linux-gnu.tar.gz)' \
-| xargs sudo curl -L -o blockless-cli.tar.gz
+download_url=$(curl -s https://api.github.com/repos/blocklessnetwork/cli/releases/latest | grep -oP '"browser_download_url": "\K(.*blockless-cli-x86_64-unknown-linux-gnu.tar.gz)' | head -n 1)
+
+if [[ -z "$download_url" ]]; then
+    echo -e "${MERAH}Gagal mendapatkan URL unduhan Blockless CLI. Keluar...${NOL}"
+    exit 1
+fi
+
+curl -L "$download_url" -o blockless-cli.tar.gz
+
+# Mengekstrak file
 sudo tar -xzf blockless-cli.tar.gz --strip-components=3 -C target/release
 
 # Memeriksa apakah file Blockless CLI ada
