@@ -18,7 +18,6 @@ sudo apt update && sudo apt upgrade -y
 echo -e "${KUNING}Menghapus file yang lama...${NOL}"
 sudo rm -rf blockless-cli.tar.gz target
 
-# Install Docker jika belum terpasang
 if ! command -v docker &> /dev/null; then
     echo -e "${BIRU}Menginstal Docker...${NOL}"
     sudo apt-get install -y \
@@ -33,7 +32,6 @@ else
     echo -e "${HIJAU}Docker sudah terpasang, melewati...${NOL}"
 fi
 
-# Install Docker Compose jika belum terpasang
 if ! command -v docker-compose &> /dev/null; then
     echo -e "${BIRU}Menginstal Docker Compose...${NOL}"
     sudo curl -L "https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose.tmp
@@ -46,36 +44,23 @@ else
     echo -e "${HIJAU}Docker Compose sudah terpasang, melewati...${NOL}"
 fi
 
-# Membuat direktori target/release jika belum ada
 echo -e "${KUNING}Membuat direktori target/release...${NOL}"
 sudo mkdir -p target/release
 
-# Mengunduh dan mengekstrak Blockless CLI
 echo -e "${BIRU}Mengunduh dan mengekstrak Blockless CLI...${NOL}"
-download_url=$(curl -s https://api.github.com/repos/blocklessnetwork/cli/releases/latest | grep -oP '"browser_download_url": "\K(.*blockless-cli-x86_64-unknown-linux-gnu.tar.gz)' | head -n 1)
-
-if [[ -z "$download_url" ]]; then
-    echo -e "${MERAH}Gagal mendapatkan URL unduhan Blockless CLI. Keluar...${NOL}"
-    exit 1
-fi
-
-curl -L "$download_url" -o blockless-cli.tar.gz
-
-# Mengekstrak file
+curl -s https://github.com/blocklessnetwork/cli/releases/download/v0.3.0/bls-linux-arm64-blockless-cli.tar.gz \
+| sudo curl -L -o blockless-cli.tar.gz
 sudo tar -xzf blockless-cli.tar.gz --strip-components=3 -C target/release
 
-# Memeriksa apakah file Blockless CLI ada
 if [[ ! -f target/release/blockless-cli ]]; then
     echo -e "${MERAH}Error: file biner blockless-cli tidak ditemukan di target/release. Keluar...${NOL}"
     exit 1
 fi
 
-# Input untuk email dan password Blockless
 read -p "Masukkan email Blockless Anda: " email
 read -s -p "Masukkan kata sandi Blockless Anda: " password
 echo
 
-# Membuat kontainer Docker untuk Blockless CLI jika belum ada
 if ! sudo docker ps --filter "name=blockless-cli-container" | grep -q 'blockless-cli-container'; then
     echo -e "${HIJAU}Membuat kontainer Docker untuk Blockless CLI...${NOL}"
     sudo docker run -it --rm \
