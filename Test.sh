@@ -16,9 +16,9 @@ echo -e "${HIJAU}Memperbarui sistem...${NOL}"
 sudo apt update && sudo apt upgrade -y
 
 echo -e "${KUNING}Menghapus file yang lama...${NOL}"
-sudo rm -rf bls-cli.tar.gz target
+sudo rm -rf blockless-cli.tar.gz target
 
-# Memastikan Docker terinstal
+# Install Docker jika belum terpasang
 if ! command -v docker &> /dev/null; then
     echo -e "${BIRU}Menginstal Docker...${NOL}"
     sudo apt-get install -y \
@@ -33,7 +33,7 @@ else
     echo -e "${HIJAU}Docker sudah terpasang, melewati...${NOL}"
 fi
 
-# Memastikan Docker Compose terinstal
+# Install Docker Compose jika belum terpasang
 if ! command -v docker-compose &> /dev/null; then
     echo -e "${BIRU}Menginstal Docker Compose...${NOL}"
     sudo curl -L "https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose.tmp
@@ -46,53 +46,38 @@ else
     echo -e "${HIJAU}Docker Compose sudah terpasang, melewati...${NOL}"
 fi
 
-# Membuat direktori target/release
+# Membuat direktori target/release jika belum ada
 echo -e "${KUNING}Membuat direktori target/release...${NOL}"
 sudo mkdir -p target/release
 
-# Mengunduh BLS CLI v0.3.0 menggunakan API baru
-echo -e "${BIRU}Mengunduh dan mengekstrak BLS CLI...${NOL}"
-URL="https://api.github.com/repos/blocklessnetwork/cli/releases/tags/v0.3.0"
-DOWNLOAD_URL=$(curl -s $URL | jq -r '.assets[] | select(.name | test("bls-linux-x64-blockless-cli.*.tar.gz")) | .browser_download_url')
-if [[ -z "$DOWNLOAD_URL" ]]; then
-    echo -e "${MERAH}Gagal menemukan URL untuk unduhan BLS CLI v0.3.0. Keluar...${NOL}"
-    exit 1
-fi
-curl -L -o bls-cli.tar.gz $DOWNLOAD_URL
+# Mengunduh dan mengekstrak Blockless CLI
+echo -e "${BIRU}Mengunduh dan mengekstrak Blockless CLI...${NOL}"
+curl -s https://api.github.com/repos/blocklessnetwork/cli/releases/latest \
+| grep -oP '"browser_download_url": "\K(.*blockless-cli-x86_64-unknown-linux-gnu.tar.gz)' \
+| xargs sudo curl -L -o blockless-cli.tar.gz
+sudo tar -xzf blockless-cli.tar.gz --strip-components=3 -C target/release
 
-# Memeriksa apakah file berhasil diunduh
-if [[ ! -f bls-cli.tar.gz ]]; then
-    echo -e "${MERAH}Gagal mengunduh BLS CLI. Keluar...${NOL}"
+# Memeriksa apakah file Blockless CLI ada
+if [[ ! -f target/release/blockless-cli ]]; then
+    echo -e "${MERAH}Error: file biner blockless-cli tidak ditemukan di target/release. Keluar...${NOL}"
     exit 1
 fi
 
-# Mengekstrak file
-echo -e "${HIJAU}Mengekstrak BLS CLI...${NOL}"
-sudo tar -xzf bls-cli.tar.gz --strip-components=3 -C target/release
-
-# Memeriksa keberadaan file biner 'bls'
-if [[ ! -f target/release/bls ]]; then
-    echo -e "${MERAH}Error: file biner bls tidak ditemukan di target/release. Keluar...${NOL}"
-    exit 1
-else
-    echo -e "${HIJAU}Biner BLS berhasil ditemukan!${NOL}"
-fi
-
-# Meminta input email dan kata sandi BLS
-read -p "Masukkan email BLS Anda: " email
-read -s -p "Masukkan kata sandi BLS Anda: " password
+# Input untuk email dan password Blockless
+read -p "Masukkan email Blockless Anda: " email
+read -s -p "Masukkan kata sandi Blockless Anda: " password
 echo
 
-# Memeriksa dan menjalankan kontainer Docker untuk BLS CLI
-if ! sudo docker ps --filter "name=bls-cli-container" | grep -q 'bls-cli-container'; then
-    echo -e "${HIJAU}Membuat kontainer Docker untuk BLS CLI...${NOL}"
+# Membuat kontainer Docker untuk Blockless CLI jika belum ada
+if ! sudo docker ps --filter "name=blockless-cli-container" | grep -q 'blockless-cli-container'; then
+    echo -e "${HIJAU}Membuat kontainer Docker untuk Blockless CLI...${NOL}"
     sudo docker run -it --rm \
-        --name bls-cli-container \
+        --name blockless-cli-container \
         -v $(pwd)/target/release:/app \
         -e EMAIL="$email" \
         -e PASSWORD="$password" \
         --workdir /app \
-        ubuntu:22.04 ./bls --email "$email" --password "$password"
+        ubuntu:22.04 ./blockless-cli --email "$email" --password "$password"
 else
-    echo -e "${HIJAU}Kontainer BLS CLI sudah berjalan, melewati...${NOL}"
+    echo -e "${HIJAU}Kontainer Blockless CLI sudah berjalan, melewati...${NOL}"
 fi
