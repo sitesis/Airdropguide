@@ -149,25 +149,10 @@ EOL
     done
 }
 
-# Spinner function for Telegram Group join loading effect
-telegram_loading_spinner() {
-    echo -e "${YELLOW}-----------------------------------${RESET}"
-    echo -e "${BLUE}Joining Telegram... Please wait.${RESET}"
-    while true; do
-        for spin in '/' '-' '\' '|'; do
-            echo -ne "\r$spin"
-            sleep 0.3
-        done
-    done
-}
-
 # Main execution flow
 install_dependencies
 input_required_details
 deploy_contract
-
-# Stop the spinner after deployment
-kill $!
 
 # Final Telegram invitation
 echo -e "${YELLOW}-----------------------------------${RESET}"
