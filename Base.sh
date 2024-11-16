@@ -21,13 +21,13 @@ slow_echo() {
     echo ""
 }
 
-# Enhanced logo display with animation
+# Display Logo with sleep effect
 display_logo() {
-    local logo_url="https://raw.githubusercontent.com/choir94/Airdropguide/refs/heads/main/logo.sh"
-    curl -s "$logo_url" | while IFS= read -r line; do
-        slow_echo "$line"
-    done
-    sleep 0.5  # Small delay after logo display
+    echo -e "${CYAN}-----------------------------------"
+    echo -e "  Airdrop Node Deployment Script  "
+    echo -e "        By Choir94               "
+    echo -e "${CYAN}-----------------------------------"
+    sleep 1
 }
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -168,7 +168,7 @@ EOL
 }
 
 # Main execution flow
-display_logo  # Show the logo with slow-motion animation
+display_logo
 install_dependencies
 input_required_details
 deploy_contract
