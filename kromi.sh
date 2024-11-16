@@ -5,14 +5,14 @@ sleep 3
 
 # Function to display styled messages
 show() {
-  echo -e "\n\033[1;35m$1\033[0m\n"
+  echo -e "\n\033[1;37m$1\033[0m\n" # Changed color to white (37)
 }
 
 # Function to display a loading animation
 loading() {
   message=$1
   duration=$2
-  echo -ne "\033[1;34m$message\033[0m"
+  echo -ne "\033[1;34m$message\033[0m" # Blue for loading text
   for ((i = 0; i < duration; i++)); do
     echo -ne "."
     sleep 0.3
@@ -114,3 +114,4 @@ show "🌐 Access the external browser at:
 
 📁 Credentials are also saved in:
   $CREDENTIALS_FILE"
+
