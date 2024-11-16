@@ -11,12 +11,22 @@ LIGHT_BLUE="\e[94m"        # Light blue for deployment steps
 RED="\e[91m"               # Red for errors
 MAGENTA="\e[35m"           # Magenta for special notes
 
-# Skrip instalasi logo
-curl -s https://raw.githubusercontent.com/choir94/Airdropguide/refs/heads/main/logo.sh | bash
-sleep 5
+# Slow-motion echo for loading effect (with a faster speed)
+slow_echo() {
+    local message="$1"
+    for (( i=0; i<${#message}; i++ )); do
+        echo -n "${message:$i:1}"
+        sleep 0.02  # Faster effect: Reduced sleep time
+    done
+    echo ""
+}
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR" || exit
+
+# Install logo script
+curl -s https://raw.githubusercontent.com/choir94/Airdropguide/refs/heads/main/logo.sh | bash
+sleep 5  # Pause for 5 seconds to display logo
 
 install_dependencies() {
     CONTRACT_NAME="AirdropNode"
@@ -153,7 +163,6 @@ EOL
 }
 
 # Main execution flow
-display_logo
 install_dependencies
 input_required_details
 deploy_contract
