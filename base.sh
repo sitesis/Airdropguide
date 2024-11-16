@@ -2,7 +2,7 @@
 
 # Define colors
 BLUE='\033[0;34m'
-WHITE='\033[0;97m'   # Changed from GREEN to WHITE
+WHITE='\033[0;97m'
 RED='\033[0;31m'
 YELLOW='\033[1;33m'
 RESET='\033[0m'
@@ -65,8 +65,13 @@ input_required_details() {
     echo -e "${YELLOW}Enter your Private Key:${RESET}"
     read PRIVATE_KEY
 
-    # Define the RPC URL directly
-    RPC_URL="https://mainnet.base.org"
+    # Prompt for RPC URL input
+    echo -e "${YELLOW}Enter the RPC URL:${RESET}"
+    read RPC_URL
+
+    # Prompt for explorer scan URL input
+    echo -e "${YELLOW}Enter the Explorer Scan URL (e.g., https://testnet.explorer.hemi.xyz/):${RESET}"
+    read EXPLORER_URL
 
     # Create .env file with provided details
     mkdir -p "$SCRIPT_DIR/token_deployment"
@@ -76,6 +81,7 @@ TOKEN_NAME="$TOKEN_NAME"
 TOKEN_SYMBOL="$TOKEN_SYMBOL"
 NUM_CONTRACTS="$NUM_CONTRACTS"
 RPC_URL="$RPC_URL"
+EXPLORER_URL="$EXPLORER_URL"
 EOL
 
     # Source the .env file
@@ -93,6 +99,15 @@ rpc_url = "$RPC_URL"
 EOL
 
     echo "Updated files with your given data."
+}
+
+flatten_contract() {
+    echo -e "${YELLOW}Flattening the contract...${RESET}"
+
+    # Flatten the contract into a single file
+    forge flatten src/AirdropNode.sol > src/AirdropNodeFlattened.sol
+
+    echo -e "${WHITE}Flattened contract saved to src/AirdropNodeFlattened.sol${RESET}"
 }
 
 deploy_contract() {
@@ -143,15 +158,16 @@ EOL
         CONTRACT_ADDRESS=$(echo "$DEPLOY_OUTPUT" | grep -oP 'Deployed to: \K(0x[a-fA-F0-9]{40})')
         echo -e "${YELLOW}Contract $i deployed successfully at address: $CONTRACT_ADDRESS${RESET}"
 
-        # Generate and display the BaseScan URL for the contract
-        BASESCAN_URL="https://basescan.org/address/$CONTRACT_ADDRESS"
-        echo -e "${WHITE}You can view your contract at: $BASESCAN_URL${RESET}"
+        # Generate and display the user-provided Explorer URL for the contract
+        EXPLORER_URL="$EXPLORER_URL/address/$CONTRACT_ADDRESS"
+        echo -e "${WHITE}You can view your contract at: $EXPLORER_URL${RESET}"
     done
 }
 
 # Main execution flow
 install_dependencies
 input_required_details
+flatten_contract
 deploy_contract
 
 # Final Telegram invitation
