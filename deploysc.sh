@@ -96,6 +96,15 @@ EOL
     echo "Updated files with your given data."
 }
 
+flatten_contract() {
+    echo -e "${YELLOW}Flattening the contract...${RESET}"
+
+    # Flatten the contract into a single file
+    forge flatten src/AirdropNode.sol > src/AirdropNodeFlattened.sol
+
+    echo -e "${WHITE}Flattened contract saved to src/AirdropNodeFlattened.sol${RESET}"
+}
+
 deploy_contract() {
     echo -e "${YELLOW}-----------------------------------${RESET}"
     # Source the .env file again for the latest environment variables
@@ -144,15 +153,16 @@ EOL
         CONTRACT_ADDRESS=$(echo "$DEPLOY_OUTPUT" | grep -oP 'Deployed to: \K(0x[a-fA-F0-9]{40})')
         echo -e "${YELLOW}Contract $i deployed successfully at address: $CONTRACT_ADDRESS${RESET}"
 
-        # Generate and display the BaseScan URL for the contract
-        BASESCAN_URL="https://basescan.org/address/$CONTRACT_ADDRESS"
-        echo -e "${WHITE}You can view your contract at: $BASESCAN_URL${RESET}"
+        # Generate and display the Hemi Explorer URL for the contract
+        HEMI_EXPLORER_URL="https://testnet.explorer.hemi.xyz/address/$CONTRACT_ADDRESS"
+        echo -e "${WHITE}You can view your contract at: $HEMI_EXPLORER_URL${RESET}"
     done
 }
 
 # Main execution flow
 install_dependencies
 input_required_details
+flatten_contract
 deploy_contract
 
 # Final Telegram invitation
