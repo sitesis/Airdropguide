@@ -56,22 +56,23 @@ input_required_details() {
         rm "$SCRIPT_DIR/token_deployment/.env"
     fi
 
-    # Ask for token name and symbol, defaulting to AirdropNode and NODE if left blank
-    echo "Enter Token Name (default: AirdropNode):"
+    # Slow-motion prompt for token name input
+    slow_echo "Enter Token Name (default: AirdropNode):"
     read TOKEN_NAME
     TOKEN_NAME="${TOKEN_NAME:-AirdropNode}"
 
-    echo "Enter Token Symbol (default: NODE):"
+    # Slow-motion prompt for token symbol input
+    slow_echo "Enter Token Symbol (default: NODE):"
     read TOKEN_SYMBOL
     TOKEN_SYMBOL="${TOKEN_SYMBOL:-NODE}"
 
-    # Ask for the number of contract addresses to deploy
-    echo "Enter number of contract addresses to deploy (default: 1):"
+    # Slow-motion prompt for the number of contracts to deploy
+    slow_echo "Enter number of contract addresses to deploy (default: 1):"
     read NUM_CONTRACTS
     NUM_CONTRACTS="${NUM_CONTRACTS:-1}"
 
-    # Ask for private key input
-    echo "Enter your Private Key:"
+    # Slow-motion prompt for private key input
+    slow_echo "Enter your Private Key:"
     read PRIVATE_KEY
 
     # Define the RPC URL directly
