@@ -10,9 +10,10 @@ RESET='\033[0m'
 # Slow-motion echo for loading effect
 slow_echo() {
     local message="$1"
+    local delay="$2"  # Allowing variable delay for different effects
     for (( i=0; i<${#message}; i++ )); do
         echo -n "${message:$i:1}"
-        sleep 0.02  # Faster effect: Reduced sleep time
+        sleep "$delay"  # Using variable delay for slow-motion effect
     done
     echo ""
 }
@@ -56,23 +57,23 @@ input_required_details() {
         rm "$SCRIPT_DIR/token_deployment/.env"
     fi
 
-    # Slow-motion prompt for token name input
-    slow_echo "Enter Token Name (default: AirdropNode):"
+    # Slow-motion prompt for token name input with customized delay
+    slow_echo "Enter Token Name (default: AirdropNode):"  # Adjust the delay here (0.03)
     read TOKEN_NAME
     TOKEN_NAME="${TOKEN_NAME:-AirdropNode}"
 
-    # Slow-motion prompt for token symbol input
-    slow_echo "Enter Token Symbol (default: NODE):"
+    # Slow-motion prompt for token symbol input with customized delay
+    slow_echo "Enter Token Symbol (default: NODE):"  # Adjust the delay here (0.03)
     read TOKEN_SYMBOL
     TOKEN_SYMBOL="${TOKEN_SYMBOL:-NODE}"
 
-    # Slow-motion prompt for the number of contracts to deploy
-    slow_echo "Enter number of contract addresses to deploy (default: 1):"
+    # Slow-motion prompt for the number of contracts to deploy with customized delay
+    slow_echo "Enter number of contract addresses to deploy (default: 1):"  # Adjust the delay here (0.03)
     read NUM_CONTRACTS
     NUM_CONTRACTS="${NUM_CONTRACTS:-1}"
 
-    # Slow-motion prompt for private key input
-    slow_echo "Enter your Private Key:"
+    # Slow-motion prompt for private key input with customized delay
+    slow_echo "Enter your Private Key:"  # Adjust the delay here (0.03)
     read PRIVATE_KEY
 
     # Define the RPC URL directly
