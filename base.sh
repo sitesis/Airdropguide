@@ -7,17 +7,6 @@ RED='\033[0;31m'
 YELLOW='\033[1;33m'
 RESET='\033[0m'
 
-# Slow-motion echo for loading effect
-slow_echo() {
-    local message="$1"
-    local delay="$2"  # Allowing variable delay for different effects
-    for (( i=0; i<${#message}; i++ )); do
-        echo -n "${message:$i:1}"
-        sleep "$delay"  # Using variable delay for slow-motion effect
-    done
-    echo ""
-}
-
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR" || exit
 
@@ -57,23 +46,23 @@ input_required_details() {
         rm "$SCRIPT_DIR/token_deployment/.env"
     fi
 
-    # Slow-motion prompt for token name input with customized delay
-    slow_echo "Enter Token Name (default: AirdropNode):"  # Adjust the delay here (0.03)
+    # Prompt for token name input
+    echo -e "${YELLOW}Enter Token Name (default: AirdropNode):${RESET}"
     read TOKEN_NAME
     TOKEN_NAME="${TOKEN_NAME:-AirdropNode}"
 
-    # Slow-motion prompt for token symbol input with customized delay
-    slow_echo "Enter Token Symbol (default: NODE):"  # Adjust the delay here (0.03)
+    # Prompt for token symbol input
+    echo -e "${YELLOW}Enter Token Symbol (default: NODE):${RESET}"
     read TOKEN_SYMBOL
     TOKEN_SYMBOL="${TOKEN_SYMBOL:-NODE}"
 
-    # Slow-motion prompt for the number of contracts to deploy with customized delay
-    slow_echo "Enter number of contract addresses to deploy (default: 1):"  # Adjust the delay here (0.03)
+    # Prompt for the number of contracts to deploy
+    echo -e "${YELLOW}Enter number of contract addresses to deploy (default: 1):${RESET}"
     read NUM_CONTRACTS
     NUM_CONTRACTS="${NUM_CONTRACTS:-1}"
 
-    # Slow-motion prompt for private key input with customized delay
-    slow_echo "Enter your Private Key:"  # Adjust the delay here (0.03)
+    # Prompt for private key input
+    echo -e "${YELLOW}Enter your Private Key:${RESET}"
     read PRIVATE_KEY
 
     # Define the RPC URL directly
@@ -160,11 +149,26 @@ EOL
     done
 }
 
+# Spinner function for Telegram Group join loading effect
+telegram_loading_spinner() {
+    echo -e "${YELLOW}-----------------------------------${RESET}"
+    echo -e "${BLUE}Joining Telegram... Please wait.${RESET}"
+    while true; do
+        for spin in '/' '-' '\' '|'; do
+            echo -ne "\r$spin"
+            sleep 0.3
+        done
+    done
+}
+
 # Main execution flow
 install_dependencies
 input_required_details
 deploy_contract
 
-# Invite to join Telegram channel with color
+# Stop the spinner after deployment
+kill $!
+
+# Final Telegram invitation
 echo -e "${YELLOW}-----------------------------------${RESET}"
 echo -e "${BLUE}Join our Telegram channel for updates and support: https://t.me/airdrop_node${RESET}"
