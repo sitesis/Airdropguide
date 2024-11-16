@@ -57,21 +57,21 @@ input_required_details() {
     fi
 
     # Ask for token name and symbol, defaulting to AirdropNode and NODE if left blank
-    slow_echo "${BLUE}Enter Token Name (default: AirdropNode):${RESET}"
+    echo "Enter Token Name (default: AirdropNode):"
     read TOKEN_NAME
     TOKEN_NAME="${TOKEN_NAME:-AirdropNode}"
 
-    slow_echo "${BLUE}Enter Token Symbol (default: NODE):${RESET}"
+    echo "Enter Token Symbol (default: NODE):"
     read TOKEN_SYMBOL
     TOKEN_SYMBOL="${TOKEN_SYMBOL:-NODE}"
 
     # Ask for the number of contract addresses to deploy
-    slow_echo "${BLUE}Enter number of contract addresses to deploy (default: 1):${RESET}"
+    echo "Enter number of contract addresses to deploy (default: 1):"
     read NUM_CONTRACTS
     NUM_CONTRACTS="${NUM_CONTRACTS:-1}"
 
     # Ask for private key input
-    slow_echo "${BLUE}Enter your Private Key:${RESET}"
+    echo "Enter your Private Key:"
     read PRIVATE_KEY
 
     # Define the RPC URL directly
@@ -101,7 +101,7 @@ libs = ["lib"]
 rpc_url = "$RPC_URL"
 EOL
 
-    slow_echo "${WHITE}Updated files with your given data.${RESET}"
+    echo "Updated files with your given data."
 }
 
 deploy_contract() {
@@ -127,7 +127,7 @@ contract AirdropNode is ERC20 {
 EOL
 
     # Compile the contract
-    slow_echo "${YELLOW}Compiling contract...${RESET}"
+    echo "Compiling contract..."
     forge build
 
     if [[ $? -ne 0 ]]; then
@@ -137,7 +137,7 @@ EOL
 
     # Deploy the contract based on the number of contracts
     for i in $(seq 1 "$NUM_CONTRACTS"); do
-        slow_echo "${YELLOW}Deploying contract $i of $NUM_CONTRACTS...${RESET}"
+        echo "Deploying contract $i of $NUM_CONTRACTS..."
 
         DEPLOY_OUTPUT=$(forge create "$SCRIPT_DIR/src/AirdropNode.sol:AirdropNode" \
             --rpc-url "$RPC_URL" \
@@ -150,11 +150,11 @@ EOL
 
         # Extract and display the deployed contract address
         CONTRACT_ADDRESS=$(echo "$DEPLOY_OUTPUT" | grep -oP 'Deployed to: \K(0x[a-fA-F0-9]{40})')
-        slow_echo "${WHITE}Contract $i deployed successfully at address: $CONTRACT_ADDRESS${RESET}"
+        echo -e "${YELLOW}Contract $i deployed successfully at address: $CONTRACT_ADDRESS${RESET}"
 
         # Generate and display the BaseScan URL for the contract
         BASESCAN_URL="https://basescan.org/address/$CONTRACT_ADDRESS"
-        slow_echo "${WHITE}You can view your contract at: $BASESCAN_URL${RESET}"
+        echo -e "${WHITE}You can view your contract at: $BASESCAN_URL${RESET}"
     done
 }
 
@@ -163,6 +163,6 @@ install_dependencies
 input_required_details
 deploy_contract
 
-# Invite to join Telegram channel
-slow_echo "${YELLOW}-----------------------------------${RESET}"
-slow_echo "${WHITE}Join our Telegram channel for updates and support: https://t.me/airdrop_node${RESET}"
+# Invite to join Telegram channel with color
+echo -e "${YELLOW}-----------------------------------${RESET}"
+echo -e "${BLUE}Join our Telegram channel for updates and support: https://t.me/airdrop_node${RESET}"
