@@ -1,47 +1,20 @@
 #!/bin/bash
 
-# Tentukan kode warna untuk tampilan yang lebih menarik
+# Define color codes for a more appealing look
 RESET="\e[0m"
 BOLD="\e[1m"
-MAROON="\e[38;5;88m"       # Maroon untuk sukses
-CYAN="\e[96m"              # Cyan muda untuk pesan informasi
-YELLOW="\e[93m"            # Kuning muda untuk prompt
-RED="\e[91m"               # Merah untuk kesalahan
-MAGENTA="\e[35m"           # Magenta untuk catatan khusus
-BLUE="\e[94m"              # Biru untuk bagian umum
-ORANGE="\e[38;5;214m"      # Orange untuk aksi utama
-LIGHT_BLUE="\e[94m"        # Biru terang untuk langkah-langkah penerapan
+MAROON="\e[38;5;88m"       # Maroon for success
+CYAN="\e[96m"              # Light cyan for informational messages
+YELLOW="\e[93m"            # Light yellow for prompts
+RED="\e[91m"               # Red for errors
+MAGENTA="\e[35m"           # Magenta for special notes
+BLUE="\e[94m"              # Blue for general sections
+ORANGE="\e[38;5;214m"      # Orange for major actions
+LIGHT_BLUE="\e[94m"        # Light blue for deployment steps
 
-# Fungsi untuk efek loading logo dengan animasi
-loading_logo() {
-    clear
-    echo -e "${CYAN}Memuat logo, harap tunggu...${RESET}"
-
-    # Membuat animasi loading dengan simbol berputar
-    spin='|/-\'
-    while true; do
-        for i in $(seq 0 3); do
-            echo -n -e "\r${CYAN}[${spin:$i:1}] Memuat logo..."
-            sleep 0.2
-        done
-    done
-}
-
-# Menampilkan logo dengan loading
-loading_logo &
-SPIN_PID=$!
-
-# Menunggu beberapa detik untuk efek loading
-sleep 3
-
-# Menghentikan animasi loading dan menampilkan logo
-kill $SPIN_PID
-clear
-echo -e "${MAGENTA}-----------------------------------${RESET}"
+# Display the logo
 curl -s https://raw.githubusercontent.com/choir94/Airdropguide/refs/heads/main/logo.sh | bash
-echo -e "${MAGENTA}-----------------------------------${RESET}"
-
-sleep 2
+sleep 5
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR" || exit
@@ -49,56 +22,57 @@ cd "$SCRIPT_DIR" || exit
 install_dependencies() {
     CONTRACT_NAME="AirdropNode"
 
-    # Inisialisasi Git jika belum dilakukan
+    # Initialize Git if not already done
     if [ ! -d ".git" ]; then
-        echo -e "${MAGENTA}Menginisialisasi repositori Git...${RESET}"
+        echo -e "${MAGENTA}Initializing Git repository...${RESET}"
         git init
     fi
 
-    # Instalasi Foundry jika belum terpasang
+    # Install Foundry if not already installed using the updated Foundry.sh URL
     if ! command -v forge &> /dev/null; then
-        echo -e "${ORANGE}Foundry tidak terinstal. Instalasi sekarang...${RESET}"
+        echo -e "${ORANGE}Foundry is not installed. Installing now...${RESET}"
         source <(wget -O - https://raw.githubusercontent.com/choir94/Airdropguide/refs/heads/main/Foundry.sh)
     fi
 
-    # Instalasi OpenZeppelin Contracts jika belum ada
+    # Install OpenZeppelin Contracts if not already installed
     if [ ! -d "$SCRIPT_DIR/lib/openzeppelin-contracts" ]; then
-        echo -e "${CYAN}Menginstal OpenZeppelin Contracts...${RESET}"
+        echo -e "${CYAN}Installing OpenZeppelin Contracts...${RESET}"
         git clone https://github.com/OpenZeppelin/openzeppelin-contracts.git "$SCRIPT_DIR/lib/openzeppelin-contracts"
     else
-        echo -e "${MAROON}OpenZeppelin Contracts sudah terinstal.${RESET}"
+        echo -e "${MAROON}OpenZeppelin Contracts already installed.${RESET}"
     fi
 }
 
 input_required_details() {
     echo -e "${LIGHT_BLUE}-----------------------------------${RESET}"
 
-    # Hapus .env yang ada jika ada
+    # Remove existing .env if it exists
     if [ -f "$SCRIPT_DIR/token_deployment/.env" ]; then
         rm "$SCRIPT_DIR/token_deployment/.env"
     fi
 
-    # Minta nama token dan simbolnya, default AirdropNode dan NODE jika kosong
-    read -p "$(echo -e ${BLUE}Masukkan Nama Token (default: AirdropNode): ${RESET})" TOKEN_NAME
-    read -p "$(echo -e ${BLUE}Masukkan Simbol Token (default: NODE): ${RESET})" TOKEN_SYMBOL
-
-    # Tetapkan nilai default jika input kosong
+    # Ask for token name and symbol, defaulting to AirdropNode and NODE if left blank
+    echo -e "${BLUE}Enter Token Name (default: AirdropNode): ${RESET}"
+    read TOKEN_NAME
     TOKEN_NAME="${TOKEN_NAME:-AirdropNode}"
+
+    echo -e "${BLUE}Enter Token Symbol (default: NODE): ${RESET}"
+    read TOKEN_SYMBOL
     TOKEN_SYMBOL="${TOKEN_SYMBOL:-NODE}"
 
-    # Minta jumlah kontrak yang akan diterapkan
-    read -p "$(echo -e ${BLUE}Masukkan jumlah kontrak yang akan diterapkan (default: 1): ${RESET})" NUM_CONTRACTS
-
-    # Tetapkan nilai default jika input kosong
+    # Ask for the number of contract addresses to deploy
+    echo -e "${BLUE}Enter number of contract addresses to deploy (default: 1): ${RESET}"
+    read NUM_CONTRACTS
     NUM_CONTRACTS="${NUM_CONTRACTS:-1}"
 
-    # Minta input private key
-    read -p "$(echo -e ${BLUE}Masukkan Private Key Anda: ${RESET})" PRIVATE_KEY
+    # Ask for private key input
+    echo -e "${BLUE}Enter your Private Key: ${RESET}"
+    read PRIVATE_KEY
 
-    # Tentukan URL RPC langsung
+    # Define the RPC URL directly
     RPC_URL="https://mainnet.base.org"
 
-    # Buat file .env dengan detail yang diberikan
+    # Create .env file with provided details
     mkdir -p "$SCRIPT_DIR/token_deployment"
     cat <<EOL > "$SCRIPT_DIR/token_deployment/.env"
 PRIVATE_KEY="$PRIVATE_KEY"
@@ -108,10 +82,10 @@ NUM_CONTRACTS="$NUM_CONTRACTS"
 RPC_URL="$RPC_URL"
 EOL
 
-    # Sumber file .env
+    # Source the .env file
     source "$SCRIPT_DIR/token_deployment/.env"
 
-    # Perbarui foundry.toml dengan RPC URL yang diberikan
+    # Update foundry.toml with the provided RPC URL
     cat <<EOL > "$SCRIPT_DIR/foundry.toml"
 [profile.default]
 src = "src"
@@ -122,18 +96,18 @@ libs = ["lib"]
 rpc_url = "$RPC_URL"
 EOL
 
-    echo -e "${MAROON}File telah diperbarui dengan data yang diberikan.${RESET}"
+    echo -e "${MAROON}Updated files with your given data.${RESET}"
 }
 
 deploy_contract() {
     echo -e "${LIGHT_BLUE}-----------------------------------${RESET}"
-    # Sumber file .env lagi untuk mendapatkan variabel lingkungan terbaru
+    # Source the .env file again for the latest environment variables
     source "$SCRIPT_DIR/token_deployment/.env"
 
-    # Buat direktori sumber kontrak jika belum ada
+    # Create the contract source directory if it doesn't exist
     mkdir -p "$SCRIPT_DIR/src"
 
-    # Tulis kode kontrak ke file
+    # Write the contract code to a file
     cat <<EOL > "$SCRIPT_DIR/src/AirdropNode.sol"
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
@@ -142,40 +116,40 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 contract AirdropNode is ERC20 {
     constructor() ERC20("$TOKEN_NAME", "$TOKEN_SYMBOL") {
-        _mint(msg.sender, 1000 * (10 ** decimals()));  # Pasokan default 1000 token
+        _mint(msg.sender, 1000 * (10 ** decimals())); // Default supply of 1000 tokens
     }
 }
 EOL
 
-    # Kompilasi kontrak
-    echo -e "${CYAN}Mengekompilasi kontrak...${RESET}"
+    # Compile the contract
+    echo -e "${CYAN}Compiling contract...${RESET}"
     forge build
 
     if [[ $? -ne 0 ]]; then
-        echo -e "${RED}Kompilasi kontrak gagal.${RESET}"
+        echo -e "${RED}Contract compilation failed.${RESET}"
         exit 1
     fi
 
-    # Terapkan kontrak berdasarkan jumlah kontrak
+    # Deploy the contract based on the number of contracts
     for i in $(seq 1 "$NUM_CONTRACTS"); do
-        echo -e "${LIGHT_BLUE}Menerapkan kontrak $i dari $NUM_CONTRACTS...${RESET}"
+        echo -e "${LIGHT_BLUE}Deploying contract $i of $NUM_CONTRACTS...${RESET}"
 
         DEPLOY_OUTPUT=$(forge create "$SCRIPT_DIR/src/AirdropNode.sol:AirdropNode" \
             --rpc-url "$RPC_URL" \
             --private-key "$PRIVATE_KEY")
 
         if [[ $? -ne 0 ]]; then
-            echo -e "${RED}Penerapan kontrak $i gagal.${RESET}"
+            echo -e "${RED}Deployment of contract $i failed.${RESET}"
             continue
         fi
 
-        # Ekstrak dan tampilkan alamat kontrak yang diterapkan
+        # Extract and display the deployed contract address
         CONTRACT_ADDRESS=$(echo "$DEPLOY_OUTPUT" | grep -oP 'Deployed to: \K(0x[a-fA-F0-9]{40})')
-        echo -e "${MAROON}Kontrak $i diterapkan dengan sukses di alamat: $CONTRACT_ADDRESS${RESET}"
+        echo -e "${MAROON}Contract $i deployed successfully at address: $CONTRACT_ADDRESS${RESET}"
 
-        # Hasilkan dan tampilkan URL BaseScan untuk kontrak
+        # Generate and display the BaseScan URL for the contract
         BASESCAN_URL="https://basescan.org/address/$CONTRACT_ADDRESS"
-        echo -e "${CYAN}Anda dapat melihat kontrak Anda di: $BASESCAN_URL${RESET}"
+        echo -e "${CYAN}You can view your contract at: $BASESCAN_URL${RESET}"
     done
 }
 
@@ -184,6 +158,6 @@ install_dependencies
 input_required_details
 deploy_contract
 
-# Undangan untuk bergabung dengan channel Telegram
+# Invite to join Telegram channel
 echo -e "${YELLOW}-----------------------------------${RESET}"
-echo -e "${MAGENTA}Bergabunglah dengan channel Telegram kami untuk pembaruan dan dukungan: https://t.me/airdrop_node${RESET}"
+echo -e "${MAGENTA}Join our Telegram channel for updates and support: https://t.me/airdrop_node${RESET}"
