@@ -11,12 +11,12 @@ LIGHT_BLUE="\e[94m"        # Light blue for deployment steps
 RED="\e[91m"               # Red for errors
 MAGENTA="\e[35m"           # Magenta for special notes
 
-# Slow-motion echo for loading effect
+# Slow-motion echo for loading effect (with a faster speed)
 slow_echo() {
     local message="$1"
     for (( i=0; i<${#message}; i++ )); do
         echo -n "${message:$i:1}"
-        sleep 0.05  # Adjust this value for slower or faster effect
+        sleep 0.02  # Faster effect: Reduced sleep time
     done
     echo ""
 }
@@ -27,7 +27,7 @@ display_logo() {
     curl -s "$logo_url" | while IFS= read -r line; do
         slow_echo "$line"
     done
-    sleep 1  # Small delay after logo display
+    sleep 0.5  # Small delay after logo display
 }
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
