@@ -59,7 +59,10 @@ import_wallet() {
     KEYPAIR_FILE="$HOME/solana_keypairs/keypair.json"
     echo "[\"$PRIVATE_KEY\"]" > "$KEYPAIR_FILE"
 
+    # Ensure the Solana config uses the correct keypair
     solana config set --keypair "$KEYPAIR_FILE"
+    solana config get
+
     show "Wallet imported successfully using the provided private key!"
 }
 
@@ -72,11 +75,13 @@ setup_network() {
 create_spl_and_operations() {
     show "Creating SPL token..."
 
+    # Ensure Solana configuration is loaded correctly
     if ! solana config get | grep -q "Keypair Path:"; then
         show "Error: No keypair is set in Solana config. Exiting."
         exit 1
     fi
 
+    # Create SPL token with default signer
     spl-token create-token --enable-metadata -p TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb
     if [[ $? -ne 0 ]]; then
         show "Failed to create SPL token. Exiting."
