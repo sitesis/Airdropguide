@@ -1,5 +1,6 @@
 #!/bin/bash
-
+curl -s https://raw.githubusercontent.com/choir94/Airdropguide/refs/heads/main/logo.sh | bash
+sleep 5
 # ================================
 # Celestia Light Node Installer
 # Screen Name: airdropnode_tia
@@ -181,26 +182,30 @@ start_celestia_node() {
         -v $HOME/airdropnode_tia:/home/celestia \
         ghcr.io/celestiaorg/celestia-node:$VERSION \
         celestia light start --core.ip $RPC_URL --p2p.network $NETWORK"
-    echo -e "${LIGHT_GREEN}Node started! Use '${WHITE}screen -r airdropnode_tia${LIGHT_GREEN}' to attach to the node logs.${NC}"
-}
-
-join_airdrop_node_channel() {
-    echo -e "\n${LIGHT_CYAN}Please join the Airdrop Node channel for updates and support:${NC}"
-    echo -e "${LIGHT_GREEN}https://t.me/airdrop_node${NC}"
+    echo -e "${LIGHT_GREEN}Node Started!${NC}"
+    echo -e "${LIGHT_GREEN}To view logs, use: screen -r airdropnode_tia${NC}"
 }
 
 # ================================
-# Instalasi dan Setup Proses
+# Gabung ke Saluran Airdrop Node Telegram
 # ================================
 
-check_existing_installation
+join_telegram_channel() {
+    echo -e "\n${BLUE}Join the Airdrop Node Telegram channel for updates and support!${NC}"
+    echo -e "${LIGHT_CYAN}Visit: ${WHITE}https://t.me/airdrop_node${NC}"
+}
+
+# ================================
+# Main Program
+# ================================
+
+rotate_log_file
 install_dependencies
 install_docker
 install_nodejs
 install_docker_compose
+check_existing_installation
 setup_celestia_node
 start_celestia_node
-join_airdrop_node_channel
-log_message "Celestia Node installation and setup completed."
-
+join_telegram_channel
 cleanup
