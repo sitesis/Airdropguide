@@ -3,19 +3,14 @@
 # Define colors and styles
 RED="\033[31m"
 YELLOW="\033[33m"
-WHITE="\033[37m"
+GREEN="\033[32m"
 NORMAL="\033[0m"
 BOLD="\033[1m"
+ITALIC="\033[3m"
 
 # Logfile
 LOGFILE="$HOME/celestia-node.log"
 MAX_LOG_SIZE=52428800  # 50MB
-
-# Display logo
-display_logo() {
-    curl -s https://raw.githubusercontent.com/choir94/Airdropguide/refs/heads/main/logo.sh | bash
-    sleep 5
-}
 
 log_message() {
     echo "$(date +'%Y-%m-%d %H:%M:%S') - $1" >> "$LOGFILE"
@@ -30,75 +25,174 @@ rotate_log_file() {
     fi
 }
 
-# Ensure screen is installed
-ensure_screen_installed() {
-    if ! command -v screen &>/dev/null; then
-        echo -e "${YELLOW}Installing screen...${NORMAL}"
-        sudo apt update && sudo apt install screen -y
-    fi
+# Cleanup
+cleanup() {
+    log_message "Cleaning up temporary files and removing script..."
+    rm -f "$0"  # Remove the script itself
+    log_message "Cleanup completed."
 }
 
-# Start or attach to a screen session
-start_or_attach_screen() {
-    SCREEN_SESSION_NAME="lightnode-celestia"
+# Github Version API
+VERSION=$(curl -s "https://api.github.com/repos/celestiaorg/celestia-node/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
 
-    # Check if inside a screen session
-    if [ "$STY" ]; then
-        echo -e "${YELLOW}Running inside screen session: $SCREEN_SESSION_NAME${NORMAL}"
-    else
-        # Check if the screen session already exists
-        if screen -list | grep -q "$SCREEN_SESSION_NAME"; then
-            echo -e "${YELLOW}Attaching to existing screen session: $SCREEN_SESSION_NAME${NORMAL}"
-            screen -r "$SCREEN_SESSION_NAME"
-        else
-            echo -e "${YELLOW}Starting a new screen session: $SCREEN_SESSION_NAME${NORMAL}"
-            screen -S "$SCREEN_SESSION_NAME" -dm bash -c "$0 internal-run"
-            screen -r "$SCREEN_SESSION_NAME"
-        fi
+# Check if VERSION is empty
+if [ -z "$VERSION" ]; then
+    echo "Failed to fetch the latest version. Exiting."
+    log_message "Failed to fetch the latest version."
+    cleanup
+    exit 1
+fi
+
+log_message "Fetched latest version: $VERSION"
+
+# Check if Light Node is already installed
+check_existing_installation() {
+    if [ -d "$HOME/my-node-store" ] || [ ! -z "$(sudo docker ps -q --filter ancestor=ghcr.io/celestiaorg/celestia-node:$VERSION)" ]; then
+        echo -e "${GREEN}Celestia Light Node is already installed. Aborting installation.${NORMAL}"
+        log_message "Celestia Light Node is already installed. Installation aborted."
+        cleanup
         exit 0
     fi
 }
 
-# Main installation logic
-main_installation() {
-    # Display logo inside screen
-    display_logo
-
-    echo -e "\n${YELLOW}Creating a new wallet...${NORMAL}\n"
-    OUTPUT=$(sudo docker run -e NODE_TYPE=light -e P2P_NETWORK=celestia \
-        -v $HOME/my-node-store:/home/celestia \
-        ghcr.io/celestiaorg/celestia-node:latest \
-        celestia light init --p2p.network celestia)
-
-    echo -e "${RED}Please save your wallet information and mnemonics securely.${NORMAL}\n"
-    echo -e "${BOLD}${WHITE}NAME and ADDRESS:${NORMAL}"
-    echo -e "${WHITE}$(echo "$OUTPUT" | grep -E 'NAME|ADDRESS')${NORMAL}\n"
-    echo -e "${BOLD}${RED}MNEMONIC (save this somewhere safe!!!):${NORMAL}"
-    echo -e "${WHITE}$(echo "$OUTPUT" | sed -n '/MNEMONIC (save this somewhere safe!!!):/,$p' | tail -n +2)${NORMAL}\n"
-
-    log_message "New wallet created."
-
-    # Pause to allow user to save information
-    echo -e "\n${YELLOW}Press Enter to continue after saving the information...${NORMAL}"
-    read -r
-
-    log_message "Proceeding with Celestia node setup..."
-    echo -e "${YELLOW}Starting the Celestia node...${NORMAL}"
-
-    sudo docker run -d --name lightnode-celestia -e NODE_TYPE=light -e P2P_NETWORK=celestia \
-        -v $HOME/my-node-store:/home/celestia \
-        ghcr.io/celestiaorg/celestia-node:latest \
-        celestia light start --p2p.network celestia
-
-    echo -e "${YELLOW}Celestia node is now running.${NORMAL}"
-    echo -e "${WHITE}You can check the logs with:${NORMAL} ${BOLD}docker logs -f lightnode-celestia${NORMAL}"
+# Install dependencies
+install_dependencies() {
+    log_message "Installing system updates and dependencies..."
+    echo -e "${YELLOW}Installing System Updates and Dependencies...${NORMAL} (This may take a few minutes)"
+    sudo apt update -y >/dev/null 2>&1 && sudo apt upgrade -y >/dev/null 2>&1
+    sudo apt-get install -y curl tar wget aria2 clang pkg-config libssl-dev jq build-essential git make ncdu screen >/dev/null 2>&1
+    echo -e "${GREEN}System Updates and Dependencies installed successfully.${NORMAL}"
+    log_message "System updates and dependencies installed successfully."
 }
 
-# Entry point
-if [ "$1" == "internal-run" ]; then
-    main_installation
-else
-    display_logo
-    ensure_screen_installed
-    start_or_attach_screen
+# Install Docker
+install_docker() {
+    log_message "Checking for Docker installation..."
+    if ! command -v docker &> /dev/null; then
+        echo -e "${YELLOW}Installing Docker...${NORMAL}"
+        curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+        echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+        sudo apt-get update >/dev/null 2>&1
+        sudo apt-get install -y docker-ce docker-ce-cli containerd.io >/dev/null 2>&1
+        sudo docker run hello-world >/dev/null 2>&1
+        echo -e "${GREEN}Docker installed successfully.${NORMAL}"
+        log_message "Docker installed successfully."
+    else
+        echo -e "${GREEN}Docker is already installed.${NORMAL}"
+        log_message "Docker is already installed."
+    fi
+}
+
+# Install Node.js
+install_nodejs() {
+    log_message "Checking for Node.js installation..."
+    if ! command -v node &> /dev/null; then
+        echo -e "${YELLOW}Installing Node.js...${NORMAL}"
+        curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+        sudo apt-get install -y nodejs >/dev/null 2>&1
+        echo -e "${GREEN}Node.js installed successfully.${NORMAL}"
+        log_message "Node.js installed successfully."
+    else
+        echo -e "${GREEN}Node.js is already installed.${NORMAL}"
+        log_message "Node.js is already installed."
+    fi
+}
+
+# Install Docker Compose
+install_docker_compose() {
+    log_message "Checking for Docker Compose installation..."
+    if ! command -v docker-compose &> /dev/null; then
+        echo -e "${YELLOW}Installing Docker Compose...${NORMAL}"
+        curl -L "https://github.com/docker/compose/releases/download/$(curl -s https://api.github.com/repos/docker/compose/releases/latest | jq -r .tag_name)/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+        sudo chmod +x /usr/local/bin/docker-compose
+        echo -e "${GREEN}Docker Compose installed successfully.${NORMAL}"
+        log_message "Docker Compose installed successfully."
+    else
+        echo -e "${GREEN}Docker Compose is already installed.${NORMAL}"
+        log_message "Docker Compose is already installed."
+    fi
+}
+
+# Setting up Celestia Light Node
+log_message "Setting up Celestia Light Node..."
+if [ "$lang" == "EN" ];then
+    echo -e "${YELLOW}Setting up Celestia Light Node...${NORMAL}"
 fi
+export NETWORK=celestia
+export NODE_TYPE=light
+export RPC_URL=http://public-celestia-consensus.numia.xyz
+
+cd $HOME
+mkdir -p my-node-store
+sudo chown 10001:10001 $HOME/my-node-store
+
+if [ "$lang" == "EN" ];then
+    echo -e "${YELLOW}Initializing Celestia Light Node...${NORMAL}"
+fi
+OUTPUT=$(sudo docker run -e NODE_TYPE=$NODE_TYPE -e P2P_NETWORK=$NETWORK \
+    -v $HOME/my-node-store:/home/celestia \
+    ghcr.io/celestiaorg/celestia-node:$VERSION \
+    celestia light init --p2p.network $NETWORK)
+
+if [ "$lang" == "EN" ];then
+    echo -e "${RED}Please save your wallet information and mnemonics securely.${NORMAL}"
+    echo -e "${RED}NAME and ADDRESS:${NORMAL}"
+    echo -e "${NORMAL}$(echo "$OUTPUT" | grep -E 'NAME|ADDRESS')${NORMAL}"
+    echo -e "${RED}MNEMONIC (save this somewhere safe!!!):${NORMAL}"
+    echo -e "${NORMAL}$(echo "$OUTPUT" | sed -n '/MNEMONIC (save this somewhere safe!!!):/,$p' | tail -n +2)${NORMAL}"
+    echo -e "${RED}This information will not be saved automatically. Make sure to record it manually.${NORMAL}"
+fi
+
+log_message "Celestia Light Node initialized."
+
+while true; do
+    if [ "$lang" == "EN" ];then
+        read -p "Did you save your wallet information and mnemonics? (yes/no): " yn
+    fi
+    case $yn in
+        [Yy]* | [Ee]*)
+            log_message "User confirmed that wallet information and mnemonics were saved."
+            break
+            ;;
+        [Nn]*)
+            if [ "$lang" == "EN" ];then
+                echo -e "${RED}Please save your wallet information and mnemonics before continuing.${NORMAL}"
+            fi
+            ;;
+        *)
+            if [ "$lang" == "EN" ];then
+                echo "Please answer yes or no."
+            fi
+            ;;
+    esac
+done
+start_celestia_node() {
+    log_message "Starting Celestia Light Node..."
+    if [ "$lang" == "EN" ]; then
+        echo -e "${YELLOW}Starting Celestia Light Node...${NORMAL}"
+    fi
+
+    # Start Celestia Node using Docker with necessary environment variables
+    screen -S celestia-node -dm bash -c "sudo docker run -e NODE_TYPE=$NODE_TYPE -e P2P_NETWORK=$NETWORK \
+        -v $HOME/my-node-store:/home/celestia \
+        ghcr.io/celestiaorg/celestia-node:$VERSION \
+        celestia light start --core.ip $RPC_URL --p2p.network $NETWORK"
+
+    # User feedback
+    if [ "$lang" == "EN" ]; then
+        echo -e "${GREEN}Celestia Light Node started successfully.${NORMAL}"
+        echo -e "${YELLOW}To view the logs, use: screen -r celestia-node${NORMAL}"
+        echo -e "${YELLOW}To detach from screen, press Ctrl+A, then D.${NORMAL}"
+    fi
+
+    log_message "Celestia Light Node started successfully."
+}
+
+
+
+# Execute installation functions
+install_dependencies
+install_docker
+install_nodejs
+install_docker_compose
+check_existing_installation
