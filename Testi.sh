@@ -1,6 +1,15 @@
 #!/bin/bash
 
 # ================================
+# Color Definitions
+# ================================
+BLUE='\033[1;34m'
+RED='\033[1;31m'
+LIGHT_GREEN='\033[1;32m'
+LIGHT_YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
+# ================================
 # Fungsi untuk log pesan
 # ================================
 log_message() {
@@ -47,6 +56,11 @@ install_docker() {
         echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
         sudo apt-get update >/dev/null 2>&1
         sudo apt-get install -y docker-ce docker-ce-cli containerd.io >/dev/null 2>&1
+
+        # Add user to docker group
+        sudo usermod -aG docker $USER
+        newgrp docker
+
         echo -e "${LIGHT_GREEN}Docker installed successfully.${NC}"
         log_message "Docker installed."
     else
@@ -63,6 +77,32 @@ get_email_password() {
     read -r EMAIL
     echo -e "${BLUE}Please enter your Blockless password: ${NC}"
     read -r -s PASSWORD  # -s flag to hide input
+}
+
+# ================================
+# Mengunduh dan Mengekstrak Blockless CLI
+# ================================
+download_and_extract_blockless_cli() {
+    echo -e "\n${BLUE}Downloading Blockless CLI...${NC}"
+
+    # Download Blockless CLI tarball
+    curl -L https://github.com/blocklessnetwork/cli/releases/download/v0.3.0/bls-linux-x64-blockless-cli.tar.gz -o bls-linux-x64-blockless-cli.tar.gz
+    if [ $? -ne 0 ]; then
+        echo -e "${RED}Failed to download Blockless CLI.${NC}"
+        log_message "Failed to download Blockless CLI."
+        exit 1
+    fi
+
+    # Extract the downloaded tarball
+    tar -xvzf bls-linux-x64-blockless-cli.tar.gz
+    if [ $? -ne 0 ]; then
+        echo -e "${RED}Failed to extract Blockless CLI.${NC}"
+        log_message "Failed to extract Blockless CLI."
+        exit 1
+    fi
+
+    echo -e "${LIGHT_GREEN}Blockless CLI downloaded and extracted successfully.${NC}"
+    log_message "Blockless CLI downloaded and extracted."
 }
 
 # ================================
@@ -94,6 +134,7 @@ run_blockless_cli_in_docker() {
 check_system_architecture
 install_dependencies
 install_docker
+download_and_extract_blockless_cli
 get_email_password
 run_blockless_cli_in_docker
 
