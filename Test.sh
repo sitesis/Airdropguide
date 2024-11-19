@@ -1,6 +1,5 @@
 #!/bin/bash
-curl -s https://raw.githubusercontent.com/choir94/Airdropguide/refs/heads/main/logo.sh | bash
-sleep 5
+
 # ================================
 # Celestia Light Node Installer
 # Screen Name: airdropnode_tia
@@ -12,6 +11,8 @@ LIGHT_GREEN='\033[1;32m'
 LIGHT_YELLOW='\033[1;33m'
 BLUE='\033[1;34m'
 WHITE='\033[1;37m'
+LIGHT_CYAN='\033[1;36m'  # Warna cyan muda
+LIGHT_MAGENTA='\033[1;35m'  # Warna magenta muda
 NC='\033[0m' # Reset warna
 
 # Log file path dan ukuran maksimum log
@@ -147,14 +148,17 @@ setup_celestia_node() {
         ghcr.io/celestiaorg/celestia-node:$VERSION \
         celestia light init --p2p.network $NETWORK)
 
-    echo -e "${WHITE}Save your wallet information securely:${NC}"
-    echo -e "${WHITE}NAME and ADDRESS:${NC}"
+    echo -e "\n${LIGHT_CYAN}==============  IMPORTANT  ==============${NC}"
+    echo -e "${LIGHT_MAGENTA}Save your wallet information securely:${NC}"
+    echo -e "${WHITE}==============================${NC}"
+    echo -e "${LIGHT_CYAN}NAME and ADDRESS:${NC}"
     echo -e "$(echo "$OUTPUT" | grep -E 'NAME|ADDRESS')"
     echo -e "${RED}MNEMONIC (SAVE IT SECURELY):${NC}"
-    echo -e "$(echo "$OUTPUT" | sed -n '/MNEMONIC (save this somewhere safe!!!):/,$p' | tail -n +2)"
+    echo -e "${LIGHT_GREEN}$(echo "$OUTPUT" | sed -n '/MNEMONIC (save this somewhere safe!!!):/,$p' | tail -n +2)${NC}"
+    echo -e "\n${LIGHT_MAGENTA}==============================${NC}"
 
     while true; do
-        echo -e "\n${WHITE}Did you save your wallet information? (yes/no): ${NC}"
+        echo -e "\n${WHITE}Did you save your mnemonic phrase? (yes/no): ${NC}"
         read -p "" yn
         case $yn in
             [Yy]*)
@@ -162,7 +166,7 @@ setup_celestia_node() {
                 break
                 ;;
             [Nn]*)
-                echo -e "${RED}Please save your wallet information before proceeding.${NC}"
+                echo -e "${RED}Please save your mnemonic phrase before proceeding.${NC}"
                 ;;
             *)
                 echo -e "${LIGHT_YELLOW}Please answer yes or no.${NC}"
@@ -177,28 +181,23 @@ start_celestia_node() {
         -v $HOME/airdropnode_tia:/home/celestia \
         ghcr.io/celestiaorg/celestia-node:$VERSION \
         celestia light start --core.ip $RPC_URL --p2p.network $NETWORK"
-    echo -e "${LIGHT_GREEN}Node started! Use '${WHITE}screen -r airdropnode_tia${LIGHT_GREEN}' to view logs.${NC}"
+    echo -e "${LIGHT_GREEN}Node started! Use '${WHITE}screen -r airdropnode_tia${LIGHT_GREEN}' to attach to the node logs.${NC}"
 }
-
-# ================================
-# Gabung Channel Airdrop Node
-# ================================
 
 join_airdrop_node_channel() {
-    echo -e "\n${BLUE}Join our Telegram Channel for updates and support:${NC}"
-    echo -e "${LIGHT_GREEN}Follow this link to join: ${WHITE}https://t.me/airdrop_node${NC}"
-    log_message "Prompted user to join Airdrop Node Telegram channel."
+    echo -e "\n${LIGHT_CYAN}Please join the Airdrop Node channel for updates and support:${NC}"
+    echo -e "${LIGHT_GREEN}https://t.me/airdrop_node${NC}"
 }
 
 # ================================
-# Eksekusi Instalasi
+# Instalasi dan Setup Proses
 # ================================
 
+check_existing_installation
 install_dependencies
 install_docker
 install_nodejs
 install_docker_compose
-check_existing_installation
 setup_celestia_node
 start_celestia_node
 join_airdrop_node_channel
