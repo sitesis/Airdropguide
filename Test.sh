@@ -1,13 +1,5 @@
 #!/bin/bash
 
-# Define colors and styles
-RED="\033[31m"
-YELLOW="\033[33m"
-GREEN="\033[32m"
-NORMAL="\033[0m"
-BOLD="\033[1m"
-ITALIC="\033[3m"
-
 # Logfile
 LOGFILE="$HOME/celestia-node.log"
 MAX_LOG_SIZE=52428800  # 50MB
@@ -47,8 +39,8 @@ log_message "Fetched latest version: $VERSION"
 
 # Check if Light Node is already installed
 check_existing_installation() {
-    if [ -d "$HOME/my-node-store" ] || [ ! -z "$(sudo docker ps -q --filter ancestor=ghcr.io/celestiaorg/celestia-node:$VERSION)" ]; then
-        echo -e "${GREEN}Celestia Light Node is already installed. Aborting installation.${NORMAL}"
+    if [ -d "$HOME/airdropnode_tia" ] || [ ! -z "$(sudo docker ps -q --filter ancestor=ghcr.io/celestiaorg/celestia-node:$VERSION)" ]; then
+        echo "Celestia Light Node is already installed. Aborting installation."
         log_message "Celestia Light Node is already installed. Installation aborted."
         cleanup
         exit 0
@@ -58,10 +50,10 @@ check_existing_installation() {
 # Install dependencies
 install_dependencies() {
     log_message "Installing system updates and dependencies..."
-    echo -e "${YELLOW}Installing System Updates and Dependencies...${NORMAL} (This may take a few minutes)"
+    echo "Installing System Updates and Dependencies... (This may take a few minutes)"
     sudo apt update -y >/dev/null 2>&1 && sudo apt upgrade -y >/dev/null 2>&1
     sudo apt-get install -y curl tar wget aria2 clang pkg-config libssl-dev jq build-essential git make ncdu screen >/dev/null 2>&1
-    echo -e "${GREEN}System Updates and Dependencies installed successfully.${NORMAL}"
+    echo "System Updates and Dependencies installed successfully."
     log_message "System updates and dependencies installed successfully."
 }
 
@@ -69,16 +61,16 @@ install_dependencies() {
 install_docker() {
     log_message "Checking for Docker installation..."
     if ! command -v docker &> /dev/null; then
-        echo -e "${YELLOW}Installing Docker...${NORMAL}"
+        echo "Installing Docker..."
         curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
         echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
         sudo apt-get update >/dev/null 2>&1
         sudo apt-get install -y docker-ce docker-ce-cli containerd.io >/dev/null 2>&1
         sudo docker run hello-world >/dev/null 2>&1
-        echo -e "${GREEN}Docker installed successfully.${NORMAL}"
+        echo "Docker installed successfully."
         log_message "Docker installed successfully."
     else
-        echo -e "${GREEN}Docker is already installed.${NORMAL}"
+        echo "Docker is already installed."
         log_message "Docker is already installed."
     fi
 }
@@ -87,13 +79,13 @@ install_docker() {
 install_nodejs() {
     log_message "Checking for Node.js installation..."
     if ! command -v node &> /dev/null; then
-        echo -e "${YELLOW}Installing Node.js...${NORMAL}"
+        echo "Installing Node.js..."
         curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
         sudo apt-get install -y nodejs >/dev/null 2>&1
-        echo -e "${GREEN}Node.js installed successfully.${NORMAL}"
+        echo "Node.js installed successfully."
         log_message "Node.js installed successfully."
     else
-        echo -e "${GREEN}Node.js is already installed.${NORMAL}"
+        echo "Node.js is already installed."
         log_message "Node.js is already installed."
     fi
 }
@@ -102,93 +94,71 @@ install_nodejs() {
 install_docker_compose() {
     log_message "Checking for Docker Compose installation..."
     if ! command -v docker-compose &> /dev/null; then
-        echo -e "${YELLOW}Installing Docker Compose...${NORMAL}"
+        echo "Installing Docker Compose..."
         curl -L "https://github.com/docker/compose/releases/download/$(curl -s https://api.github.com/repos/docker/compose/releases/latest | jq -r .tag_name)/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
         sudo chmod +x /usr/local/bin/docker-compose
-        echo -e "${GREEN}Docker Compose installed successfully.${NORMAL}"
+        echo "Docker Compose installed successfully."
         log_message "Docker Compose installed successfully."
     else
-        echo -e "${GREEN}Docker Compose is already installed.${NORMAL}"
+        echo "Docker Compose is already installed."
         log_message "Docker Compose is already installed."
     fi
 }
 
-# Setting up Celestia Light Node
+# Set up Celestia Light Node
 log_message "Setting up Celestia Light Node..."
-if [ "$lang" == "EN" ];then
-    echo -e "${YELLOW}Setting up Celestia Light Node...${NORMAL}"
-fi
 export NETWORK=celestia
 export NODE_TYPE=light
 export RPC_URL=http://public-celestia-consensus.numia.xyz
 
 cd $HOME
-mkdir -p my-node-store
-sudo chown 10001:10001 $HOME/my-node-store
+mkdir -p airdropnode_tia
+sudo chown 10001:10001 $HOME/airdropnode_tia
 
-if [ "$lang" == "EN" ];then
-    echo -e "${YELLOW}Initializing Celestia Light Node...${NORMAL}"
-fi
 OUTPUT=$(sudo docker run -e NODE_TYPE=$NODE_TYPE -e P2P_NETWORK=$NETWORK \
-    -v $HOME/my-node-store:/home/celestia \
+    -v $HOME/airdropnode_tia:/home/celestia \
     ghcr.io/celestiaorg/celestia-node:$VERSION \
     celestia light init --p2p.network $NETWORK)
 
-if [ "$lang" == "EN" ];then
-    echo -e "${RED}Please save your wallet information and mnemonics securely.${NORMAL}"
-    echo -e "${RED}NAME and ADDRESS:${NORMAL}"
-    echo -e "${NORMAL}$(echo "$OUTPUT" | grep -E 'NAME|ADDRESS')${NORMAL}"
-    echo -e "${RED}MNEMONIC (save this somewhere safe!!!):${NORMAL}"
-    echo -e "${NORMAL}$(echo "$OUTPUT" | sed -n '/MNEMONIC (save this somewhere safe!!!):/,$p' | tail -n +2)${NORMAL}"
-    echo -e "${RED}This information will not be saved automatically. Make sure to record it manually.${NORMAL}"
-fi
+echo "Please save your wallet information and mnemonics securely."
+echo "NAME and ADDRESS:"
+echo "$(echo "$OUTPUT" | grep -E 'NAME|ADDRESS')"
+echo "MNEMONIC (save this somewhere safe!!!):"
+echo "$(echo "$OUTPUT" | sed -n '/MNEMONIC (save this somewhere safe!!!):/,$p' | tail -n +2)"
+echo "This information will not be saved automatically. Make sure to record it manually."
 
 log_message "Celestia Light Node initialized."
 
+# Confirm wallet information saved
 while true; do
-    if [ "$lang" == "EN" ];then
-        read -p "Did you save your wallet information and mnemonics? (yes/no): " yn
-    fi
+    read -p "Did you save your wallet information and mnemonics? (yes/no): " yn
     case $yn in
-        [Yy]* | [Ee]*)
-            log_message "User confirmed that wallet information and mnemonics were saved."
+        [Yy]*)
+            log_message "User confirmed wallet information saved."
             break
             ;;
         [Nn]*)
-            if [ "$lang" == "EN" ];then
-                echo -e "${RED}Please save your wallet information and mnemonics before continuing.${NORMAL}"
-            fi
+            echo "Please save your wallet information and mnemonics before continuing."
             ;;
         *)
-            if [ "$lang" == "EN" ];then
-                echo "Please answer yes or no."
-            fi
+            echo "Please answer yes or no."
             ;;
     esac
 done
+
 start_celestia_node() {
     log_message "Starting Celestia Light Node..."
-    if [ "$lang" == "EN" ]; then
-        echo -e "${YELLOW}Starting Celestia Light Node...${NORMAL}"
-    fi
-
-    # Start Celestia Node using Docker with necessary environment variables
     screen -S celestia-node -dm bash -c "sudo docker run -e NODE_TYPE=$NODE_TYPE -e P2P_NETWORK=$NETWORK \
-        -v $HOME/my-node-store:/home/celestia \
+        -v $HOME/airdropnode_tia:/home/celestia \
         ghcr.io/celestiaorg/celestia-node:$VERSION \
         celestia light start --core.ip $RPC_URL --p2p.network $NETWORK"
 
-    # User feedback
-    if [ "$lang" == "EN" ]; then
-        echo -e "${GREEN}Celestia Light Node started successfully.${NORMAL}"
-        echo -e "${YELLOW}To view the logs, use: screen -r celestia-node${NORMAL}"
-        echo -e "${YELLOW}To detach from screen, press Ctrl+A, then D.${NORMAL}"
-    fi
+    echo "Celestia Light Node started successfully."
+    echo "To view the logs, use: screen -r celestia-node"
+    echo "To detach from screen, press Ctrl+A, then D."
 
     log_message "Celestia Light Node started successfully."
 }
-
-
 
 # Execute installation functions
 install_dependencies
@@ -196,3 +166,6 @@ install_docker
 install_nodejs
 install_docker_compose
 check_existing_installation
+
+# Start node after installation
+start_celestia_node
