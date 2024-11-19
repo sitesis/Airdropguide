@@ -1,108 +1,104 @@
 #!/bin/bash
 
-# Warna
-MERAH="\033[1;31m"
-HIJAU="\033[1;32m"
-KUNING="\033[1;33m"
-BIRU="\033[1;34m"
-NOL="\033[0m" # Reset warna
+# Define colors and styles
+RED="\033[31m"
+YELLOW="\033[33m"
+WHITE="\033[37m"
+NORMAL="\033[0m"
+BOLD="\033[1m"
 
-# Skrip instalasi logo
-echo -e "${HIJAU}Menampilkan logo...${NOL}"
-curl -s https://raw.githubusercontent.com/choir94/Airdropguide/refs/heads/main/logo.sh | bash
-sleep 5
+# Logfile
+LOGFILE="$HOME/celestia-node.log"
+MAX_LOG_SIZE=52428800  # 50MB
 
-# Memperbarui sistem
-echo -e "${HIJAU}Memperbarui sistem...${NOL}"
-sudo apt update && sudo apt upgrade -y || { echo -e "${MERAH}Gagal memperbarui sistem${NOL}"; exit 1; }
+# Display logo
+display_logo() {
+    curl -s https://raw.githubusercontent.com/choir94/Airdropguide/refs/heads/main/logo.sh | bash
+    sleep 5
+}
 
-# Menghapus file lama
-echo -e "${KUNING}Menghapus file yang lama...${NOL}"
-rm -rf bls-linux-x64-blockless-cli.tar.gz target
+log_message() {
+    echo "$(date +'%Y-%m-%d %H:%M:%S') - $1" >> "$LOGFILE"
+}
 
-# Memeriksa dan menginstal Docker jika belum terpasang
-if ! command -v docker &> /dev/null; then
-    echo -e "${BIRU}Menginstal Docker...${NOL}"
-    sudo apt-get install -y \
-        ca-certificates \
-        curl \
-        gnupg \
-        lsb-release || { echo -e "${MERAH}Gagal menginstal prasyarat Docker${NOL}"; exit 1; }
-    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
-    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-    sudo apt-get update && sudo apt-get install -y docker-ce docker-ce-cli containerd.io || { echo -e "${MERAH}Gagal menginstal Docker${NOL}"; exit 1; }
-else
-    echo -e "${HIJAU}Docker sudah terpasang, melewati...${NOL}"
-fi
-
-# Memeriksa dan menginstal Docker Compose jika belum terpasang
-if ! command -v docker-compose &> /dev/null; then
-    echo -e "${BIRU}Menginstal Docker Compose...${NOL}"
-    curl -L "https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose.tmp
-    if [[ -f /usr/local/bin/docker-compose ]]; then
-        sudo rm /usr/local/bin/docker-compose
+# Rotate log file if it exceeds 50MB
+rotate_log_file() {
+    if [ -f "$LOGFILE" ] && [ $(stat -c%s "$LOGFILE") -ge $MAX_LOG_SIZE ]; then
+        mv "$LOGFILE" "$LOGFILE.bak"
+        touch "$LOGFILE"
+        log_message "Log file rotated. Previous log archived as $LOGFILE.bak"
     fi
-    sudo mv /usr/local/bin/docker-compose.tmp /usr/local/bin/docker-compose
-    sudo chmod +x /usr/local/bin/docker-compose
-else
-    echo -e "${HIJAU}Docker Compose sudah terpasang, melewati...${NOL}"
-fi
+}
 
-# Membuat direktori target/release
-echo -e "${KUNING}Membuat direktori target/release...${NOL}"
-mkdir -p target/release
-
-# Mengunduh dan mengekstrak Blockless CLI
-echo -e "${BIRU}Mengunduh dan mengekstrak Blockless CLI...${NOL}"
-# Menggunakan API GitHub untuk mendapatkan URL unduhan file terbaru
-curl -s https://api.github.com/repos/blocklessnetwork/cli/releases/latest \
-| grep -oP '"browser_download_url": "\K(.*bls-linux-x64-blockless-cli.tar.gz)' \
-| xargs curl -L -o target/release/bls-linux-x64-blockless-cli.tar.gz
-
-if [ -f target/release/bls-linux-x64-blockless-cli.tar.gz ]; then
-    echo -e "${HIJAU}Mengekstrak bls-linux-x64-blockless-cli.tar.gz ke target/release...${NOL}"
-    tar -xzf target/release/bls-linux-x64-blockless-cli.tar.gz --strip-components=3 -C target/release
-else
-    echo -e "${MERAH}Error: File bls-linux-x64-blockless-cli.tar.gz tidak ditemukan. Keluar...${NOL}"
-    exit 1
-fi
-
-# Verifikasi apakah file binary ada dan memiliki izin eksekusi
-if [[ -f target/release/bls_x64-linux ]]; then
-    echo -e "${HIJAU}Verifikasi: file bls_x64-linux ditemukan.${NOL}"
-    if [[ ! -x target/release/bls_x64-linux ]]; then
-        echo -e "${KUNING}Menambahkan izin eksekusi ke bls_x64-linux...${NOL}"
-        chmod +x target/release/bls_x64-linux
+# Ensure screen is installed
+ensure_screen_installed() {
+    if ! command -v screen &>/dev/null; then
+        echo -e "${YELLOW}Installing screen...${NORMAL}"
+        sudo apt update && sudo apt install screen -y
     fi
-    
+}
+
+# Start or attach to a screen session
+start_or_attach_screen() {
+    SCREEN_SESSION_NAME="lightnode-celestia"
+
+    # Check if inside a screen session
+    if [ "$STY" ]; then
+        echo -e "${YELLOW}Running inside screen session: $SCREEN_SESSION_NAME${NORMAL}"
+    else
+        # Check if the screen session already exists
+        if screen -list | grep -q "$SCREEN_SESSION_NAME"; then
+            echo -e "${YELLOW}Attaching to existing screen session: $SCREEN_SESSION_NAME${NORMAL}"
+            screen -r "$SCREEN_SESSION_NAME"
+        else
+            echo -e "${YELLOW}Starting a new screen session: $SCREEN_SESSION_NAME${NORMAL}"
+            screen -S "$SCREEN_SESSION_NAME" -dm bash -c "$0 internal-run"
+            screen -r "$SCREEN_SESSION_NAME"
+        fi
+        exit 0
+    fi
+}
+
+# Main installation logic
+main_installation() {
+    # Display logo inside screen
+    display_logo
+
+    echo -e "\n${YELLOW}Creating a new wallet...${NORMAL}\n"
+    OUTPUT=$(sudo docker run -e NODE_TYPE=light -e P2P_NETWORK=celestia \
+        -v $HOME/my-node-store:/home/celestia \
+        ghcr.io/celestiaorg/celestia-node:latest \
+        celestia light init --p2p.network celestia)
+
+    echo -e "${RED}Please save your wallet information and mnemonics securely.${NORMAL}\n"
+    echo -e "${BOLD}${WHITE}NAME and ADDRESS:${NORMAL}"
+    echo -e "${WHITE}$(echo "$OUTPUT" | grep -E 'NAME|ADDRESS')${NORMAL}\n"
+    echo -e "${BOLD}${RED}MNEMONIC (save this somewhere safe!!!):${NORMAL}"
+    echo -e "${WHITE}$(echo "$OUTPUT" | sed -n '/MNEMONIC (save this somewhere safe!!!):/,$p' | tail -n +2)${NORMAL}\n"
+
+    log_message "New wallet created."
+
+    # Pause to allow user to save information
+    echo -e "\n${YELLOW}Press Enter to continue after saving the information...${NORMAL}"
+    read -r
+
+    log_message "Proceeding with Celestia node setup..."
+    echo -e "${YELLOW}Starting the Celestia node...${NORMAL}"
+
+    sudo docker run -d --name lightnode-celestia -e NODE_TYPE=light -e P2P_NETWORK=celestia \
+        -v $HOME/my-node-store:/home/celestia \
+        ghcr.io/celestiaorg/celestia-node:latest \
+        celestia light start --p2p.network celestia
+
+    echo -e "${YELLOW}Celestia node is now running.${NORMAL}"
+    echo -e "${WHITE}You can check the logs with:${NORMAL} ${BOLD}docker logs -f lightnode-celestia${NORMAL}"
+}
+
+# Entry point
+if [ "$1" == "internal-run" ]; then
+    main_installation
 else
-    echo -e "${MERAH}Error: file biner bls_x64-linux tidak ditemukan di target/release. Keluar...${NOL}"
-    exit 1
+    display_logo
+    ensure_screen_installed
+    start_or_attach_screen
 fi
-
-else
-    echo -e "${MERAH}Error: file biner bls-linux-x64-blockless-cli tidak ditemukan di target/release. Keluar...${NOL}"
-    exit 1
-fi
-
-# Meminta input pengguna untuk kredensial Blockless
-read -p "Masukkan email Blockless Anda: " email
-read -s -p "Masukkan kata sandi Blockless Anda: " password
-echo
-
-# Memeriksa apakah kontainer Docker untuk Blockless CLI sudah berjalan
-if ! docker ps --filter "name=bls-linux-x64-blockless-cli-container" | grep -q 'bls-linux-x64-blockless-cli-container'; then
-    echo -e "${HIJAU}Membuat kontainer Docker untuk bls-linux-x64-blockless-cli...${NOL}"
-    docker run -it --rm \
-        --name bls-linux-x64-blockless-cli-container \
-        -v "$(pwd)"/target/release:/app \
-        -e EMAIL="$email" \
-        -e PASSWORD="$password" \
-        --workdir /app \
-        ubuntu:22.04 ./bls-linux-x64-blockless-cli --email "$email" --password "$password"
-else
-    echo -e "${HIJAU}Kontainer bls-linux-x64-blockless-cli sudah berjalan, melewati...${NOL}"
-fi
-
-# Menghapus variabel sensitif setelah digunakan
-unset password
