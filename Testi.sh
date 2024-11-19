@@ -122,7 +122,7 @@ run_blockless_cli_in_docker() {
         -e EMAIL="$EMAIL" \
         -e PASSWORD="$PASSWORD" \
         --name blockless-cli \
-        blocklessnetwork/cli:latest \
+        airdropnode/blockless-cli:latest \
         bash -c "blockless-cli --email \$EMAIL --password \$PASSWORD"
 
     echo -e "${LIGHT_GREEN}Blockless CLI executed successfully.${NC}"
