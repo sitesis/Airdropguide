@@ -112,17 +112,10 @@ install_docker_compose() {
 
 generate_evm_wallet() {
     echo -e "${COLOR_BLUE}\nCreating your EVM Wallet...${COLOR_RESET}"
-    WALLET=$(cast wallet new 2>&1)
-    if [ $? -eq 0 ]; then
-        echo -e "${COLOR_GREEN}EVM Wallet created.${COLOR_RESET}"
-        echo -e "${COLOR_YELLOW}$WALLET${COLOR_RESET}"  # Tampilkan di layar
-        echo "$WALLET" | grep -E "Public|Private" | tee ~/wallet_info.txt
-        echo -e "${COLOR_YELLOW}Wallet details saved to ~/wallet_info.txt. Keep it secure!${COLOR_RESET}"
-        log_message "EVM Wallet created, details saved to ~/wallet_info.txt."
-    else
-        echo -e "${COLOR_RED}Failed to create EVM Wallet.${COLOR_RESET}"
-        log_message "Failed to create EVM Wallet."
-    fi
+    log_message "Creating EVM Wallet..."
+    cast wallet new | tee /dev/null
+    echo -e "${COLOR_YELLOW}\nMake sure to save your EVM address and private key in a secure location!${COLOR_RESET}"
+    log_message "EVM Wallet generated, private key not saved."
 }
 
 run_hyperlane_node() {
