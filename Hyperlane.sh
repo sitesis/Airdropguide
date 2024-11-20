@@ -3,14 +3,12 @@ curl -s https://raw.githubusercontent.com/choir94/Airdropguide/refs/heads/main/l
 sleep 5
 
 # ================================
-# Hyperlane Node Installer with User Inputs
+# Hyperlane Node Installer with Foundry and Wallet Creation
 # ================================
 
-# Log file path dan ukuran maksimum log
 LOGFILE="$HOME/hyperlane-node.log"
 MAX_LOG_SIZE=52428800  # 50MB
 
-# Kode warna
 COLOR_RESET="\033[0m"
 COLOR_BLUE="\033[1;34m"
 COLOR_MAGENTA="\033[1;35m"
@@ -19,12 +17,10 @@ COLOR_CYAN="\033[1;36m"
 COLOR_RED="\033[1;31m"
 COLOR_GREEN="\033[1;32m"
 
-# Fungsi untuk log pesan ke file
 log_message() {
     echo -e "$(date +'%Y-%m-%d %H:%M:%S') - $1" >> "$LOGFILE"
 }
 
-# Rotasi file log jika ukurannya melebihi batas
 rotate_log_file() {
     if [ -f "$LOGFILE" ] && [ $(stat -c%s "$LOGFILE") -ge $MAX_LOG_SIZE ]; then
         mv "$LOGFILE" "$LOGFILE.bak"
@@ -33,35 +29,57 @@ rotate_log_file() {
     fi
 }
 
-# ================================
-# Fungsi Instalasi dan Konfigurasi
-# ================================
+install_dependencies() {
+    echo -e "${COLOR_BLUE}\nInstalling system dependencies...${COLOR_RESET}"
+    sudo apt update -y && sudo apt upgrade -y
+    sudo apt-get install -y curl tar wget aria2 clang pkg-config libssl-dev jq build-essential git make ncdu npm
+    if [ $? -eq 0 ]; then
+        echo -e "${COLOR_GREEN}System dependencies installed successfully.${COLOR_RESET}"
+        log_message "System dependencies installed."
+    else
+        echo -e "${COLOR_RED}Failed to install system dependencies.${COLOR_RESET}"
+        log_message "Failed to install system dependencies."
+        exit 1
+    fi
+}
 
 install_nvm() {
     echo -e "${COLOR_BLUE}\nInstalling NVM (Node Version Manager)...${COLOR_RESET}"
-    curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.0/install.sh | bash
-    export NVM_DIR="$HOME/.nvm"
-    [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-    [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
-    echo -e "${COLOR_GREEN}NVM installed successfully.${COLOR_RESET}"
-    log_message "NVM installed."
+    if curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.0/install.sh | bash; then
+        export NVM_DIR="$HOME/.nvm"
+        [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+        echo -e "${COLOR_GREEN}NVM installed successfully.${COLOR_RESET}"
+        log_message "NVM installed."
+    else
+        echo -e "${COLOR_RED}Failed to install NVM.${COLOR_RESET}"
+        log_message "Failed to install NVM."
+        exit 1
+    fi
 }
 
 install_node() {
     echo -e "${COLOR_BLUE}\nInstalling Node.js using NVM...${COLOR_RESET}"
-    nvm install 20
-    nvm use 20
-    echo -e "${COLOR_GREEN}Node.js 20 installed successfully.${COLOR_RESET}"
-    log_message "Node.js installed."
+    nvm install 20 && nvm use 20
+    if [ $? -eq 0 ]; then
+        echo -e "${COLOR_GREEN}Node.js 20 installed successfully.${COLOR_RESET}"
+        log_message "Node.js installed."
+    else
+        echo -e "${COLOR_RED}Failed to install Node.js.${COLOR_RESET}"
+        log_message "Failed to install Node.js."
+        exit 1
+    fi
 }
 
-install_dependencies() {
-    echo -e "${COLOR_BLUE}\nInstalling system dependencies...${COLOR_RESET}"
-    log_message "Installing system dependencies..."
-    sudo apt update -y >/dev/null 2>&1 && sudo apt upgrade -y >/dev/null 2>&1
-    sudo apt-get install -y curl tar wget aria2 clang pkg-config libssl-dev jq build-essential git make ncdu npm >/dev/null 2>&1
-    echo -e "${COLOR_GREEN}System dependencies installed successfully.${COLOR_RESET}"
-    log_message "System dependencies installed."
+install_foundry() {
+    echo -e "${COLOR_BLUE}\nInstalling Foundry...${COLOR_RESET}"
+    if curl -s https://raw.githubusercontent.com/choir94/Airdropguide/refs/heads/main/Foundry.sh | bash; then
+        echo -e "${COLOR_GREEN}Foundry installed successfully.${COLOR_RESET}"
+        log_message "Foundry installed."
+    else
+        echo -e "${COLOR_RED}Failed to install Foundry.${COLOR_RESET}"
+        log_message "Failed to install Foundry."
+        exit 1
+    fi
 }
 
 install_docker() {
@@ -70,8 +88,7 @@ install_docker() {
         echo -e "${COLOR_YELLOW}Docker not found. Installing Docker...${COLOR_RESET}"
         curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
         echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-        sudo apt-get update >/dev/null 2>&1
-        sudo apt-get install -y docker-ce docker-ce-cli containerd.io >/dev/null 2>&1
+        sudo apt-get update && sudo apt-get install -y docker-ce docker-ce-cli containerd.io
         echo -e "${COLOR_GREEN}Docker installed successfully.${COLOR_RESET}"
         log_message "Docker installed."
     else
@@ -94,57 +111,18 @@ install_docker_compose() {
     fi
 }
 
-install_hyperlane_cli() {
-    echo -e "${COLOR_BLUE}\nInstalling Hyperlane CLI...${COLOR_RESET}"
-    if ! command -v hyperlane &> /dev/null; then
-        echo -e "${COLOR_YELLOW}Hyperlane CLI not found. Installing Hyperlane CLI...${COLOR_RESET}"
-        sudo npm install -g @hyperlane-xyz/cli >/dev/null 2>&1
-        echo -e "${COLOR_GREEN}Hyperlane CLI installed successfully.${COLOR_RESET}"
-        log_message "Hyperlane CLI installed."
-    else
-        echo -e "${COLOR_GREEN}Hyperlane CLI is already installed.${COLOR_RESET}"
-        log_message "Hyperlane CLI already installed."
-    fi
-}
-
-install_foundry() {
-    echo -e "${COLOR_BLUE}\nInstalling Foundry...${COLOR_RESET}"
-    curl -L https://foundry.paradigm.xyz | bash
-    source /root/.bashrc
-    foundryup
-    echo -e "${COLOR_GREEN}Foundry installed successfully.${COLOR_RESET}"
-    log_message "Foundry installed."
-}
-
 generate_evm_wallet() {
     echo -e "${COLOR_BLUE}\nCreating your EVM Wallet...${COLOR_RESET}"
-    log_message "Creating EVM Wallet..."
-    cast wallet new | tee /dev/null
-    echo -e "${COLOR_YELLOW}\nMake sure to save your EVM address and private key in a secure location!${COLOR_RESET}"
-    log_message "EVM Wallet generated, private key not saved."
-}
-
-install_hyperlane_project() {
-    echo -e "${COLOR_BLUE}\nPulling Hyperlane Docker image...${COLOR_RESET}"
-    docker pull --platform linux/amd64 gcr.io/abacus-labs-dev/hyperlane-agent:agents-v1.0.0 >/dev/null 2>&1
+    WALLET=$(cast wallet new 2>&1)
     if [ $? -eq 0 ]; then
-        echo -e "${COLOR_GREEN}Hyperlane Docker image pulled successfully.${COLOR_RESET}"
-        log_message "Hyperlane Docker image pulled."
+        echo -e "${COLOR_GREEN}EVM Wallet created.${COLOR_RESET}"
+        echo -e "${COLOR_YELLOW}$WALLET${COLOR_RESET}"  # Tampilkan di layar
+        echo "$WALLET" | grep -E "Public|Private" | tee ~/wallet_info.txt
+        echo -e "${COLOR_YELLOW}Wallet details saved to ~/wallet_info.txt. Keep it secure!${COLOR_RESET}"
+        log_message "EVM Wallet created, details saved to ~/wallet_info.txt."
     else
-        echo -e "${COLOR_RED}Failed to pull Hyperlane Docker image.${COLOR_RESET}"
-        log_message "Failed to pull Hyperlane Docker image."
-    fi
-}
-
-create_hyperlane_db_directory() {
-    echo -e "${COLOR_BLUE}\nCreating Hyperlane database directory...${COLOR_RESET}"
-    mkdir -p /root/hyperlane_db_base && chmod -R 777 /root/hyperlane_db_base
-    if [ $? -eq 0 ]; then
-        echo -e "${COLOR_GREEN}Hyperlane database directory created successfully.${COLOR_RESET}"
-        log_message "Hyperlane database directory created."
-    else
-        echo -e "${COLOR_RED}Failed to create Hyperlane database directory.${COLOR_RESET}"
-        log_message "Failed to create Hyperlane database directory."
+        echo -e "${COLOR_RED}Failed to create EVM Wallet.${COLOR_RESET}"
+        log_message "Failed to create EVM Wallet."
     fi
 }
 
@@ -155,44 +133,37 @@ run_hyperlane_node() {
     read -p "Enter private key: " PRIVATE_KEY
     read -p "Enter RPC URL: " RPC_CHAIN
 
+    docker ps -a --format '{{.Names}}' | grep -q "^hyperlane$" && docker rm -f hyperlane
     docker run -d \
-      -it \
       --name hyperlane \
       --mount type=bind,source=/root/hyperlane_db_"$CHAIN",target=/hyperlane_db_"$CHAIN" \
       gcr.io/abacus-labs-dev/hyperlane-agent:agents-v1.0.0 \
       ./validator \
       --db /hyperlane_db_"$CHAIN" \
       --originChainName "$CHAIN" \
-      --reorgPeriod 1 \
       --validator.id "$NAME" \
-      --checkpointSyncer.type localStorage \
-      --checkpointSyncer.folder "$CHAIN" \
-      --checkpointSyncer.path /hyperlane_db_"$CHAIN"/"$CHAIN"_checkpoints \
       --validator.key "$PRIVATE_KEY" \
       --chains."$CHAIN".signer.key "$PRIVATE_KEY" \
       --chains."$CHAIN".customRpcUrls "$RPC_CHAIN"
 
-    echo -e "${COLOR_GREEN}Hyperlane node is running.${COLOR_RESET}"
-    log_message "Hyperlane node is running."
+    if [ $? -eq 0 ]; then
+        echo -e "${COLOR_GREEN}Hyperlane node is running.${COLOR_RESET}"
+        log_message "Hyperlane node is running."
+    else
+        echo -e "${COLOR_RED}Failed to start Hyperlane node.${COLOR_RESET}"
+        log_message "Failed to start Hyperlane node."
+    fi
 }
 
-# ================================
-# Instalasi dan konfigurasi
-# ================================
+# Urutan Eksekusi
+install_dependencies
 install_nvm
 install_node
-install_dependencies
+install_foundry
 install_docker
 install_docker_compose
-install_hyperlane_cli
-install_foundry
 generate_evm_wallet
-install_hyperlane_project
-create_hyperlane_db_directory
 run_hyperlane_node
 
-# ================================
-# Bergabung ke Channel Telegram
-# ================================
 echo -e "${COLOR_MAGENTA}\nJoin AirdropNode Telegram channel for updates and support: ${COLOR_RESET}"
 echo -e "${COLOR_YELLOW}https://t.me/airdrop_node${COLOR_RESET}"
