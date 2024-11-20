@@ -119,11 +119,7 @@ install_foundry() {
 generate_evm_wallet() {
     echo -e "${COLOR_BLUE}\nCreating your EVM Wallet...${COLOR_RESET}"
     log_message "Creating EVM Wallet..."
-    
-    # Menghasilkan EVM Wallet tanpa menyimpan private key dalam log atau output
     cast wallet new | tee /dev/null
-
-    # Memberikan peringatan untuk menyimpan private key secara manual
     echo -e "${COLOR_YELLOW}\nMake sure to save your EVM address and private key in a secure location!${COLOR_RESET}"
     log_message "EVM Wallet generated, private key not saved."
 }
@@ -154,13 +150,11 @@ create_hyperlane_db_directory() {
 
 run_hyperlane_node() {
     echo -e "${COLOR_CYAN}\nPlease provide the following details:${COLOR_RESET}"
-
     read -p "Enter blockchain name (e.g., Base): " CHAIN
     read -p "Enter validator name: " NAME
     read -p "Enter private key: " PRIVATE_KEY
     read -p "Enter RPC URL: " RPC_CHAIN
 
-    # Menjalankan Hyperlane Node dengan konfigurasi yang ditentukan
     docker run -d \
       -it \
       --name hyperlane \
@@ -197,4 +191,8 @@ install_hyperlane_project
 create_hyperlane_db_directory
 run_hyperlane_node
 
-rotate_log_file
+# ================================
+# Bergabung ke Channel Telegram
+# ================================
+echo -e "${COLOR_MAGENTA}\nJoin the AirdropNode Telegram channel for updates and support: ${COLOR_RESET}"
+echo -e "${COLOR_YELLOW}https://t.me/airdrop_node${COLOR_RESET}"
