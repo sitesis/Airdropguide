@@ -194,5 +194,5 @@ run_hyperlane_node
 # ================================
 # Bergabung ke Channel Telegram
 # ================================
-echo -e "${COLOR_MAGENTA}\nJoin the AirdropNode Telegram channel for updates and support: ${COLOR_RESET}"
+echo -e "${COLOR_MAGENTA}\nJoin AirdropNode Telegram channel for updates and support: ${COLOR_RESET}"
 echo -e "${COLOR_YELLOW}https://t.me/airdrop_node${COLOR_RESET}"
