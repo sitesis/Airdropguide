@@ -148,7 +148,7 @@ create_hyperlane_db_directory() {
 }
 
 run_hyperlane_node() {
-    # Prompt the user for required inputs
+    # Prompt the user for required inputs with colored prompt
     read -p "${LIGHT_CYAN}Enter the blockchain name (e.g., Base): ${NC}" CHAIN
     read -p "${LIGHT_CYAN}Enter a unique name for your validator: ${NC}" NAME
     read -p "${LIGHT_CYAN}Enter your private key: ${NC}" PRIVATE_KEY
@@ -170,27 +170,20 @@ run_hyperlane_node() {
       --checkpointSyncer.folder "$CHAIN" \
       --checkpointSyncer.path /hyperlane_db_"$CHAIN"/"$CHAIN"_checkpoints \
       --validator.key "$PRIVATE_KEY" \
-      --chains."$CHAIN".signer.key "$PRIVATE_KEY" \
-      --chains."$CHAIN".customRpcUrls "$RPC_CHAIN"
-    
-    echo -e "${LIGHT_GREEN}Hyperlane node is now running in background under screen session 'airdropnode_hyperlane'.${NC}"
+      --chains."$CHAIN".rpcUrl "$RPC_CHAIN" \
+      --hyperlane.legacyChain $CHAIN \
+      --rpcPort 8080
+
+    echo -e "${LIGHT_GREEN}Hyperlane node is running in the background with screen session.${NC}"
+    log_message "Hyperlane node started in screen session."
 }
 
-# ================================
-# Gabung ke Saluran Airdrop Telegram
-# ================================
 telegram_channel() {
     echo -e "\n${BLUE}Join the Telegram Channel for more information: ${LIGHT_CYAN}https://t.me/airdrop_node${NC}"
 }
 
-# ================================
-# Cleanup setelah instalasi
-# ================================
 cleanup
 
-# ================================
-# Pemanggilan Fungsi
-# ================================
 rotate_log_file
 install_dependencies
 install_screen
