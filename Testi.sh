@@ -1,50 +1,79 @@
 #!/bin/bash
+curl -s https://raw.githubusercontent.com/choir94/Airdropguide/refs/heads/main/logo.sh | bash
+sleep 5
+# ================================
+# Hyperlane Node Installer with User Inputs
+# ================================
 
-# Define colors for output
-BLUE='\033[1;34m'
+# Warna untuk tampilan
+RED='\033[0;31m'
 LIGHT_GREEN='\033[1;32m'
 LIGHT_YELLOW='\033[1;33m'
-RED='\033[1;31m'
-NC='\033[0m'
+BLUE='\033[1;34m'
+WHITE='\033[1;37m'
+LIGHT_CYAN='\033[1;36m'  # Warna cyan muda
+LIGHT_MAGENTA='\033[1;35m'  # Warna magenta muda
+NC='\033[0m' # Reset warna
 
-# Nama chain yang sudah ditentukan (menggunakan "base")
-CHAIN_NAME="base"
+# Log file path dan ukuran maksimum log
+LOGFILE="$HOME/hyperlane-node.log"
+MAX_LOG_SIZE=52428800  # 50MB
 
-# Log function
+# Fungsi untuk log pesan ke file
 log_message() {
-    echo "$(date '+%Y-%m-%d %H:%M:%S') - $1" >> installation.log
+    echo -e "$(date +'%Y-%m-%d %H:%M:%S') - $1" >> "$LOGFILE"
 }
+
+# Rotasi file log jika ukurannya melebihi batas
+rotate_log_file() {
+    if [ -f "$LOGFILE" ] && [ $(stat -c%s "$LOGFILE") -ge $MAX_LOG_SIZE ]; then
+        mv "$LOGFILE" "$LOGFILE.bak"
+        touch "$LOGFILE"
+        log_message "Log file rotated. Previous log archived as $LOGFILE.bak"
+    fi
+}
+
+# Cleanup file sementara dan skrip
+cleanup() {
+    log_message "Cleaning up temporary files and removing script..."
+    rm -f "$0"
+    log_message "Cleanup completed."
+}
+
+# ================================
+# Fungsi Instalasi dan Konfigurasi
+# ================================
 
 install_dependencies() {
     echo -e "\n${BLUE}Installing system dependencies...${NC}"
     log_message "Installing system dependencies..."
-    sudo apt-get update -y >/dev/null 2>&1
-    sudo apt-get install -y curl tar wget aria2 clang pkg-config libssl-dev jq build-essential git make ncdu screen \
-    >/dev/null 2>&1 || { 
-        echo -e "${RED}Failed to install dependencies.${NC}"; 
-        log_message "Failed to install system dependencies."; 
-        exit 1; 
-    }
+    sudo apt update -y >/dev/null 2>&1 && sudo apt upgrade -y >/dev/null 2>&1
+    sudo apt-get install -y curl tar wget aria2 clang pkg-config libssl-dev jq build-essential git make ncdu screen npm >/dev/null 2>&1
     echo -e "${LIGHT_GREEN}System dependencies installed successfully.${NC}"
     log_message "System dependencies installed."
+}
+
+install_screen() {
+    echo -e "\n${BLUE}Checking screen installation...${NC}"
+    if ! command -v screen &> /dev/null; then
+        echo -e "${LIGHT_YELLOW}Screen not found. Installing Screen...${NC}"
+        sudo apt-get install -y screen >/dev/null 2>&1
+        echo -e "${LIGHT_GREEN}Screen installed successfully.${NC}"
+        log_message "Screen installed."
+    else
+        echo -e "${LIGHT_GREEN}Screen is already installed.${NC}"
+        log_message "Screen already installed."
+    fi
 }
 
 install_docker() {
     echo -e "\n${BLUE}Checking Docker installation...${NC}"
     if ! command -v docker &> /dev/null; then
         echo -e "${LIGHT_YELLOW}Docker not found. Installing Docker...${NC}"
-        sudo apt-get update -y >/dev/null 2>&1
-        sudo apt-get install -y ca-certificates curl gnupg >/dev/null 2>&1
-        sudo mkdir -p /etc/apt/keyrings
-        curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-        echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" \
-        | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-        sudo apt-get update -y >/dev/null 2>&1
-        sudo apt-get install -y docker-ce docker-ce-cli containerd.io >/dev/null 2>&1 || { 
-            echo -e "${RED}Failed to install Docker.${NC}"; 
-            log_message "Failed to install Docker."; 
-            exit 1; 
-        }
+        curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+        echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+        sudo apt-get update >/dev/null 2>&1
+        sudo apt-get install -y docker-ce docker-ce-cli containerd.io >/dev/null 2>&1
         echo -e "${LIGHT_GREEN}Docker installed successfully.${NC}"
         log_message "Docker installed."
     else
@@ -53,21 +82,26 @@ install_docker() {
     fi
 }
 
+install_nodejs() {
+    echo -e "\n${BLUE}Checking Node.js installation...${NC}"
+    if ! command -v node &> /dev/null; then
+        echo -e "${LIGHT_YELLOW}Node.js not found. Installing Node.js...${NC}"
+        curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+        sudo apt-get install -y nodejs >/dev/null 2>&1
+        echo -e "${LIGHT_GREEN}Node.js installed successfully.${NC}"
+        log_message "Node.js installed."
+    else
+        echo -e "${LIGHT_GREEN}Node.js is already installed.${NC}"
+        log_message "Node.js already installed."
+    fi
+}
+
 install_docker_compose() {
     echo -e "\n${BLUE}Checking Docker Compose installation...${NC}"
     if ! command -v docker-compose &> /dev/null; then
         echo -e "${LIGHT_YELLOW}Docker Compose not found. Installing Docker Compose...${NC}"
-        curl -L "https://github.com/docker/compose/releases/download/$(curl -s https://api.github.com/repos/docker/compose/releases/latest | jq -r .tag_name)/docker-compose-$(uname -s)-$(uname -m)" \
-        -o /usr/local/bin/docker-compose >/dev/null 2>&1 || { 
-            echo -e "${RED}Failed to install Docker Compose.${NC}"; 
-            log_message "Failed to install Docker Compose."; 
-            exit 1; 
-        }
-        sudo chmod +x /usr/local/bin/docker-compose || { 
-            echo -e "${RED}Failed to set execute permissions for Docker Compose.${NC}"; 
-            log_message "Failed to set execute permissions for Docker Compose."; 
-            exit 1; 
-        }
+        curl -L "https://github.com/docker/compose/releases/download/$(curl -s https://api.github.com/repos/docker/compose/releases/latest | jq -r .tag_name)/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+        sudo chmod +x /usr/local/bin/docker-compose
         echo -e "${LIGHT_GREEN}Docker Compose installed successfully.${NC}"
         log_message "Docker Compose installed."
     else
@@ -76,141 +110,95 @@ install_docker_compose() {
     fi
 }
 
-install_nvm_and_node() {
-    echo -e "\n${BLUE}Installing NVM and Node.js...${NC}"
-    log_message "Installing NVM and Node.js..."
-    curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.0/install.sh | bash >/dev/null 2>&1
-    export NVM_DIR="$HOME/.nvm"
-    [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-    [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
-    nvm install 20 >/dev/null 2>&1 || { 
-        echo -e "${RED}Failed to install Node.js.${NC}"; 
-        log_message "Failed to install Node.js."; 
-        exit 1; 
-    }
-    echo -e "${LIGHT_GREEN}NVM and Node.js installed successfully.${NC}"
-    log_message "NVM and Node.js installed."
-}
-
-install_foundry() {
-    echo -e "\n${BLUE}Installing Foundry...${NC}"
-    log_message "Installing Foundry..."
-    curl -L https://raw.githubusercontent.com/choir94/Airdropguide/refs/heads/main/Foundry.sh | bash >/dev/null 2>&1 || { 
-        echo -e "${RED}Failed to install Foundry.${NC}"; 
-        log_message "Failed to install Foundry."; 
-        exit 1; 
-    }
-    echo -e "${LIGHT_GREEN}Foundry installed successfully.${NC}"
-    log_message "Foundry installed."
-}
-
-create_evm_wallet() {
-    echo -e "\n${BLUE}Creating a new EVM wallet...${NC}"
-    log_message "Creating a new EVM wallet..."
-    foundryup
-    export PATH="$HOME/.foundry/bin:$PATH"
-    if ! command -v cast &> /dev/null; then
-        echo -e "${RED}Cast is not installed. Please check Foundry installation.${NC}"
-        log_message "Cast command not found."
-        exit 1
+install_hyperlane_cli() {
+    echo -e "\n${BLUE}Installing Hyperlane CLI...${NC}"
+    if ! command -v hyperlane &> /dev/null; then
+        echo -e "${LIGHT_YELLOW}Hyperlane CLI not found. Installing Hyperlane CLI...${NC}"
+        sudo npm install -g @hyperlane-xyz/cli >/dev/null 2>&1
+        echo -e "${LIGHT_GREEN}Hyperlane CLI installed successfully.${NC}"
+        log_message "Hyperlane CLI installed."
+    else
+        echo -e "${LIGHT_GREEN}Hyperlane CLI is already installed.${NC}"
+        log_message "Hyperlane CLI already installed."
     fi
-    echo -e "${LIGHT_GREEN}Generating EVM wallet. Please save the credentials securely!${NC}"
-    echo -e "${LIGHT_YELLOW}Foundry will generate an EVM address and a private key.${NC}"
-    echo -e "${LIGHT_YELLOW}Make sure to save these credentials in a secure location!${NC}"
-    cast wallet new || { 
-        echo -e "${RED}Failed to create EVM wallet.${NC}"; 
-        log_message "Failed to create EVM wallet."; 
-        exit 1; 
-    }
-    echo -e "${LIGHT_GREEN}EVM wallet created successfully.${NC}"
-    log_message "EVM wallet created."
-}
-
-install_hyperlane_client() {
-    echo -e "\n${BLUE}Installing Hyperlane client...${NC}"
-    log_message "Installing Hyperlane client..."
-    npm install -g @hyperlane-xyz/cli >/dev/null 2>&1 || { 
-        echo -e "${RED}Failed to install Hyperlane client.${NC}"; 
-        log_message "Failed to install Hyperlane client."; 
-        exit 1; 
-    }
-    echo -e "${LIGHT_GREEN}Hyperlane client installed successfully.${NC}"
-    log_message "Hyperlane client installed."
 }
 
 install_hyperlane_project() {
-    echo -e "\n${BLUE}Installing the Hyperlane project from the GitHub repository...${NC}"
-    log_message "Installing Hyperlane project from GitHub repository..."
-    
-    docker pull --platform linux/amd64 gcr.io/abacus-labs-dev/hyperlane-agent:agents-v1.0.0 >/dev/null 2>&1 || { 
-        echo -e "${RED}Failed to pull the Hyperlane Docker image.${NC}"; 
-        log_message "Failed to pull Hyperlane Docker image."; 
-        exit 1; 
-    }
-
-    echo -e "${LIGHT_GREEN}Hyperlane project installed successfully from GitHub repository.${NC}"
-    log_message "Hyperlane project installed."
+    echo -e "\n${BLUE}Pulling Hyperlane Docker image...${NC}"
+    docker pull --platform linux/amd64 gcr.io/abacus-labs-dev/hyperlane-agent:agents-v1.0.0 >/dev/null 2>&1
+    if [ $? -eq 0 ]; then
+        echo -e "${LIGHT_GREEN}Hyperlane Docker image pulled successfully.${NC}"
+        log_message "Hyperlane Docker image pulled."
+    else
+        echo -e "${RED}Failed to pull Hyperlane Docker image.${NC}"
+        log_message "Failed to pull Hyperlane Docker image."
+    fi
 }
 
 create_hyperlane_db_directory() {
-    echo -e "\n${BLUE}Creating the directory to store the node's database...${NC}"
-    log_message "Creating the directory for Hyperlane node's database..."
-    
-    mkdir -p /root/hyperlane_db_base && chmod -R 777 /root/hyperlane_db_base >/dev/null 2>&1 || { 
-        echo -e "${RED}Failed to create Hyperlane database directory.${NC}"; 
-        log_message "Failed to create Hyperlane database directory."; 
-        exit 1; 
-    }
-
-    echo -e "${LIGHT_GREEN}Hyperlane database directory created successfully.${NC}"
-    log_message "Hyperlane database directory created."
+    echo -e "\n${BLUE}Creating Hyperlane database directory...${NC}"
+    mkdir -p /root/hyperlane_db_base && chmod -R 777 /root/hyperlane_db_base
+    if [ $? -eq 0 ]; then
+        echo -e "${LIGHT_GREEN}Hyperlane database directory created and permissions set successfully.${NC}"
+        log_message "Hyperlane database directory created and permissions set."
+    else
+        echo -e "${RED}Failed to create Hyperlane database directory.${NC}"
+        log_message "Failed to create Hyperlane database directory."
+    fi
 }
 
-# Menjalankan Docker container dengan parameter yang diinputkan
-run_hyperlane_container() {
-    echo -e "\n${BLUE}Running Hyperlane Docker container with provided parameters...${NC}"
-    log_message "Running Hyperlane Docker container..."
-    
-    docker run -d \
-      -it \
+run_hyperlane_node() {
+    # Prompt the user for required inputs
+    read -p "${LIGHT_CYAN}Enter the blockchain name (e.g., Base): ${NC}" CHAIN
+    read -p "${LIGHT_CYAN}Enter a unique name for your validator: ${NC}" NAME
+    read -p "${LIGHT_CYAN}Enter your private key: ${NC}" PRIVATE_KEY
+    read -p "${LIGHT_CYAN}Enter the RPC URL for the blockchain (e.g., RPC for Base): ${NC}" RPC_CHAIN
+
+    echo -e "\n${BLUE}Running Hyperlane node with the specified options...${NC}"
+
+    # Start screen session to run docker in background
+    screen -dmS airdropnode_hyperlane docker run -d \
       --name hyperlane \
-      --mount type=bind,source=/root/hyperlane_db_$CHAIN_NAME,target=/hyperlane_db_$CHAIN_NAME \
+      --mount type=bind,source=/root/hyperlane_db_"$CHAIN",target=/hyperlane_db_"$CHAIN" \
       gcr.io/abacus-labs-dev/hyperlane-agent:agents-v1.0.0 \
       ./validator \
-      --db /hyperlane_db_$CHAIN_NAME \
-      --originChainName $CHAIN_NAME \
+      --db /hyperlane_db_"$CHAIN" \
+      --originChainName "$CHAIN" \
       --reorgPeriod 1 \
-      --validator.id $VALIDATOR_NAME \
+      --validator.id "$NAME" \
       --checkpointSyncer.type localStorage \
-      --checkpointSyncer.folder $CHAIN_NAME \
-      --checkpointSyncer.path /hyperlane_db_$CHAIN_NAME/$CHAIN_NAME_checkpoints \
-      --validator.key $PRIVATE_KEY \
-      --chains.$CHAIN_NAME.signer.key $PRIVATE_KEY \
-      --chains.$CHAIN_NAME.customRpcUrls $RPC_URL
-
-    echo -e "${LIGHT_GREEN}Hyperlane Docker container started successfully.${NC}"
-    log_message "Hyperlane Docker container started."
-
-    # Invite to join Telegram channel
-    echo -e "\n${LIGHT_YELLOW}Join our Telegram channel for updates and support: ${NC}https://t.me/airdrop_node"
-    log_message "User invited to join Telegram channel."
+      --checkpointSyncer.folder "$CHAIN" \
+      --checkpointSyncer.path /hyperlane_db_"$CHAIN"/"$CHAIN"_checkpoints \
+      --validator.key "$PRIVATE_KEY" \
+      --chains."$CHAIN".signer.key "$PRIVATE_KEY" \
+      --chains."$CHAIN".customRpcUrls "$RPC_CHAIN"
+    
+    echo -e "${LIGHT_GREEN}Hyperlane node is now running in background under screen session 'airdropnode_hyperlane'.${NC}"
 }
 
-# Get inputs from user at the end
-echo -e "\n${LIGHT_YELLOW}Please provide the following configuration details:${NC}"
+# ================================
+# Gabung ke Saluran Airdrop Telegram
+# ================================
+telegram_channel() {
+    echo -e "\n${BLUE}Join the Telegram Channel for more information: ${LIGHT_CYAN}https://t.me/airdrop_node${NC}"
+}
 
-read -p "Enter your RPC URL: " RPC_URL
-read -p "Enter your private key: " PRIVATE_KEY
-read -p "Enter your validator name: " VALIDATOR_NAME
+# ================================
+# Cleanup setelah instalasi
+# ================================
+cleanup
 
-# Proceed with installations and configurations
+# ================================
+# Pemanggilan Fungsi
+# ================================
+rotate_log_file
 install_dependencies
+install_screen
 install_docker
+install_nodejs
 install_docker_compose
-install_nvm_and_node
-install_foundry
-create_evm_wallet
-install_hyperlane_client
+install_hyperlane_cli
 install_hyperlane_project
 create_hyperlane_db_directory
-run_hyperlane_container
+run_hyperlane_node
+telegram_channel
