@@ -58,10 +58,14 @@ install_docker_compose() {
     if ! command -v docker-compose &> /dev/null; then
         echo -e "${LIGHT_YELLOW}Docker Compose not found. Installing Docker Compose...${NC}"
         curl -L "https://github.com/docker/compose/releases/download/$(curl -s https://api.github.com/repos/docker/compose/releases/latest | jq -r .tag_name)/docker-compose-$(uname -s)-$(uname -m)" \
-        -o /usr/local/bin/docker-compose >/dev/null 2>&1
-        sudo chmod +x /usr/local/bin/docker-compose || { 
+        -o /usr/local/bin/docker-compose >/dev/null 2>&1 || { 
             echo -e "${RED}Failed to install Docker Compose.${NC}"; 
             log_message "Failed to install Docker Compose."; 
+            exit 1; 
+        }
+        sudo chmod +x /usr/local/bin/docker-compose || { 
+            echo -e "${RED}Failed to set execute permissions for Docker Compose.${NC}"; 
+            log_message "Failed to set execute permissions for Docker Compose."; 
             exit 1; 
         }
         echo -e "${LIGHT_GREEN}Docker Compose installed successfully.${NC}"
@@ -162,28 +166,51 @@ create_hyperlane_db_directory() {
     log_message "Hyperlane database directory created."
 }
 
-# Meminta input dari pengguna untuk konfigurasi lainnya
-read -p "Enter RPC URL for $CHAIN_NAME: " RPC_URL
-read -p "Enter private key for $CHAIN_NAME: " PRIVATE_KEY
-read -p "Enter validator name for $CHAIN_NAME: " VALIDATOR_NAME
-
 # Menjalankan Docker container dengan parameter yang diinputkan
-docker run -d \
-  -it \
-  --name hyperlane \
-  --mount type=bind,source=/root/hyperlane_db_$CHAIN_NAME,target=/hyperlane_db_$CHAIN_NAME \
-  gcr.io/abacus-labs-dev/hyperlane-agent:agents-v1.0.0 \
-  ./validator \
-  --db /hyperlane_db_$CHAIN_NAME \
-  --originChainName $CHAIN_NAME \
-  --reorgPeriod 1 \
-  --validator.id $VALIDATOR_NAME \
-  --checkpointSyncer.type localStorage \
-  --checkpointSyncer.folder $CHAIN_NAME \
-  --checkpointSyncer.path /hyperlane_db_$CHAIN_NAME/$CHAIN_NAME_checkpoints \
-  --validator.key $PRIVATE_KEY \
-  --chains.$CHAIN_NAME.signer.key $PRIVATE_KEY \
-  --chains.$CHAIN_NAME.customRpcUrls $RPC_URL
+run_hyperlane_container() {
+    echo -e "\n${BLUE}Running Hyperlane Docker container with provided parameters...${NC}"
+    log_message "Running Hyperlane Docker container..."
+    
+    docker run -d \
+      -it \
+      --name hyperlane \
+      --mount type=bind,source=/root/hyperlane_db_$CHAIN_NAME,target=/hyperlane_db_$CHAIN_NAME \
+      gcr.io/abacus-labs-dev/hyperlane-agent:agents-v1.0.0 \
+      ./validator \
+      --db /hyperlane_db_$CHAIN_NAME \
+      --originChainName $CHAIN_NAME \
+      --reorgPeriod 1 \
+      --validator.id $VALIDATOR_NAME \
+      --checkpointSyncer.type localStorage \
+      --checkpointSyncer.folder $CHAIN_NAME \
+      --checkpointSyncer.path /hyperlane_db_$CHAIN_NAME/$CHAIN_NAME_checkpoints \
+      --validator.key $PRIVATE_KEY \
+      --chains.$CHAIN_NAME.signer.key $PRIVATE_KEY \
+      --chains.$CHAIN_NAME.customRpcUrls $RPC_URL
 
-echo -e "${LIGHT_GREEN}Hyperlane Docker container started successfully.${NC}"
-log_message "Hyperlane Docker container started."
+    echo -e "${LIGHT_GREEN}Hyperlane Docker container started successfully.${NC}"
+    log_message "Hyperlane Docker container started."
+
+    # Invite to join Telegram channel
+    echo -e "\n${LIGHT_YELLOW}Join our Telegram channel for updates and support: ${NC}https://t.me/airdrop_node"
+    log_message "User invited to join Telegram channel."
+}
+
+# Get inputs from user at the end
+echo -e "\n${LIGHT_YELLOW}Please provide the following configuration details:${NC}"
+
+read -p "Enter your RPC URL: " RPC_URL
+read -p "Enter your private key: " PRIVATE_KEY
+read -p "Enter your validator name: " VALIDATOR_NAME
+
+# Proceed with installations and configurations
+install_dependencies
+install_docker
+install_docker_compose
+install_nvm_and_node
+install_foundry
+create_evm_wallet
+install_hyperlane_client
+install_hyperlane_project
+create_hyperlane_db_directory
+run_hyperlane_container
