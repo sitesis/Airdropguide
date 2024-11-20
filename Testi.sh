@@ -184,3 +184,6 @@ docker run -d \
   --validator.key $PRIVATE_KEY \
   --chains.$CHAIN_NAME.signer.key $PRIVATE_KEY \
   --chains.$CHAIN_NAME.customRpcUrls $RPC_URL
+
+echo -e "${LIGHT_GREEN}Hyperlane Docker container started successfully.${NC}"
+log_message "Hyperlane Docker container started."
