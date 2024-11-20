@@ -32,7 +32,6 @@ rotate_log_file() {
 install_dependencies() {
     echo -e "${COLOR_BLUE}\nInstalling system dependencies...${COLOR_RESET}"
     sudo apt update -y && sudo apt upgrade -y
-    sudo apt-get install -y curl tar wget aria2 clang pkg-config libssl-dev jq build-essential git make ncdu npm
     if [ $? -eq 0 ]; then
         echo -e "${COLOR_GREEN}System dependencies installed successfully.${COLOR_RESET}"
         log_message "System dependencies installed."
