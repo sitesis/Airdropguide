@@ -46,22 +46,9 @@ install_dependencies() {
     echo -e "${COLOR_BLUE}\nInstalling system dependencies...${COLOR_RESET}"
     log_message "Installing system dependencies..."
     sudo apt update -y >/dev/null 2>&1 && sudo apt upgrade -y >/dev/null 2>&1
-    sudo apt-get install -y curl tar wget aria2 clang pkg-config libssl-dev jq build-essential git make ncdu screen npm >/dev/null 2>&1
+    sudo apt-get install -y curl tar wget aria2 clang pkg-config libssl-dev jq build-essential git make ncdu npm >/dev/null 2>&1
     echo -e "${COLOR_MAGENTA}System dependencies installed successfully.${COLOR_RESET}"
     log_message "System dependencies installed."
-}
-
-install_screen() {
-    echo -e "${COLOR_BLUE}\nChecking screen installation...${COLOR_RESET}"
-    if ! command -v screen &> /dev/null; then
-        echo -e "${COLOR_YELLOW}Screen not found. Installing Screen...${COLOR_RESET}"
-        sudo apt-get install -y screen >/dev/null 2>&1
-        echo -e "${COLOR_MAGENTA}Screen installed successfully.${COLOR_RESET}"
-        log_message "Screen installed."
-    else
-        echo -e "${COLOR_MAGENTA}Screen is already installed.${COLOR_RESET}"
-        log_message "Screen already installed."
-    fi
 }
 
 install_docker() {
@@ -77,20 +64,6 @@ install_docker() {
     else
         echo -e "${COLOR_MAGENTA}Docker is already installed.${COLOR_RESET}"
         log_message "Docker already installed."
-    fi
-}
-
-install_nodejs() {
-    echo -e "${COLOR_BLUE}\nChecking Node.js installation...${COLOR_RESET}"
-    if ! command -v node &> /dev/null; then
-        echo -e "${COLOR_YELLOW}Node.js not found. Installing Node.js...${COLOR_RESET}"
-        curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
-        sudo apt-get install -y nodejs >/dev/null 2>&1
-        echo -e "${COLOR_MAGENTA}Node.js installed successfully.${COLOR_RESET}"
-        log_message "Node.js installed."
-    else
-        echo -e "${COLOR_MAGENTA}Node.js is already installed.${COLOR_RESET}"
-        log_message "Node.js already installed."
     fi
 }
 
@@ -156,8 +129,8 @@ run_hyperlane_node() {
 
     echo -e "${COLOR_YELLOW}\nRunning Hyperlane node with the specified options...${COLOR_RESET}"
 
-    # Start screen session to run docker in background
-    screen -dmS airdropnode_hyperlane docker run -d \
+    # Run Hyperlane Node with Docker
+    docker run -d \
       --name hyperlane \
       --mount type=bind,source=/root/hyperlane_db_"$CHAIN",target=/hyperlane_db_"$CHAIN" \
       gcr.io/abacus-labs-dev/hyperlane-agent:agents-v1.0.0 \
@@ -174,13 +147,13 @@ run_hyperlane_node() {
       --hyperlane.legacyChain $CHAIN \
       --rpcPort 8080
 
-    echo -e "${COLOR_MAGENTA}Hyperlane node is running in the background with screen session.${COLOR_RESET}"
-    log_message "Hyperlane node started in screen session."
+    echo -e "${COLOR_MAGENTA}Hyperlane node is running with Docker.${COLOR_RESET}"
+    log_message "Hyperlane node started with Docker."
 }
 
 check_logs() {
     echo -e "${COLOR_CYAN}\nChecking Hyperlane node logs...${COLOR_RESET}"
-    screen -r airdropnode_hyperlane
+    docker logs -f hyperlane
 }
 
 # ================================
@@ -189,9 +162,7 @@ check_logs() {
 
 # Install dependencies
 install_dependencies
-install_screen
 install_docker
-install_nodejs
 install_docker_compose
 install_hyperlane_cli
 install_hyperlane_project
