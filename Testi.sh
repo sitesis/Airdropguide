@@ -160,6 +160,7 @@ run_hyperlane_node() {
     read -p "Enter private key: " PRIVATE_KEY
     read -p "Enter RPC URL: " RPC_CHAIN
 
+    # Menjalankan Hyperlane Node dengan konfigurasi yang ditentukan
     docker run -d \
       -it \
       --name hyperlane \
@@ -195,3 +196,5 @@ generate_evm_wallet
 install_hyperlane_project
 create_hyperlane_db_directory
 run_hyperlane_node
+
+rotate_log_file
