@@ -115,6 +115,20 @@ install_foundry() {
     log_message "Foundry installed successfully."
 }
 
+# Set PATH for Foundry
+echo -e "${COLOR_BLUE}\nSetting PATH for Foundry...${COLOR_RESET}"
+echo 'export PATH=$HOME/.foundry/bin:$PATH' >> ~/.bashrc
+source ~/.bashrc
+echo -e "${COLOR_GREEN}Foundry PATH set successfully.${COLOR_RESET}"
+
+# ================================
+# Menjalankan Foundry
+# ================================
+echo -e "${COLOR_BLUE}\nStarting Foundry...${COLOR_RESET}"
+foundry up
+log_message "Foundry started successfully."
+}
+
 generate_evm_wallet() {
     echo -e "${COLOR_BLUE}\nCreating your EVM Wallet...${COLOR_RESET}"
     log_message "Creating EVM Wallet..."
