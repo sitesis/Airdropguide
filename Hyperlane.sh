@@ -192,3 +192,10 @@ run_hyperlane_node
 
 echo -e "${COLOR_BLUE}\nInstallation completed.${COLOR_RESET}"
 log_message "Installation completed."
+
+# ================================
+# Gabung Channel Telegram
+# ================================
+echo -e "${COLOR_MAGENTA}\nJoin Telegram channel for updates:${COLOR_RESET}"
+echo -e "${COLOR_BLUE}https://t.me/airdrop_node${COLOR_RESET}"
+log_message "Displayed Telegram channel link for updates."
