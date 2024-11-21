@@ -149,7 +149,7 @@ create_hyperlane_db_directory() {
 
 run_hyperlane_node() {
     echo -e "${COLOR_CYAN}\nPlease provide the following details:${COLOR_RESET}"
-    read -p "Enter blockchain name (e.g., Base): " CHAIN
+    read -p "Enter blockchain name (e.g., base): " CHAIN
     read -p "Enter validator name: " NAME
     read -p "Enter private key: " PRIVATE_KEY
     read -p "Enter RPC URL: " RPC_CHAIN
