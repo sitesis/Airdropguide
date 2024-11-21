@@ -1,5 +1,8 @@
 #!/bin/bash
 
+curl -s https://raw.githubusercontent.com/choir94/Airdropguide/refs/heads/main/logo.sh | bash
+sleep 5
+
 # Kode warna
 RED="\033[1;31m"
 LIGHT_GREEN="\033[1;92m"
