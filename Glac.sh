@@ -51,6 +51,10 @@ chmod +x "$BINARY_NAME"
 # Langkah 6: Buat file konfigurasi
 echo -e "${GREEN}Membuat file konfigurasi...${NC}"
 read -p "Masukkan PrivateKey Anda: " PRIVATE_KEY
+read -p "Masukkan Gas Price dalam Gwei (misal 10 untuk 10 Gwei): " GAS_PRICE
+
+# Konversi Gwei ke Wei
+GAS_PRICE_WEI=$((GAS_PRICE * 1000000000))
 
 cat <<EOF > "$CONFIG_FILE"
 Http:
@@ -61,6 +65,9 @@ Keystore:
   PrivateKey: "$PRIVATE_KEY"
 TEE:
   IpfsURL: "https://greenfield.onebitdev.com/ipfs/"
+GasPrice:
+  Gwei: "$GAS_PRICE"
+  Wei: "$GAS_PRICE_WEI"
 EOF
 
 # Langkah 7: Periksa struktur direktori
