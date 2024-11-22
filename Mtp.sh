@@ -20,6 +20,7 @@ check_command_success() {
 # Logo
 curl -s https://raw.githubusercontent.com/choir94/Airdropguide/refs/heads/main/logo.sh | bash
 sleep 5
+
 # Memeriksa apakah Docker sudah terpasang
 if command -v docker &> /dev/null; then
     echo -e "${LIGHT_GREEN}✅  Docker sudah terinstal. Melewati langkah instalasi Docker...${RESET}\n"
@@ -70,11 +71,27 @@ else
     echo -e "${WHITE}     newgrp docker${RESET}\n"
 fi
 
-# Mengunduh dan mengekstrak multiple-cli
-echo -e "${BLUE}📥  Mengunduh Multiple CLI...${RESET}"
-wget https://cdn.app.multiple.cc/client/linux/x64/multipleforlinux.tar
+# Memeriksa arsitektur Linux
+ARCHITECTURE=$(uname -m)
+
+# Menentukan URL unduhan berdasarkan arsitektur
+if [[ "$ARCHITECTURE" == "x86_64" ]]; then
+    DOWNLOAD_URL="https://cdn.app.multiple.cc/client/linux/x64/multipleforlinux.tar"
+    echo -e "${CYAN}🔄  Arsitektur Linux Anda adalah X64. Mengunduh client untuk X64...${RESET}"
+elif [[ "$ARCHITECTURE" == "aarch64" ]]; then
+    DOWNLOAD_URL="https://cdn.app.multiple.cc/client/linux/arm64/multipleforlinux.tar"
+    echo -e "${CYAN}🔄  Arsitektur Linux Anda adalah ARM64. Mengunduh client untuk ARM64...${RESET}"
+else
+    echo -e "${RED}❌  Arsitektur Linux tidak dikenali. Proses unduhan dibatalkan.${RESET}"
+    exit 1
+fi
+
+# Mengunduh file berdasarkan URL yang ditentukan
+echo -e "${BLUE}📥  Mengunduh file Multiple CLI...${RESET}"
+wget $DOWNLOAD_URL
 check_command_success
 
+# Mengekstrak file
 echo -e "${BLUE}📂  Mengekstrak file Multiple CLI...${RESET}"
 tar -xvf multipleforlinux.tar
 check_command_success
