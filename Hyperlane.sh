@@ -48,18 +48,19 @@ install_dependencies() {
 
 install_nvm() {
     echo -e "${COLOR_BLUE}\nInstalling NVM (Node Version Manager)...${COLOR_RESET}"
+    log_message "Installing NVM..."
     curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.0/install.sh | bash
     export NVM_DIR="$HOME/.nvm"
     [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-    [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
     echo -e "${COLOR_GREEN}NVM installed successfully.${COLOR_RESET}"
     log_message "NVM installed."
 }
 
 install_node() {
     echo -e "${COLOR_BLUE}\nInstalling Node.js using NVM...${COLOR_RESET}"
-    nvm install 20
-    nvm use 20
+    log_message "Installing Node.js..."
+    nvm install 20 >/dev/null 2>&1
+    nvm use 20 >/dev/null 2>&1
     echo -e "${COLOR_GREEN}Node.js 20 installed successfully.${COLOR_RESET}"
     log_message "Node.js installed."
 }
@@ -68,6 +69,7 @@ install_docker() {
     echo -e "${COLOR_BLUE}\nChecking Docker installation...${COLOR_RESET}"
     if ! command -v docker &> /dev/null; then
         echo -e "${COLOR_YELLOW}Docker not found. Installing Docker...${COLOR_RESET}"
+        log_message "Installing Docker..."
         curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
         echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
         sudo apt-get update >/dev/null 2>&1
@@ -80,94 +82,21 @@ install_docker() {
     fi
 }
 
-install_docker_compose() {
-    echo -e "${COLOR_BLUE}\nChecking Docker Compose installation...${COLOR_RESET}"
-    if ! command -v docker-compose &> /dev/null; then
-        echo -e "${COLOR_YELLOW}Docker Compose not found. Installing Docker Compose...${COLOR_RESET}"
-        curl -L "https://github.com/docker/compose/releases/download/$(curl -s https://api.github.com/repos/docker/compose/releases/latest | jq -r .tag_name)/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-        sudo chmod +x /usr/local/bin/docker-compose
-        echo -e "${COLOR_GREEN}Docker Compose installed successfully.${COLOR_RESET}"
-        log_message "Docker Compose installed."
-    else
-        echo -e "${COLOR_GREEN}Docker Compose is already installed.${COLOR_RESET}"
-        log_message "Docker Compose already installed."
-    fi
+install_foundry() {
+    echo -e "${COLOR_BLUE}\nInstalling Foundry...${COLOR_RESET}"
+    log_message "Installing Foundry..."
+    curl -L https://foundry.paradigm.xyz | bash
+    source "$HOME/.foundry/env"
+    export PATH="$HOME/.foundry/bin:$PATH"
+    log_message "Foundry installed and PATH updated."
 }
-
-install_hyperlane_cli() {
-    echo -e "${COLOR_BLUE}\nInstalling Hyperlane CLI...${COLOR_RESET}"
-    if ! command -v hyperlane &> /dev/null; then
-        echo -e "${COLOR_YELLOW}Hyperlane CLI not found. Installing Hyperlane CLI...${COLOR_RESET}"
-        sudo npm install -g @hyperlane-xyz/cli >/dev/null 2>&1
-        echo -e "${COLOR_GREEN}Hyperlane CLI installed successfully.${COLOR_RESET}"
-        log_message "Hyperlane CLI installed."
-    else
-        echo -e "${COLOR_GREEN}Hyperlane CLI is already installed.${COLOR_RESET}"
-        log_message "Hyperlane CLI already installed."
-    fi
-}
-
-install_foundry()
-
-# Skrip untuk menginstal Foundry
-
-echo "Mengunduh dan menginstal Foundry..."
-curl -L https://foundry.paradigm.xyz | bash
-
-echo "Menambahkan Foundry ke PATH..."
-if [[ ":$PATH:" != *":$HOME/.foundry/bin:"* ]]; then
-    echo "source ~/.foundry/bin" >> ~/.bashrc
-    echo "source ~/.foundry/bin" >> ~/.zshrc
-    echo "Menambahkan ke .bashrc dan .zshrc selesai."
-else
-    echo "Foundry sudah ada di PATH."
-fi
-
-echo "Memuat ulang shell..."
-source ~/.bashrc || source ~/.zshrc
-
-echo "Verifikasi instalasi Foundry..."
-if command -v forge &> /dev/null; then
-    echo "Foundry berhasil diinstal. Versi:"
-    forge --version
-else
-    echo "Foundry tidak berhasil diinstal. Harap cek log."
-    exit 1
-fi
-
-echo "Proses instalasi selesai!"
-
 
 generate_evm_wallet() {
     echo -e "${COLOR_BLUE}\nCreating your EVM Wallet...${COLOR_RESET}"
     log_message "Creating EVM Wallet..."
     cast wallet new | tee /dev/null
     echo -e "${COLOR_YELLOW}\nMake sure to save your EVM address and private key in a secure location!${COLOR_RESET}"
-    log_message "EVM Wallet generated, private key not saved."
-}
-
-install_hyperlane_project() {
-    echo -e "${COLOR_BLUE}\nPulling Hyperlane Docker image...${COLOR_RESET}"
-    docker pull --platform linux/amd64 gcr.io/abacus-labs-dev/hyperlane-agent:agents-v1.0.0 >/dev/null 2>&1
-    if [ $? -eq 0 ]; then
-        echo -e "${COLOR_GREEN}Hyperlane Docker image pulled successfully.${COLOR_RESET}"
-        log_message "Hyperlane Docker image pulled."
-    else
-        echo -e "${COLOR_RED}Failed to pull Hyperlane Docker image.${COLOR_RESET}"
-        log_message "Failed to pull Hyperlane Docker image."
-    fi
-}
-
-create_hyperlane_db_directory() {
-    echo -e "${COLOR_BLUE}\nCreating Hyperlane database directory...${COLOR_RESET}"
-    mkdir -p /root/hyperlane_db_base && chmod -R 777 /root/hyperlane_db_base
-    if [ $? -eq 0 ]; then
-        echo -e "${COLOR_GREEN}Hyperlane database directory created successfully.${COLOR_RESET}"
-        log_message "Hyperlane database directory created."
-    else
-        echo -e "${COLOR_RED}Failed to create Hyperlane database directory.${COLOR_RESET}"
-        log_message "Failed to create Hyperlane database directory."
-    fi
+    log_message "EVM Wallet generated."
 }
 
 run_hyperlane_node() {
@@ -177,48 +106,36 @@ run_hyperlane_node() {
     read -p "Enter private key: " PRIVATE_KEY
     read -p "Enter RPC URL: " RPC_CHAIN
 
+    log_message "Running Hyperlane Node for $CHAIN..."
     docker run -d \
-      -it \
       --name hyperlane \
-      --mount type=bind,source=/root/hyperlane_db_"$CHAIN",target=/hyperlane_db_"$CHAIN" \
+      --mount type=bind,source=$HOME/hyperlane_db,target=/hyperlane_db \
       gcr.io/abacus-labs-dev/hyperlane-agent:agents-v1.0.0 \
       ./validator \
-      --db /hyperlane_db_"$CHAIN" \
+      --db /hyperlane_db \
       --originChainName "$CHAIN" \
-      --reorgPeriod 1 \
       --validator.id "$NAME" \
-      --checkpointSyncer.type localStorage \
-      --checkpointSyncer.folder "$CHAIN" \
-      --checkpointSyncer.path /hyperlane_db_"$CHAIN"/"$CHAIN"_checkpoints \
       --validator.key "$PRIVATE_KEY" \
-      --chains."$CHAIN".signer.key "$PRIVATE_KEY" \
       --chains."$CHAIN".customRpcUrls "$RPC_CHAIN"
 
     echo -e "${COLOR_GREEN}Hyperlane node is running.${COLOR_RESET}"
-    log_message "Hyperlane node is running."
+    log_message "Hyperlane node started."
 }
 
 # ================================
-# Instalasi dan konfigurasi
+# Instalasi
 # ================================
 install_dependencies
 install_nvm
 install_node
 install_docker
-install_docker_compose
-install_hyperlane_cli
 install_foundry
 generate_evm_wallet
-install_hyperlane_project
-create_hyperlane_db_directory
 run_hyperlane_node
 
 echo -e "${COLOR_BLUE}\nInstallation completed.${COLOR_RESET}"
 log_message "Installation completed."
 
-# ================================
-# Gabung Channel Telegram
-# ================================
 echo -e "${COLOR_MAGENTA}\nJoin Telegram channel for updates:${COLOR_RESET}"
 echo -e "${COLOR_BLUE}https://t.me/airdrop_node${COLOR_RESET}"
-log_message "Displayed Telegram channel link for updates."
+log_message "Displayed Telegram channel link."
