@@ -92,25 +92,27 @@ wget $DOWNLOAD_URL
 check_command_success
 
 # Mengekstrak file
-echo -e "${BLUE}📂  Mengekstrak file Multiple CLI...${RESET}"
+echo -e "${BLUE}📂 Mengekstrak file Multiple CLI...${RESET}"
 tar -xvf multipleforlinux.tar
 check_command_success
 
-# Memberikan izin eksekusi
-echo -e "${CYAN}🔧  Memberikan izin eksekusi untuk Multiple CLI...${RESET}"
-chmod +x ./multiple-cli
-chmod +x ./multiple-node
-check_command_success
+# Masuk ke direktori yang berisi multiple-cli dan multiple-node
+cd multipleforlinux || { echo -e "${RED}❌ Gagal masuk ke direktori multipleforlinux.${RESET}"; exit 1; }
 
-# Menetapkan PATH
-echo -e "${CYAN}🔧  Menetapkan PATH untuk Multiple CLI...${RESET}"
-PATH=$PATH:$(pwd)
-echo "export PATH=$PATH" | sudo tee -a /etc/profile > /dev/null
-source /etc/profile
-check_command_success
+# Memeriksa apakah file multiple-cli dan multiple-node ada setelah ekstraksi
+if [[ -f "./multiple-cli" && -f "./multiple-node" ]]; then
+    # Memberikan izin eksekusi
+    echo -e "${CYAN}🔧 Memberikan izin eksekusi untuk Multiple CLI...${RESET}"
+    chmod +x ./multiple-cli
+    chmod +x ./multiple-node
+    check_command_success
+else
+    echo -e "${RED}❌ File 'multiple-cli' atau 'multiple-node' tidak ditemukan setelah ekstraksi. Pastikan file unduhan benar.${RESET}"
+    exit 1
+fi
 
-# Memberikan izin untuk folder
-echo -e "${CYAN}🔧  Memberikan izin pada direktori Multiple CLI...${RESET}"
+# Memberikan izin eksekusi untuk direktori
+echo -e "${CYAN}🔧 Memberikan izin eksekusi untuk direktori multipleforlinux...${RESET}"
 chmod -R 777 multipleforlinux
 check_command_success
 
