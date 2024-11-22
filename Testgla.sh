@@ -95,9 +95,9 @@ if [ -z "$YOUR_PRIVATE_KEY" ]; then
 fi
 
 # Menambahkan parameter untuk Gas Price dan Gas Limit
-# Gas Price 1 Gwei = 1000000000 Wei
-GAS_PRICE=1000000000  # Gas Price dalam Wei (1 Gwei)
-GAS_LIMIT=210000  # Gas limit (sesuaikan dengan transaksi Anda)
+# Gas Price 5 Gwei = 5000000000 Wei
+GAS_PRICE=5000000000  # Gas Price dalam Wei (5 Gwei)
+GAS_LIMIT=500000  # Gas limit yang lebih tinggi, sesuaikan dengan kebutuhan transaksi
 
 echo -e "\n${CYAN}⛽ Menetapkan Gas Price ke: ${GAS_PRICE} Wei dan Gas Limit ke: ${GAS_LIMIT}${RESET}"
 
