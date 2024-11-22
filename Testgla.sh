@@ -94,10 +94,15 @@ if [ -z "$YOUR_PRIVATE_KEY" ]; then
     exit 1
 fi
 
-# Menambahkan parameter untuk Gas Price dan Gas Limit
-# Gas Price 5 Gwei = 5000000000 Wei
-GAS_PRICE=5000000000  # Gas Price dalam Wei (5 Gwei)
-GAS_LIMIT=500000  # Gas limit yang lebih tinggi, sesuaikan dengan kebutuhan transaksi
+# Meminta pengguna untuk memasukkan Gas Price dan Gas Limit dengan default
+echo -e "\n${CYAN}⛽  Masukkan Gas Price (dalam Gwei, default 10 Gwei):${RESET}"
+read GAS_PRICE_INPUT
+GAS_PRICE=${GAS_PRICE_INPUT:-10}  # Default 10 Gwei jika input kosong
+GAS_PRICE=$((GAS_PRICE * 1000000000))  # Mengkonversi Gwei ke Wei
+
+echo -e "${CYAN}🔧 Masukkan Gas Limit (default 1000000):${RESET}"
+read GAS_LIMIT_INPUT
+GAS_LIMIT=${GAS_LIMIT_INPUT:-1000000}  # Default Gas Limit 1.000.000 jika input kosong
 
 echo -e "\n${CYAN}⛽ Menetapkan Gas Price ke: ${GAS_PRICE} Wei dan Gas Limit ke: ${GAS_LIMIT}${RESET}"
 
