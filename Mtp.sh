@@ -101,8 +101,11 @@ echo -e "${LIGHT_GREEN}✅  Multiple Node berhasil dijalankan!${RESET}\n"
 # Meminta input pengguna
 echo -e "${CYAN}🔐  Masukkan detail akun Anda:${RESET}"
 read -p "Masukkan Identifier: " USER_IDENTIFIER
-read -s -p "Masukkan PIN Code: " USER_PIN
-echo
+
+# Menampilkan pesan sebelum membaca PIN
+echo -e "${CYAN}🔐  Masukkan PIN Code Anda:${RESET}"
+read -s -p "Masukkan PIN: " USER_PIN
+echo  # Untuk menambahkan baris baru setelah input PIN
 
 # Validasi input
 if [[ -z "$USER_IDENTIFIER" || -z "$USER_PIN" ]]; then
