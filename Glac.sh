@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Skrip Instalasi Verifier Node dengan Screen
+# Skrip Instalasi Verifier Node dengan Screen di Direktori Root /glacier
 
 # Warna untuk output
 GREEN='\033[0;32m'
@@ -11,6 +11,7 @@ NC='\033[0m'
 BINARY_NAME="verifier_linux_amd64"
 CONFIG_FILE="config.yaml"
 BINARY_URL="https://github.com/Glacier-Labs/node-bootstrap/releases/download/v0.0.1-beta/$BINARY_NAME"
+INSTALL_DIR="/glacier"  # Direktori root /glacier
 
 # Periksa apakah pengguna adalah root
 if [[ $EUID -ne 0 ]]; then
@@ -18,7 +19,16 @@ if [[ $EUID -ne 0 ]]; then
    exit 1
 fi
 
-# Langkah 1: Instal screen jika belum ada
+# Langkah 1: Pastikan direktori instalasi ada
+if [ ! -d "$INSTALL_DIR" ]; then
+    echo -e "${GREEN}Membuat direktori instalasi: $INSTALL_DIR${NC}"
+    mkdir -p "$INSTALL_DIR"
+fi
+
+# Langkah 2: Pindah ke direktori instalasi
+cd "$INSTALL_DIR" || exit
+
+# Langkah 3: Instal screen jika belum ada
 echo -e "${GREEN}Memastikan screen sudah terinstal...${NC}"
 if ! command -v screen &> /dev/null; then
     echo -e "${GREEN}Menginstal screen...${NC}"
@@ -27,7 +37,7 @@ else
     echo -e "${GREEN}Screen sudah terinstal.${NC}"
 fi
 
-# Langkah 2: Unduh binary
+# Langkah 4: Unduh binary
 echo -e "${GREEN}Mengunduh binary dari GitHub...${NC}"
 wget -q --show-progress "$BINARY_URL" -O "$BINARY_NAME"
 if [[ $? -ne 0 ]]; then
@@ -35,10 +45,10 @@ if [[ $? -ne 0 ]]; then
     exit 1
 fi
 
-# Langkah 3: Beri izin eksekusi
+# Langkah 5: Beri izin eksekusi
 chmod +x "$BINARY_NAME"
 
-# Langkah 4: Buat file konfigurasi
+# Langkah 6: Buat file konfigurasi
 echo -e "${GREEN}Membuat file konfigurasi...${NC}"
 read -p "Masukkan PrivateKey Anda: " PRIVATE_KEY
 
@@ -53,9 +63,9 @@ TEE:
   IpfsURL: "https://greenfield.onebitdev.com/ipfs/"
 EOF
 
-# Langkah 5: Periksa struktur direktori
+# Langkah 7: Periksa struktur direktori
 if [[ -f "$BINARY_NAME" && -f "$CONFIG_FILE" ]]; then
-    echo -e "${GREEN}Struktur file sudah benar:${NC}"
+    echo -e "${GREEN}Struktur file sudah benar di direktori $INSTALL_DIR:${NC}"
     echo -e "${GREEN}."
     echo -e "├── ${CONFIG_FILE}"
     echo -e "└── ${BINARY_NAME}${NC}"
@@ -64,7 +74,7 @@ else
     exit 1
 fi
 
-# Langkah 6: Jalankan node dalam screen
+# Langkah 8: Jalankan node dalam screen
 echo -e "${GREEN}Menjalankan node dalam screen session...${NC}"
 screen -dmS glacier-node ./"$BINARY_NAME"
 
