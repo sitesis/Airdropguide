@@ -17,7 +17,7 @@ check_command_success() {
     fi
 }
 
-# Logo
+# Menampilkan logo
 curl -s https://raw.githubusercontent.com/choir94/Airdropguide/refs/heads/main/logo.sh | bash
 sleep 5
 
@@ -86,55 +86,43 @@ else
     exit 1
 fi
 
-# Mengunduh file berdasarkan URL yang ditentukan
+# Mengunduh dan Mengekstrak File
+WORK_DIR="$HOME/multipleforlinux"
 echo -e "${BLUE}📥  Mengunduh file Multiple CLI...${RESET}"
-wget $DOWNLOAD_URL
+wget -q -O multipleforlinux.tar $DOWNLOAD_URL
 check_command_success
 
-# Mengekstrak file
 echo -e "${BLUE}📂 Mengekstrak file Multiple CLI...${RESET}"
-tar -xvf multipleforlinux.tar
+mkdir -p $WORK_DIR && tar -xvf multipleforlinux.tar -C $WORK_DIR
 check_command_success
 
-# Masuk ke direktori yang berisi multiple-cli dan multiple-node
-cd multipleforlinux || { echo -e "${RED}❌ Gagal masuk ke direktori multipleforlinux.${RESET}"; exit 1; }
+# Masuk ke direktori kerja
+cd $WORK_DIR || { echo -e "${RED}❌ Gagal masuk ke direktori ${WORK_DIR}.${RESET}"; exit 1; }
 
-# Memeriksa apakah file multiple-cli dan multiple-node ada setelah ekstraksi
-if [[ -f "./multiple-cli" && -f "./multiple-node" ]]; then
-    # Memberikan izin eksekusi
-    echo -e "${CYAN}🔧 Memberikan izin eksekusi untuk Multiple CLI...${RESET}"
-    chmod +x ./multiple-cli
-    chmod +x ./multiple-node
-    check_command_success
-else
-    echo -e "${RED}❌ File 'multiple-cli' atau 'multiple-node' tidak ditemukan setelah ekstraksi. Pastikan file unduhan benar.${RESET}"
-    exit 1
-fi
-
-# Memberikan izin eksekusi untuk direktori
-echo -e "${CYAN}🔧 Memberikan izin eksekusi untuk direktori multipleforlinux...${RESET}"
-chmod -R 777 multipleforlinux
+# Memberikan izin eksekusi
+echo -e "${CYAN}🔧 Memberikan izin eksekusi untuk Multiple CLI dan Node...${RESET}"
+chmod +x ./multiple-cli ./multiple-node
 check_command_success
 
-# Menjalankan multiple-node
+# Menjalankan Multiple Node
 echo -e "${CYAN}🚀  Menjalankan Multiple Node...${RESET}"
-nohup ./multiple-node > output.log 2>&1 &
+nohup ./multiple-node > $WORK_DIR/output.log 2>&1 &
 check_command_success
 
-# Meminta input dari pengguna untuk identifier dan PIN
+# Meminta input pengguna
 echo -e "\n${CYAN}Masukkan Unique Account Identification Code:${RESET}"
 read -p "Identifier: " USER_IDENTIFIER
 echo -e "${CYAN}Masukkan PIN Code:${RESET}"
 read -s -p "PIN Code: " USER_PIN
 echo
 
-# Memastikan bahwa input telah diisi
+# Validasi input
 if [[ -z "$USER_IDENTIFIER" || -z "$USER_PIN" ]]; then
     echo -e "${RED}❌  Identifier dan PIN tidak boleh kosong.${RESET}"
     exit 1
 fi
 
-# Menjalankan `multiple-cli bind` dengan parameter pengguna
+# Menjalankan Multiple CLI Bind
 echo -e "\n${BLUE}🔗  Mengikat akun dengan Multiple CLI...${RESET}"
 ./multiple-cli bind \
     --bandwidth-download 100 \
@@ -144,13 +132,8 @@ echo -e "\n${BLUE}🔗  Mengikat akun dengan Multiple CLI...${RESET}"
     --bandwidth-upload 100
 check_command_success
 
+# Informasi selesai
 echo -e "\n${LIGHT_GREEN}✅  Akun berhasil terikat dengan Multiple CLI!${RESET}"
-
-# Menambahkan informasi untuk log dan dokumentasi
-echo -e "\n${YELLOW}📋  Anda dapat memeriksa log node dengan perintah berikut:${RESET}"
-echo -e "${WHITE}     tail -f output.log${RESET}"
-
-echo -e "\n${CYAN}📢  Jangan lupa bergabung dengan channel Airdrop Node untuk update terbaru: ${WHITE}https://t.me/airdrop_node${RESET}\n"
-
-# Selesai
+echo -e "${YELLOW}📋  Periksa log node dengan perintah:${RESET} ${WHITE}tail -f $WORK_DIR/output.log${RESET}"
+echo -e "${CYAN}📢  Bergabung dengan channel Airdrop Node untuk update: ${WHITE}https://t.me/airdrop_node${RESET}\n"
 echo -e "${LIGHT_GREEN}🎉  Proses Instalasi dan Konfigurasi Selesai!${RESET}"
