@@ -107,27 +107,36 @@ install_hyperlane_cli() {
     fi
 }
 
-install_foundry() {
-    echo -e "${COLOR_BLUE}\nInstalling Foundry using external script...${COLOR_RESET}"
-    log_message "Installing Foundry using Foundry.sh."
-    bash <(curl -s https://raw.githubusercontent.com/choir94/Airdropguide/refs/heads/main/Foundry.sh)
-    echo -e "${COLOR_GREEN}Foundry installed successfully.${COLOR_RESET}"
-    log_message "Foundry installed successfully."
-}
+install_foundry()
 
-# Set PATH for Foundry
-echo -e "${COLOR_BLUE}\nSetting PATH for Foundry...${COLOR_RESET}"
-echo 'export PATH=$HOME/.foundry/bin:$PATH' >> ~/.bashrc
-source ~/.bashrc
-echo -e "${COLOR_GREEN}Foundry PATH set successfully.${COLOR_RESET}"
+# Skrip untuk menginstal Foundry
 
-# ================================
-# Menjalankan Foundry
-# ================================
-echo -e "${COLOR_BLUE}\nStarting Foundry...${COLOR_RESET}"
-foundry up
-log_message "Foundry started successfully."
-}
+echo "Mengunduh dan menginstal Foundry..."
+curl -L https://foundry.paradigm.xyz | bash
+
+echo "Menambahkan Foundry ke PATH..."
+if [[ ":$PATH:" != *":$HOME/.foundry/bin:"* ]]; then
+    echo "source ~/.foundry/bin" >> ~/.bashrc
+    echo "source ~/.foundry/bin" >> ~/.zshrc
+    echo "Menambahkan ke .bashrc dan .zshrc selesai."
+else
+    echo "Foundry sudah ada di PATH."
+fi
+
+echo "Memuat ulang shell..."
+source ~/.bashrc || source ~/.zshrc
+
+echo "Verifikasi instalasi Foundry..."
+if command -v forge &> /dev/null; then
+    echo "Foundry berhasil diinstal. Versi:"
+    forge --version
+else
+    echo "Foundry tidak berhasil diinstal. Harap cek log."
+    exit 1
+fi
+
+echo "Proses instalasi selesai!"
+
 
 generate_evm_wallet() {
     echo -e "${COLOR_BLUE}\nCreating your EVM Wallet...${COLOR_RESET}"
