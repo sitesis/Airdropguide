@@ -106,10 +106,17 @@ run_hyperlane_node() {
     read -p "Enter private key: " PRIVATE_KEY
     read -p "Enter RPC URL: " RPC_CHAIN
 
+    # Create directory for the Hyperlane node's database with chain-specific name
+    DB_DIR="/root/hyperlane_db_$CHAIN"
+    echo -e "${COLOR_BLUE}\nCreating database directory at $DB_DIR...${COLOR_RESET}"
+    mkdir -p "$DB_DIR" && chmod -R 777 "$DB_DIR"
+    log_message "Created database directory at $DB_DIR and set permissions."
+
+    # Run Hyperlane Node with Docker
     log_message "Running Hyperlane Node for $CHAIN..."
     docker run -d \
       --name hyperlane \
-      --mount type=bind,source=$HOME/hyperlane_db,target=/hyperlane_db \
+      --mount type=bind,source="$DB_DIR",target=/hyperlane_db \
       gcr.io/abacus-labs-dev/hyperlane-agent:agents-v1.0.0 \
       ./validator \
       --db /hyperlane_db \
