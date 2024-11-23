@@ -20,12 +20,24 @@ echo "Extracting installation package..."
 tar -xvf multipleforlinux.tar
 
 # Step 4: Navigate to the extracted directory
-cd multipleforlinux
+cd multipleforlinux || { echo "Directory 'multipleforlinux' does not exist."; exit 1; }
 
-# Step 5: Grant permissions in the `multipleforlinux` directory
-echo "Granting execution permissions in the 'multipleforlinux' directory..."
-chmod +x ./multiple-cli
-chmod +x ./multiple-node
+# Step 5: List the extracted files to ensure we have the right files
+echo "Listing files in 'multipleforlinux' directory:"
+ls -l
+
+# Check if the files exist before attempting to change permissions
+if [[ -f "./multiple-cli" ]]; then
+    chmod +x ./multiple-cli
+else
+    echo "'multiple-cli' not found. Please check the extracted contents."
+fi
+
+if [[ -f "./multiple-node" ]]; then
+    chmod +x ./multiple-node
+else
+    echo "'multiple-node' not found. Please check the extracted contents."
+fi
 
 # Step 6: Configure the PATH variable
 echo "Configuring PATH..."
@@ -45,7 +57,7 @@ nohup ./multipleforlinux/multiple-node > output.log 2>&1 &
 echo "Please input your unique account identifier and PIN..."
 read -p "Enter your unique identifier: " IDENTIFIER
 read -p "Enter your PIN: " PIN
-multipleforlinux/multiple-cli bind --bandwidth-download 100 --identifier $IDENTIFIER --pin $PIN --storage 200 --bandwidth-upload 100
+./multipleforlinux/multiple-cli bind --bandwidth-download 100 --identifier $IDENTIFIER --pin $PIN --storage 200 --bandwidth-upload 100
 
 # Step 10: Perform additional operations (optional)
 echo "If you need help with other commands, you can use --help."
