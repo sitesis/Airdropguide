@@ -14,7 +14,7 @@ URL="https://cdn.app.multiple.cc/client/linux/x64/multipleforlinux.tar"
 # Nama file hasil unduhan
 FILE_NAME="multipleforlinux.tar"
 
-# Direktori hasil ekstrak
+# Direktori hasil ekstrak (folder yang sesuai dengan hasil ekstraksi)
 EXTRACT_DIR="multipleforlinux"
 
 # Fungsi untuk menangani kesalahan
@@ -31,9 +31,11 @@ wget $URL -O $FILE_NAME || handle_error
 echo "Mengekstrak file instalasi..."
 tar -xvf $FILE_NAME || handle_error
 
-# Beri izin eksekusi pada file multiple-cli dan multiple-node di folder multipleforlinux
+# Cek apakah folder hasil ekstraksi benar-benar ada
 if [ -d "$EXTRACT_DIR" ]; then
-  echo "Memberikan izin eksekusi pada multiple-cli dan multiple-node di folder $EXTRACT_DIR..."
+  echo "Folder $EXTRACT_DIR ditemukan, memberikan izin eksekusi pada multiple-cli dan multiple-node..."
+  
+  # Beri izin eksekusi pada file multiple-cli dan multiple-node
   chmod +x "$EXTRACT_DIR/multiple-cli" || handle_error
   chmod +x "$EXTRACT_DIR/multiple-node" || handle_error
 
@@ -52,6 +54,7 @@ if [ -d "$EXTRACT_DIR" ]; then
   chmod -R 777 "$EXTRACT_DIR" || handle_error
 else
   echo "Folder hasil ekstrak $EXTRACT_DIR tidak ditemukan."
+  echo "Mungkin ada kesalahan dalam proses ekstraksi atau nama folder yang berbeda."
   exit 1
 fi
 
