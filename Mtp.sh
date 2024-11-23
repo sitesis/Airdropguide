@@ -1,52 +1,79 @@
 #!/bin/bash
 
-# Step 1: Check if required commands are available
-command -v wget >/dev/null 2>&1 || { echo "wget not found, please install it."; exit 1; }
-command -v tar >/dev/null 2>&1 || { echo "tar not found, please install it."; exit 1; }
-command -v chmod >/dev/null 2>&1 || { echo "chmod not found, please install it."; exit 1; }
-command -v nohup >/dev/null 2>&1 || { echo "nohup not found, please install it."; exit 1; }
+# Script instalasi untuk multiple-cli dan multiple-node
 
-# Step 2: Download the compatible client for your Linux architecture
-echo "Downloading multipleforlinux.tar..."
-wget https://cdn.app.multiple.cc/client/linux/x64/multipleforlinux.tar || { echo "Download failed!"; exit 1; }
+# Periksa apakah script dijalankan sebagai root
+if [ "$(id -u)" -ne 0 ]; then
+  echo "Harap jalankan script ini sebagai root."
+  exit 1
+fi
 
-# Step 3: Extract the installation package
-echo "Extracting multipleforlinux.tar..."
-tar -xvf multipleforlinux.tar || { echo "Extraction failed!"; exit 1; }
+# URL untuk mengunduh client
+URL="https://cdn.app.multiple.cc/client/linux/x64/multipleforlinux.tar"
 
-# Step 4: Change to the directory where the files were extracted
-cd multipleforlinux || { echo "Failed to navigate to multipleforlinux directory"; exit 1; }
+# Nama file hasil unduhan
+FILE_NAME="multipleforlinux.tar"
 
-# Step 5: Grant required permissions
-echo "Granting permissions..."
-chmod +x ./multiple-cli || { echo "Failed to grant permission to multiple-cli"; exit 1; }
-chmod +x ./multiple-node || { echo "Failed to grant permission to multiple-node"; exit 1; }
+# Direktori hasil ekstrak
+EXTRACT_DIR="multipleforlinux"
 
-# Step 6: Configure the required parameters
-echo "Configuring PATH..."
-export PATH=$PATH:$(pwd)  # Add current directory to PATH
+# Fungsi untuk menangani kesalahan
+handle_error() {
+  echo "Terjadi kesalahan. Pastikan Anda memiliki koneksi internet dan ruang penyimpanan yang cukup."
+  exit 1
+}
 
-# Apply the required parameters
-echo "Applying parameters..."
-source /etc/profile || { echo "Failed to source /etc/profile"; exit 1; }
+# Unduh client
+echo "Mengunduh client dari $URL..."
+wget $URL -O $FILE_NAME || handle_error
 
-# Step 7: Return to the root directory and grant permissions
-echo "Granting root permissions to the extracted folder..."
-chmod -R 777 ./multipleforlinux || { echo "Failed to change permissions"; exit 1; }
+# Ekstrak file di lokasi saat ini
+echo "Mengekstrak file instalasi..."
+tar -xvf $FILE_NAME || handle_error
 
-# Step 8: Start the program
-echo "Starting the program..."
-nohup ./multiple-node > output.log 2>&1 & || { echo "Failed to start the program"; exit 1; }
+# Beri izin eksekusi pada file multiple-cli dan multiple-node di folder multipleforlinux
+if [ -d "$EXTRACT_DIR" ]; then
+  echo "Memberikan izin eksekusi pada multiple-cli dan multiple-node di folder $EXTRACT_DIR..."
+  chmod +x "$EXTRACT_DIR/multiple-cli" || handle_error
+  chmod +x "$EXTRACT_DIR/multiple-node" || handle_error
 
-# Step 9: Bind the unique account identifier (Replace XXXXXXXX and XXXXXX with actual values)
-echo "Binding unique account identifier..."
-echo "Please enter your unique account identifier and PIN code."
+  # Tambahkan direktori hasil ekstrak ke PATH
+  echo "Menambahkan folder $EXTRACT_DIR ke PATH..."
+  export PATH=$PATH:$(pwd)/$EXTRACT_DIR
+  echo "export PATH=\$PATH:$(pwd)/$EXTRACT_DIR" >> ~/.bashrc
 
-# Prompt user for account identifier and pin
-read -p "Enter unique identifier: " identifier
-read -p "Enter PIN code: " pin
+  # Terapkan perubahan PATH dengan memuat /etc/profile
+  echo "Menerapkan perubahan PATH dengan 'source /etc/profile'..."
+  source /etc/profile || handle_error
 
-# Run the bind command with provided values
-./multiple-cli bind --bandwidth-download 100 --identifier "$identifier" --pin "$pin" --storage 200 --bandwidth-upload 100 || { echo "Failed to bind account"; exit 1; }
+  # Kembali ke direktori root dan memberikan izin penuh (777) ke folder hasil ekstrak
+  echo "Kembali ke direktori root dan memberikan izin 777 ke folder $EXTRACT_DIR..."
+  cd / || handle_error
+  chmod -R 777 "$EXTRACT_DIR" || handle_error
+else
+  echo "Folder hasil ekstrak $EXTRACT_DIR tidak ditemukan."
+  exit 1
+fi
 
-echo "Installation and configuration complete."
+# Bersihkan file unduhan
+echo "Membersihkan file instalasi sementara..."
+rm -f $FILE_NAME
+
+# Input untuk Unique Account Identifier dan PIN Code
+echo "Masukkan Unique Account Identifier (XXXXXXX):"
+read -r ACCOUNT_IDENTIFIER
+
+echo "Masukkan PIN Code (XXXXXX):"
+read -r PIN_CODE
+
+# Menjalankan multiple-cli bind dengan parameter yang diberikan
+echo "Mengikat akun dengan identifier $ACCOUNT_IDENTIFIER dan PIN Code yang diberikan..."
+multiple-cli bind --bandwidth-download 100 --identifier "$ACCOUNT_IDENTIFIER" --pin "$PIN_CODE" --storage 200 --bandwidth-upload 100
+
+# Mulai jalankan multiple-node di latar belakang
+echo "Menjalankan multiple-node di latar belakang..."
+nohup ./$EXTRACT_DIR/multiple-node > output.log 2>&1 &
+
+# Selesai
+echo "Instalasi selesai. Program multiple-node telah dijalankan di latar belakang."
+echo "Log dapat ditemukan di 'output.log'."
