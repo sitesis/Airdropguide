@@ -55,8 +55,25 @@ nohup ./multipleforlinux/multiple-node > output.log 2>&1 &
 
 # Step 9: Bind the unique account identifier
 echo "Please input your unique account identifier and PIN..."
-read -p "Enter your unique identifier: " IDENTIFIER
-read -p "Enter your PIN: " PIN
+
+# Input validation for identifier
+while [[ -z "$IDENTIFIER" ]]; do
+    read -p "Enter your unique identifier: " IDENTIFIER
+    if [[ -z "$IDENTIFIER" ]]; then
+        echo "Identifier cannot be empty. Please provide a valid identifier."
+    fi
+done
+
+# Input validation for PIN
+while [[ -z "$PIN" ]]; do
+    read -p "Enter your PIN: " PIN
+    if [[ -z "$PIN" ]]; then
+        echo "PIN cannot be empty. Please provide a valid PIN."
+    fi
+done
+
+# Bind the account
+echo "Binding account with identifier $IDENTIFIER and PIN $PIN..."
 ./multipleforlinux/multiple-cli bind --bandwidth-download 100 --identifier $IDENTIFIER --pin $PIN --storage 200 --bandwidth-upload 100
 
 # Step 10: Perform additional operations (optional)
