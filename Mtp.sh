@@ -1,6 +1,6 @@
 #!/bin/bash
 curl -s https://raw.githubusercontent.com/choir94/Airdropguide/refs/heads/main/logo.sh | bash
-sleep 3
+sleep 5
 # Define custom light colors
 BLUE='\033[1;34m'    
 RED='\033[1;31m'
@@ -64,7 +64,7 @@ read -p "Masukkan PIN Anda: " PIN
 
 # Run the program
 echo -e "${BLUE}🚀 Menjalankan program...${NC}"
-if ! nohup ./multiple-node > output.log 2>&1 &; then
+if ! nohup ./multiple-node > output.log 2>&1 & then
     echo -e "${RED}Gagal menjalankan program.${NC}"
     exit 1
 fi
