@@ -21,7 +21,7 @@ BULLET="${MAGENTA}•${NC}"
 # Nama binary dan file konfigurasi
 BINARY_NAME="verifier_linux_amd64"
 CONFIG_FILE="config.yaml"
-BINARY_URL="https://github.com/Glacier-Labs/node-bootstrap/releases/download/v0.0.1-beta/verifier_linux_amd64"  # URL baru yang diberikan
+BINARY_URL="https://github.com/Glacier-Labs/node-bootstrap/releases/download/v0.0.2-beta/verifier_linux_amd64"  # URL baru
 INSTALL_DIR="/glacier"
 
 # Gas Price otomatis
