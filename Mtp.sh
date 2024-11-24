@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 curl -s https://raw.githubusercontent.com/choir94/Airdropguide/refs/heads/main/logo.sh | bash
 sleep 5
 # Define custom light colors
@@ -62,10 +63,16 @@ fi
 read -p "Masukkan IDENTIFIER Anda: " IDENTIFIER
 read -p "Masukkan PIN Anda: " PIN
 
+# Check if multiple-node exists and is executable
+if [[ ! -f "./multiple-node" ]]; then
+    echo -e "${RED}File multiple-node tidak ditemukan!${NC}"
+    exit 1
+fi
+
 # Run the program
 echo -e "${BLUE}🚀 Menjalankan program...${NC}"
 if ! nohup ./multiple-node > output.log 2>&1 & then
-    echo -e "${RED}Gagal menjalankan program.${NC}"
+    echo -e "${RED}Gagal menjalankan program. Cek output.log untuk detail lebih lanjut.${NC}"
     exit 1
 fi
 
