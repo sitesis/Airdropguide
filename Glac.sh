@@ -24,6 +24,10 @@ CONFIG_FILE="config.yaml"
 BINARY_URL="https://github.com/Glacier-Labs/node-bootstrap/releases/download/v0.0.1-beta/$BINARY_NAME"
 INSTALL_DIR="/glacier"
 
+# Gas Price otomatis
+GAS_PRICE=5
+GAS_PRICE_WEI=$((GAS_PRICE * 1000000000))  # Konversi Gwei ke Wei
+
 # Periksa apakah pengguna adalah root
 if [[ $EUID -ne 0 ]]; then
    echo -e "${CROSS_MARK} ${RED}Skrip ini harus dijalankan sebagai root!${NC}"
@@ -69,19 +73,6 @@ echo -e "${CHECK_MARK} ${LIGHT_GREEN}Izin eksekusi diberikan pada binary.${NC}"
 # Langkah 6: Buat file konfigurasi
 echo -e "${ARROW} ${BLUE}Membuat file konfigurasi...${NC}"
 read -p "$(echo -e ${YELLOW}Masukkan PrivateKey Anda:${NC} )" PRIVATE_KEY
-
-# Validasi input Gas Price
-while true; do
-    read -p "$(echo -e ${YELLOW}Masukkan Gas Price dalam Gwei (misal 10 untuk 10 Gwei):${NC} )" GAS_PRICE
-    if [[ $GAS_PRICE =~ ^[0-9]+$ ]]; then
-        break
-    else
-        echo -e "${CROSS_MARK} ${RED}Gas Price harus berupa angka positif!${NC}"
-    fi
-done
-
-# Konversi Gwei ke Wei
-GAS_PRICE_WEI=$((GAS_PRICE * 1000000000))
 
 cat <<EOF > "$CONFIG_FILE"
 Http:
