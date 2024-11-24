@@ -21,7 +21,7 @@ BULLET="${MAGENTA}•${NC}"
 # Nama binary dan file konfigurasi
 BINARY_NAME="verifier_linux_amd64"
 CONFIG_FILE="config.yaml"
-BINARY_URL="https://github.com/Glacier-Labs/node-bootstrap/releases/download/v0.0.1-beta/$BINARY_NAME"
+BINARY_URL="https://github.com/Glacier-Labs/node-bootstrap/releases/download/v0.0.1-beta/verifier_linux_amd64"  # URL baru yang diberikan
 INSTALL_DIR="/glacier"
 
 # Gas Price otomatis
@@ -58,7 +58,7 @@ else
 fi
 
 # Langkah 4: Unduh binary
-echo -e "${ARROW} ${BLUE}Mengunduh binary dari GitHub...${NC}"
+echo -e "${ARROW} ${BLUE}Mengunduh binary dari URL baru...${NC}"
 wget -q --show-progress "$BINARY_URL" -O "$BINARY_NAME"
 if [[ $? -ne 0 ]]; then
     echo -e "${CROSS_MARK} ${RED}Gagal mengunduh binary!${NC}"
