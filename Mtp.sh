@@ -57,6 +57,12 @@ read -p "Enter your IDENTIFIER: " IDENTIFIER
 read -p "Enter your PIN: " PIN
 echo ""
 
+# Validate IDENTIFIER and PIN
+if [ -z "$IDENTIFIER" ] || [ -z "$PIN" ]; then
+    echo -e "${RED}❌ ERROR: IDENTIFIER and PIN cannot be empty.${NC}"
+    exit 1
+fi
+
 # Run the program
 echo -e "${LIGHT_GREEN}🚀 Running the program...${NC}"
 nohup ./multiple-node > output.log 2>&1 &
@@ -68,6 +74,5 @@ echo ""
 
 echo -e "${LIGHT_GREEN}✅ Process completed.${NC}"
 echo ""
-
-# Step 8: Perform other operations if necessary
-echo -e "${MAGENTA}💡 You can perform other operations if necessary. Use the --help option to view specific commands for logs.${NC}"
+# Join Telegram channel
+echo -e "${CYAN}📱 Join our Telegram channel for updates and support: https://t.me/airdrop_node${NC}"
