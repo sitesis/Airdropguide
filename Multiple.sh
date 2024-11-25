@@ -97,14 +97,6 @@ fi
 echo -e "${YELLOW}🔗 Mengikat akun dengan IDENTIFIER dan PIN...${NC}"
 ./multiple-cli bind --bandwidth-download "$DOWNLOAD_BANDWIDTH" --identifier "$IDENTIFIER" --pin "$PIN" --storage "$STORAGE_CAPACITY" --bandwidth-upload "$UPLOAD_BANDWIDTH"
 echo ""
-
-# Menampilkan logs jika tersedia
-if [ -f "logs/output.log" ]; then
-    echo -e "${CYAN}📄 Logs ditemukan. Menampilkan logs...${NC}"
-    tail -f logs/output.log
-else
-    echo -e "${RED}❌ File logs/output.log tidak ditemukan. Pastikan multiple-node berjalan dengan benar.${NC}"
-fi
-
+# join Telegram
 echo -e "${LIGHT_GREEN}✅ Proses selesai.${NC}"
 echo -e "${CYAN}📱 Gabung ke channel Telegram untuk pembaruan: https://t.me/airdrop_node${NC}"
