@@ -66,19 +66,6 @@ if [ -z "$IDENTIFIER" ] || [ -z "$PIN" ]; then
     exit 1
 fi
 
-# Opsi dinamis untuk bandwidth dan storage
-echo -e "${CYAN}⚙️ Masukkan opsi dinamis untuk bandwidth dan storage:${NC}"
-read -p "Masukkan bandwidth download (dalam MBps): " DOWNLOAD_BANDWIDTH
-read -p "Masukkan bandwidth upload (dalam MBps): " UPLOAD_BANDWIDTH
-read -p "Masukkan kapasitas storage (dalam GB): " STORAGE_CAPACITY
-echo ""
-
-# Validasi input untuk bandwidth dan storage
-if [[ -z "$DOWNLOAD_BANDWIDTH" || -z "$UPLOAD_BANDWIDTH" || -z "$STORAGE_CAPACITY" ]]; then
-    echo -e "${RED}❌ ERROR: Semua opsi bandwidth dan storage harus diisi.${NC}"
-    exit 1
-fi
-
 # Menjalankan multiple-node
 echo -e "${LIGHT_GREEN}🚀 Menjalankan multiple-node...${NC}"
 nohup ./multiple-node > logs/output.log 2>&1 &
@@ -95,7 +82,7 @@ fi
 
 # Mengikat akun dengan IDENTIFIER dan PIN
 echo -e "${YELLOW}🔗 Mengikat akun dengan IDENTIFIER dan PIN...${NC}"
-./multiple-cli bind --bandwidth-download "$DOWNLOAD_BANDWIDTH" --identifier "$IDENTIFIER" --pin "$PIN" --storage "$STORAGE_CAPACITY" --bandwidth-upload "$UPLOAD_BANDWIDTH"
+./multiple-cli bind --bandwidth-download 100 --identifier "$IDENTIFIER" --pin "$PIN" --storage 200 --bandwidth-upload 100
 echo ""
 # join Telegram
 echo -e "${LIGHT_GREEN}✅ Proses selesai.${NC}"
