@@ -97,14 +97,11 @@ echo ""
 # Pembersihan file sementara
 echo -e "${CYAN}🧹 Membersihkan file sementara...${NC}"
 cd ..
-rm -rf multipleforlinux.tar multipleforlinux
+rm -rf multipleforlinux.tar
 echo -e "${LIGHT_GREEN}✅ File sementara telah dihapus.${NC}"
 echo ""
 
 # Join Telegram
-read -p "Apakah Anda ingin bergabung dengan channel Telegram kami? (y/n): " TELEGRAM_CHOICE
-if [[ $TELEGRAM_CHOICE =~ ^[Yy]$ ]]; then
-    xdg-open "https://t.me/airdrop_node" || echo "Silakan kunjungi: https://t.me/airdrop_node"
-fi
 
 echo -e "${LIGHT_GREEN}✅ Proses selesai.${NC}"
+echo -e "${CYAN}📱 Gabung ke channel Telegram untuk pembaruan: https://t.me/airdrop_node${NC}"
