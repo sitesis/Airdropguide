@@ -1,78 +1,99 @@
 #!/bin/bash
 
 # Variabel global
-PIPE_TOOL_URL="https://github.com/choir94/Airdropguide/raw/refs/heads/main/pipe-tool"
-DCDND_URL="https://github.com/choir94/Airdropguide/raw/refs/heads/main/dcdnd"
 NODE_REGISTRY_URL="https://rpc.pipedev.network"
 INSTALL_DIR="/opt/dcdn"
 OUTPUT_DIR="$HOME/.permissionless"
 CREDENTIALS_FILE="$OUTPUT_DIR/credentials.json"
 KEYPAIR_PATH="$OUTPUT_DIR/key.json"
+REGISTRATION_TOKEN_PATH="$OUTPUT_DIR/registration_token.txt"  # Lokasi untuk menyimpan token pendaftaran
+
+# Warna
+RESET="\033[0m"
+BOLD="\033[1m"
+LIGHT_GREEN="\033[1;32m"   # Light green
+CYAN="\033[36m"
+YELLOW="\033[33m"
+RED="\033[31m"
+BLUE="\033[34m"
+
+# Meminta URL dari pengguna
+prompt_urls() {
+    echo -e "${CYAN}=== MEMASUKKAN URL ===${RESET}"
+    read -p "Masukkan URL untuk pipe-tool: " PIPE_TOOL_URL
+    read -p "Masukkan URL untuk dcdnd: " DCDND_URL
+
+    # Memastikan URL tidak kosong
+    if [ -z "$PIPE_TOOL_URL" ] || [ -z "$DCDND_URL" ]; then
+        echo -e "${RED}URL tidak boleh kosong. Proses dibatalkan.${RESET}"
+        exit 1
+    fi
+}
 
 # Setup pipe-tool dan dcdnd binary
 setup_binaries() {
-    echo "=== SETUP BINARIES ==="
+    echo -e "${CYAN}=== SETUP BINARIES ===${RESET}"
     sudo mkdir -p "$INSTALL_DIR"
 
-    echo "1. Mengunduh pipe-tool binary..."
+    echo -e "${YELLOW}1.${RESET} Mengunduh pipe-tool binary dari $PIPE_TOOL_URL..."
     sudo curl -L "$PIPE_TOOL_URL" -o "$INSTALL_DIR/pipe-tool"
 
-    echo "2. Mengunduh dcdnd binary..."
+    echo -e "${YELLOW}2.${RESET} Mengunduh dcdnd binary dari $DCDND_URL..."
     sudo curl -L "$DCDND_URL" -o "$INSTALL_DIR/dcdnd"
 
-    echo "3. Memberikan izin eksekusi pada binary..."
+    echo -e "${YELLOW}3.${RESET} Memberikan izin eksekusi pada binary..."
     sudo chmod +x "$INSTALL_DIR/pipe-tool"
     sudo chmod +x "$INSTALL_DIR/dcdnd"
 
-    echo "Setup binaries selesai."
+    echo -e "${LIGHT_GREEN}Setup binaries selesai.${RESET}"
 }
 
-# Login ke jaringan Pipa
+# Login ke jaringan Pipe
 perform_login() {
-    echo "=== MASUK KE JARINGAN PIPA ==="
+    echo -e "${CYAN}=== MASUK KE JARINGAN PIPE ===${RESET}"
     $INSTALL_DIR/pipe-tool login --node-registry-url="$NODE_REGISTRY_URL"
+
     if [ -f "$CREDENTIALS_FILE" ]; then
-        echo "Login berhasil! File 'credentials.json' telah dibuat di $OUTPUT_DIR."
+        echo -e "${LIGHT_GREEN}Login berhasil! File 'credentials.json' telah dibuat di $OUTPUT_DIR.${RESET}"
     else
-        echo "Login gagal. Pastikan kredensial Anda benar."
+        echo -e "${RED}Login gagal. Pastikan kredensial Anda benar.${RESET}"
         exit 1
     fi
 }
 
 # Membuat dompet baru
 generate_wallet() {
-    echo "=== MEMBUAT DOMPET BARU ==="
+    echo -e "${CYAN}=== MEMBUAT DOMPET BARU ===${RESET}"
     $INSTALL_DIR/pipe-tool generate-wallet --node-registry-url="$NODE_REGISTRY_URL"
+
     if [ -f "$KEYPAIR_PATH" ]; then
-        echo "Dompet baru berhasil dibuat!"
-        echo "Lokasi pasangan kunci: $KEYPAIR_PATH"
-        echo "Pastikan Anda mencadangkan frasa pemulihan dan file kunci di lokasi yang aman."
+        echo -e "${LIGHT_GREEN}Dompet baru berhasil dibuat!${RESET}"
+        echo -e "Lokasi pasangan kunci: ${YELLOW}$KEYPAIR_PATH${RESET}"
+        echo -e "Pastikan Anda mencadangkan frasa pemulihan dan file kunci di lokasi yang aman."
     else
-        echo "Gagal membuat dompet baru."
+        echo -e "${RED}Gagal membuat dompet baru.${RESET}"
         exit 1
     fi
 }
 
-# Menautkan dompet menggunakan kunci publik Base58
-link_wallet() {
-    echo "=== MENAUTKAN DOMPET DENGAN KUNCI PUBLIK BASE58 ==="
-    read -p "Masukkan kunci publik Base58: " PUBLIC_KEY
-    if [ -z "$PUBLIC_KEY" ]; then
-        echo "Kunci publik tidak boleh kosong. Proses dibatalkan."
-        exit 1
-    fi
-    $INSTALL_DIR/pipe-tool link-wallet --node-registry-url="$NODE_REGISTRY_URL" --public-key="$PUBLIC_KEY" --key-path="$KEYPAIR_PATH"
-    if [ $? -eq 0 ]; then
-        echo "Dompet berhasil ditautkan."
+# Generate Registration Token
+generate_registration_token() {
+    echo -e "${CYAN}=== GENERATE REGISTRATION TOKEN ===${RESET}"
+    $INSTALL_DIR/pipe-tool generate-registration-token --node-registry-url="$NODE_REGISTRY_URL" > "$REGISTRATION_TOKEN_PATH"
+
+    if [ -f "$REGISTRATION_TOKEN_PATH" ]; then
+        echo -e "${LIGHT_GREEN}Token pendaftaran berhasil dibuat!${RESET}"
+        echo -e "Token pendaftaran telah disimpan di: ${YELLOW}$REGISTRATION_TOKEN_PATH${RESET}"
     else
-        echo "Gagal menautkan dompet."
+        echo -e "${RED}Gagal menghasilkan token pendaftaran.${RESET}"
         exit 1
     fi
 }
 
 # Setup layanan systemd untuk dcdnd
 setup_systemd_service() {
-    echo "=== SETUP SYSTEMD SERVICE ==="
+    echo -e "${CYAN}=== SETUP SYSTEMD SERVICE ===${RESET}"
+
     sudo bash -c "cat > /etc/systemd/system/dcdnd.service <<EOF
 [Unit]
 Description=DCDN Node Service
@@ -105,36 +126,30 @@ EOF"
     sudo systemctl enable dcdnd.service
     sudo systemctl start dcdnd.service
 
-    echo "Service dcdnd telah diatur dan dijalankan."
+    echo -e "${LIGHT_GREEN}Service dcdnd telah diatur dan dijalankan.${RESET}"
 }
 
 # Menjalankan proses pengaturan
-echo "=== MEMULAI INSTALASI DAN PENGATURAN NODE PIPA ==="
+echo -e "${CYAN}=== MEMULAI INSTALASI DAN PENGATURAN NODE PIPE ===${RESET}"
+
+prompt_urls
 setup_binaries
 perform_login
 
-echo "=== PILIH OPSI UNTUK PENGATURAN DOMPET ==="
-echo "1. Buat dompet baru"
-echo "2. Tautkan dompet menggunakan kunci publik Base58"
-read -p "Masukkan pilihan Anda (1/2): " WALLET_OPTION
+echo -e "${CYAN}=== MEMBUAT DOMPET BARU ===${RESET}"
 
-case $WALLET_OPTION in
-    1)
-        generate_wallet
-        ;;
-    2)
-        link_wallet
-        ;;
-    *)
-        echo "Pilihan tidak valid. Proses dibatalkan."
-        exit 1
-        ;;
-esac
+generate_wallet
+
+generate_registration_token  # Menambahkan langkah untuk menghasilkan token pendaftaran
 
 setup_systemd_service
 
-echo "=== INSTALASI SELESAI ==="
-echo "Untuk memeriksa status layanan, gunakan:"
-echo "  sudo systemctl status dcdnd"
-echo "Untuk melihat log secara real-time, gunakan:"
-echo "  sudo journalctl -f -u dcdnd.service"
+echo -e "${LIGHT_GREEN}=== INSTALASI SELESAI ===${RESET}"
+echo -e "Untuk memeriksa status layanan, gunakan:"
+echo -e "  ${BLUE}sudo systemctl status dcdnd${RESET}"
+echo -e "Untuk melihat log secara real-time, gunakan:"
+echo -e "  ${BLUE}sudo journalctl -f -u dcdnd.service${RESET}"
+
+# Bergabung dengan channel Telegram Airdrop Node
+echo -e "${CYAN}Untuk bergabung dengan channel Telegram Airdrop Node, klik link berikut:${RESET}"
+echo -e "${LIGHT_GREEN}https://t.me/airdrop_node${RESET}"
