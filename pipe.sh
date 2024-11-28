@@ -39,10 +39,18 @@ setup_binaries() {
     sudo mkdir -p "$INSTALL_DIR"
 
     echo -e "${YELLOW}1.${RESET} Mengunduh pipe-tool binary dari $PIPE_TOOL_URL..."
-    sudo curl -L "$PIPE_TOOL_URL" -o "$INSTALL_DIR/pipe-tool"
+    sudo curl -fL "$PIPE_TOOL_URL" -o "$INSTALL_DIR/pipe-tool"
+    if [ $? -ne 0 ]; then
+        echo -e "${RED}Gagal mengunduh pipe-tool. Proses dihentikan.${RESET}"
+        exit 1
+    fi
 
     echo -e "${YELLOW}2.${RESET} Mengunduh dcdnd binary dari $DCDND_URL..."
-    sudo curl -L "$DCDND_URL" -o "$INSTALL_DIR/dcdnd"
+    sudo curl -fL "$DCDND_URL" -o "$INSTALL_DIR/dcdnd"
+    if [ $? -ne 0 ]; then
+        echo -e "${RED}Gagal mengunduh dcdnd. Proses dihentikan.${RESET}"
+        exit 1
+    fi
 
     echo -e "${YELLOW}3.${RESET} Memberikan izin eksekusi pada binary..."
     sudo chmod +x "$INSTALL_DIR/pipe-tool"
