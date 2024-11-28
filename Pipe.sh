@@ -61,7 +61,7 @@ perform_login() {
     fi
 }
 
-# Membuat dompet baru
+# Membuat dompet baru dan menampilkan private key dan public key
 generate_wallet() {
     echo -e "${CYAN}=== MEMBUAT DOMPET BARU ===${RESET}"
     $INSTALL_DIR/pipe-tool generate-wallet --node-registry-url="$NODE_REGISTRY_URL"
@@ -69,6 +69,14 @@ generate_wallet() {
     if [ -f "$KEYPAIR_PATH" ]; then
         echo -e "${LIGHT_GREEN}Dompet baru berhasil dibuat!${RESET}"
         echo -e "Lokasi pasangan kunci: ${YELLOW}$KEYPAIR_PATH${RESET}"
+
+        # Menampilkan private key dan public key
+        PRIVATE_KEY=$(jq -r '.private_key' "$KEYPAIR_PATH")
+        PUBLIC_KEY=$(jq -r '.public_key' "$KEYPAIR_PATH")
+
+        echo -e "${CYAN}Private Key:${RESET} ${LIGHT_GREEN}$PRIVATE_KEY${RESET}"
+        echo -e "${CYAN}Public Key:${RESET} ${LIGHT_GREEN}$PUBLIC_KEY${RESET}"
+
         echo -e "Pastikan Anda mencadangkan frasa pemulihan dan file kunci di lokasi yang aman."
     else
         echo -e "${RED}Gagal membuat dompet baru.${RESET}"
