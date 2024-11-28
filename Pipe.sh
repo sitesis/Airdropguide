@@ -125,12 +125,18 @@ generate_wallet() {
     echo -e "Pastikan Anda mencadangkan frasa pemulihan dengan aman."
 }
 
-# Link Wallet
+# Link Wallet menggunakan public key Base58
 link_wallet() {
     echo -e "${CYAN}=== LINK DOMPET KE JARINGAN PIPE ===${RESET}"
-    $INSTALL_DIR/pipe-tool link-wallet --node-registry-url="$NODE_REGISTRY_URL"
-
-    echo -e "${LIGHT_GREEN}Dompet berhasil dihubungkan dengan jaringan Pipe!${RESET}"
+    read -p "Apakah Anda ingin menghubungkan dompet yang sudah ada (y/n)? " choice
+    if [[ "$choice" == "y" || "$choice" == "Y" ]]; then
+        read -p "Masukkan public key Base58 dompet Anda: " PUBLIC_KEY
+        $INSTALL_DIR/pipe-tool link-wallet --node-registry-url="$NODE_REGISTRY_URL" --public-key="$PUBLIC_KEY"
+        echo -e "${LIGHT_GREEN}Dompet berhasil dihubungkan dengan jaringan Pipe!${RESET}"
+    else
+        echo -e "${CYAN}=== MEMBUAT DOMPET BARU TANPA KEYPART ===${RESET}"
+        generate_wallet  # Membuat dompet baru jika tidak memilih dompet yang sudah ada
+    fi
 }
 
 # Cek Status Node yang Sedang Berjalan
@@ -150,11 +156,7 @@ generate_registration_token  # Menambahkan langkah untuk menghasilkan token pend
 
 setup_systemd_service
 
-# Membuat dompet baru tanpa keypair di akhir
-echo -e "${CYAN}=== MEMBUAT DOMPET BARU TANPA KEYPART ===${RESET}"
-generate_wallet  # Memindahkan generate wallet ke akhir
-
-# Menambahkan langkah untuk link dompet
+# Meminta input untuk menghubungkan atau membuat dompet baru
 link_wallet
 
 # Cek status node yang sedang berjalan
