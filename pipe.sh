@@ -8,6 +8,19 @@ CREDENTIALS_FILE="$OUTPUT_DIR/credentials.json"
 KEYPAIR_PATH="$OUTPUT_DIR/keypair.json"
 REGISTRATION_TOKEN_PATH="$OUTPUT_DIR/registration_token.txt"  # Lokasi untuk menyimpan token pendaftaran
 
+# Fungsi untuk mengunduh dan menginstal jq versi terbaru
+install_jq() {
+    echo -e "${CYAN}=== INSTALLING jq ===${RESET}"
+    
+    # Menghapus versi jq yang ada dan menginstal jq terbaru
+    sudo apt-get update
+    sudo apt-get install -y jq
+
+    # Memastikan versi terbaru
+    jq_version=$(jq --version)
+    echo -e "${LIGHT_GREEN}jq telah berhasil diinstal. Versi: $jq_version${RESET}"
+}
+
 curl -s https://raw.githubusercontent.com/choir94/Airdropguide/refs/heads/main/logo.sh | bash
 sleep 5
 
@@ -181,6 +194,9 @@ EOF"
 # Menjalankan proses pengaturan
 echo -e "${CYAN}=== MEMULAI INSTALASI DAN PENGATURAN NODE PIPE ===${RESET}"
 
+# Install jq versi terbaru
+install_jq
+
 prompt_urls
 setup_binaries
 perform_login
@@ -200,5 +216,4 @@ echo -e "Untuk melihat log secara real-time, gunakan:"
 echo -e "  ${BLUE}sudo journalctl -f -u dcdnd.service${RESET}"
 
 # Bergabung dengan channel Telegram Airdrop Node
-echo -e "${CYAN}Untuk bergabung dengan channel Telegram Airdrop Node, klik link berikut:${RESET}"
-echo -e "${LIGHT_GREEN}https://t.me/airdrop_node${RESET}"
+echo -e "Bergabung dengan Telegram channel: ${BLUE}https://t.me/airdrop_node${RESET}"
