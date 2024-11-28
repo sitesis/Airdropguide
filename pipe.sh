@@ -8,9 +8,6 @@ CREDENTIALS_FILE="$OUTPUT_DIR/credentials.json"
 KEYPAIR_PATH="$OUTPUT_DIR/key.json"
 REGISTRATION_TOKEN_PATH="$OUTPUT_DIR/registration_token.json"  # Lokasi untuk menyimpan token pendaftaran
 
-curl -s https://raw.githubusercontent.com/choir94/Airdropguide/refs/heads/main/logo.sh | bash
-sleep 5
-
 # Warna
 RESET="\033[0m"
 BOLD="\033[1m"
@@ -19,14 +16,6 @@ CYAN="\033[36m"
 YELLOW="\033[33m"
 RED="\033[31m"
 BLUE="\033[34m"
-
-# Membuat akun layanan khusus untuk dcdnd
-create_service_account() {
-    echo -e "${CYAN}=== MEMBUAT AKUN LAYANAN KHUSUS ===${RESET}"
-    sudo useradd -r -m -s /sbin/nologin dcdn-svc-user -d /home/dcdn-svc-user
-    sudo mkdir -p /home/dcdn-svc-user/.permissionless
-    sudo chown -R dcdn-svc-user:dcdn-svc-user /home/dcdn-svc-user/.permissionless
-}
 
 # Meminta URL dari pengguna
 prompt_urls() {
@@ -73,20 +62,7 @@ generate_registration_token() {
     fi
 }
 
-# Login ke jaringan Pipe
-perform_login() {
-    echo -e "${CYAN}=== MASUK KE JARINGAN PIPE ===${RESET}"
-    $INSTALL_DIR/pipe-tool login --node-registry-url="$NODE_REGISTRY_URL"
-
-    if [ -f "$CREDENTIALS_FILE" ]; then
-        echo -e "${LIGHT_GREEN}Login berhasil! File 'credentials.json' telah dibuat di $OUTPUT_DIR.${RESET}"
-    else
-        echo -e "${RED}Login gagal. Pastikan kredensial Anda benar.${RESET}"
-        exit 1
-    fi
-}
-
-# Membuat dompet baru
+# Generate Wallet
 generate_wallet() {
     echo -e "${CYAN}=== MEMBUAT DOMPET BARU ===${RESET}"
     $INSTALL_DIR/pipe-tool generate-wallet --node-registry-url="$NODE_REGISTRY_URL"
@@ -117,11 +93,9 @@ ExecStart=$INSTALL_DIR/dcdnd \
             --http-server-url=0.0.0.0:8003 \
             --node-registry-url=\"$NODE_REGISTRY_URL\" \
             --cache-max-capacity-mb=1024 \
-            --credentials-dir=/home/dcdn-svc-user/.permissionless \
+            --credentials-dir=\"$OUTPUT_DIR\" \
             --allow-origin=*
 
-User=dcdn-svc-user
-Group=dcdn-svc-user
 Restart=always
 RestartSec=5
 LimitNOFILE=65536
@@ -158,18 +132,17 @@ check_node_status() {
 # Menjalankan proses pengaturan
 echo -e "${CYAN}=== MEMULAI INSTALASI DAN PENGATURAN NODE PIPE ===${RESET}"
 
-create_service_account
 prompt_urls
 setup_binaries
-generate_registration_token
-perform_login
 
 echo -e "${CYAN}=== MEMBUAT DOMPET BARU ===${RESET}"
-generate_wallet
+
+generate_registration_token  # Menghasilkan token pendaftaran terlebih dahulu
+generate_wallet               # Membuat dompet baru
 
 setup_systemd_service
 
-# Verifikasi status node setelah semua proses selesai
+# Memverifikasi status node setelah setup
 check_node_status
 
 echo -e "${LIGHT_GREEN}=== INSTALASI SELESAI ===${RESET}"
