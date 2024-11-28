@@ -4,9 +4,9 @@
 NODE_REGISTRY_URL="https://rpc.pipedev.network"
 INSTALL_DIR="/opt/dcdn"
 OUTPUT_DIR="$HOME/.permissionless"
-CREDENTIALS_FILE="$OUTPUT_DIR/credentials.json"
 KEYPAIR_PATH="$OUTPUT_DIR/key.json"
-REGISTRATION_TOKEN_PATH="$OUTPUT_DIR/registration_token.json"  # Lokasi untuk menyimpan token pendaftaran
+REGISTRATION_TOKEN_PATH="/home/dcdn-svc-user/.permissionless/registration_token.json"  # Lokasi untuk menyimpan token pendaftaran
+WALLET_PATH="/home/dcdn-svc-user/.permissionless/wallet.json"  # Lokasi untuk menyimpan wallet
 
 # Warna
 RESET="\033[0m"
@@ -51,8 +51,15 @@ setup_binaries() {
 # Generate Registration Token
 generate_registration_token() {
     echo -e "${CYAN}=== GENERATE REGISTRATION TOKEN ===${RESET}"
+
+    # Cek apakah direktori untuk token ada, buat jika tidak ada
+    sudo mkdir -p /home/dcdn-svc-user/.permissionless
+    sudo chown -R dcdn-svc-user:dcdn-svc-user /home/dcdn-svc-user/.permissionless
+
+    # Generate token pendaftaran
     $INSTALL_DIR/pipe-tool generate-registration-token --node-registry-url="$NODE_REGISTRY_URL" > "$REGISTRATION_TOKEN_PATH"
 
+    # Verifikasi apakah token telah berhasil dibuat
     if [ -f "$REGISTRATION_TOKEN_PATH" ]; then
         echo -e "${LIGHT_GREEN}Token pendaftaran berhasil dibuat!${RESET}"
         echo -e "Token pendaftaran telah disimpan di: ${YELLOW}$REGISTRATION_TOKEN_PATH${RESET}"
@@ -64,15 +71,21 @@ generate_registration_token() {
 
 # Generate Wallet
 generate_wallet() {
-    echo -e "${CYAN}=== MEMBUAT DOMPET BARU ===${RESET}"
-    $INSTALL_DIR/pipe-tool generate-wallet --node-registry-url="$NODE_REGISTRY_URL"
+    echo -e "${CYAN}=== GENERATE WALLET ===${RESET}"
 
-    if [ -f "$KEYPAIR_PATH" ]; then
-        echo -e "${LIGHT_GREEN}Dompet baru berhasil dibuat!${RESET}"
-        echo -e "Lokasi pasangan kunci: ${YELLOW}$KEYPAIR_PATH${RESET}"
-        echo -e "Pastikan Anda mencadangkan frasa pemulihan dan file kunci di lokasi yang aman."
+    # Cek apakah direktori wallet ada, buat jika tidak ada
+    sudo mkdir -p /home/dcdn-svc-user/.permissionless
+    sudo chown -R dcdn-svc-user:dcdn-svc-user /home/dcdn-svc-user/.permissionless
+
+    # Generate wallet menggunakan pipe-tool
+    $INSTALL_DIR/pipe-tool generate-wallet > "$WALLET_PATH"
+
+    # Verifikasi apakah wallet telah berhasil dibuat
+    if [ -f "$WALLET_PATH" ]; then
+        echo -e "${LIGHT_GREEN}Wallet berhasil dibuat!${RESET}"
+        echo -e "Wallet telah disimpan di: ${YELLOW}$WALLET_PATH${RESET}"
     else
-        echo -e "${RED}Gagal membuat dompet baru.${RESET}"
+        echo -e "${RED}Gagal menghasilkan wallet.${RESET}"
         exit 1
     fi
 }
@@ -93,7 +106,7 @@ ExecStart=$INSTALL_DIR/dcdnd \
             --http-server-url=0.0.0.0:8003 \
             --node-registry-url=\"$NODE_REGISTRY_URL\" \
             --cache-max-capacity-mb=1024 \
-            --credentials-dir=\"$OUTPUT_DIR\" \
+            --credentials-dir=/home/dcdn-svc-user/.permissionless \
             --allow-origin=*
 
 Restart=always
@@ -116,34 +129,19 @@ EOF"
     echo -e "${LIGHT_GREEN}Service dcdnd telah diatur dan dijalankan.${RESET}"
 }
 
-# Memverifikasi status node
-check_node_status() {
-    echo -e "${CYAN}=== MEMERIKSA STATUS NODE ===${RESET}"
-
-    NODE_STATUS=$($INSTALL_DIR/pipe-tool list-nodes --node-registry-url="$NODE_REGISTRY_URL")
-    
-    if [[ "$NODE_STATUS" == *"active"* ]]; then
-        echo -e "${LIGHT_GREEN}Node aktif dan berjalan dengan aman!${RESET}"
-    else
-        echo -e "${RED}Node tidak aktif. Periksa konfigurasi dan status layanan.${RESET}"
-    fi
-}
-
 # Menjalankan proses pengaturan
 echo -e "${CYAN}=== MEMULAI INSTALASI DAN PENGATURAN NODE PIPE ===${RESET}"
 
 prompt_urls
 setup_binaries
 
-echo -e "${CYAN}=== MEMBUAT DOMPET BARU ===${RESET}"
+# Generate token pendaftaran terlebih dahulu
+generate_registration_token
 
-generate_registration_token  # Menghasilkan token pendaftaran terlebih dahulu
-generate_wallet               # Membuat dompet baru
+# Generate wallet setelah token pendaftaran
+generate_wallet
 
 setup_systemd_service
-
-# Memverifikasi status node setelah setup
-check_node_status
 
 echo -e "${LIGHT_GREEN}=== INSTALASI SELESAI ===${RESET}"
 echo -e "Untuk memeriksa status layanan, gunakan:"
