@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Menonaktifkan pager
+export PAGER=cat
+
 # Variabel global
 NODE_REGISTRY_URL="https://rpc.pipedev.network"
 INSTALL_DIR="/opt/dcdn"
@@ -39,18 +42,10 @@ setup_binaries() {
     sudo mkdir -p "$INSTALL_DIR"
 
     echo -e "${YELLOW}1.${RESET} Mengunduh pipe-tool binary dari $PIPE_TOOL_URL..."
-    sudo curl -fL "$PIPE_TOOL_URL" -o "$INSTALL_DIR/pipe-tool"
-    if [ $? -ne 0 ]; then
-        echo -e "${RED}Gagal mengunduh pipe-tool. Proses dihentikan.${RESET}"
-        exit 1
-    fi
+    sudo curl -L "$PIPE_TOOL_URL" -o "$INSTALL_DIR/pipe-tool"
 
     echo -e "${YELLOW}2.${RESET} Mengunduh dcdnd binary dari $DCDND_URL..."
-    sudo curl -fL "$DCDND_URL" -o "$INSTALL_DIR/dcdnd"
-    if [ $? -ne 0 ]; then
-        echo -e "${RED}Gagal mengunduh dcdnd. Proses dihentikan.${RESET}"
-        exit 1
-    fi
+    sudo curl -L "$DCDND_URL" -o "$INSTALL_DIR/dcdnd"
 
     echo -e "${YELLOW}3.${RESET} Memberikan izin eksekusi pada binary..."
     sudo chmod +x "$INSTALL_DIR/pipe-tool"
@@ -93,7 +88,7 @@ generate_and_register_wallet() {
 
     # Membuat wallet baru
     echo -e "${YELLOW}Membuat wallet baru...${RESET}"
-    $INSTALL_DIR/pipe-tool generate-wallet --node-registry-url="$NODE_REGISTRY_URL"
+    $INSTALL_DIR/pipe-tool generate-wallet --node-registry-url="$NODE_REGISTRY_URL" | cat
 
     # Verifikasi keypair
     if [[ -f "$KEYPAIR_PATH" ]]; then
