@@ -31,17 +31,6 @@ prompt_urls() {
         echo -e "${RED}URL tidak boleh kosong. Proses dibatalkan.${RESET}"
         exit 1
     fi
-
-    # Validasi URL menggunakan regex (sederhana)
-    if ! [[ "$PIPE_TOOL_URL" =~ ^https?:// ]]; then
-        echo -e "${RED}URL pipe-tool tidak valid.${RESET}"
-        exit 1
-    fi
-
-    if ! [[ "$DCDND_URL" =~ ^https?:// ]]; then
-        echo -e "${RED}URL dcdnd tidak valid.${RESET}"
-        exit 1
-    fi
 }
 
 # Setup pipe-tool dan dcdnd binary
@@ -50,10 +39,10 @@ setup_binaries() {
     sudo mkdir -p "$INSTALL_DIR"
 
     echo -e "${YELLOW}1.${RESET} Mengunduh pipe-tool binary dari $PIPE_TOOL_URL..."
-    sudo curl -fL "$PIPE_TOOL_URL" -o "$INSTALL_DIR/pipe-tool" || { echo -e "${RED}Gagal mengunduh pipe-tool.${RESET}"; exit 1; }
+    sudo curl -L "$PIPE_TOOL_URL" -o "$INSTALL_DIR/pipe-tool"
 
     echo -e "${YELLOW}2.${RESET} Mengunduh dcdnd binary dari $DCDND_URL..."
-    sudo curl -fL "$DCDND_URL" -o "$INSTALL_DIR/dcdnd" || { echo -e "${RED}Gagal mengunduh dcdnd.${RESET}"; exit 1; }
+    sudo curl -L "$DCDND_URL" -o "$INSTALL_DIR/dcdnd"
 
     echo -e "${YELLOW}3.${RESET} Memberikan izin eksekusi pada binary..."
     sudo chmod +x "$INSTALL_DIR/pipe-tool"
@@ -75,11 +64,13 @@ perform_login() {
     fi
 }
 
-# Membuat dompet baru tanpa meminta passphrase
-generate_wallet() {
-    echo -e "${CYAN}=== MEMBUAT DOMPET BARU ===${RESET}"
-    # Menjalankan perintah untuk membuat dompet tanpa meminta passphrase
-    $INSTALL_DIR/pipe-tool generate-wallet --node-registry-url="$NODE_REGISTRY_URL" --no-passphrase
+# Generate and Register Wallet
+generate_and_register_wallet() {
+    echo -e "${CYAN}=== MEMBUAT DAN MENDAFTARKAN DOMPET ===${RESET}"
+
+    # Menghasilkan dompet baru
+    echo -e "${YELLOW}1.${RESET} Membuat dompet baru..."
+    $INSTALL_DIR/pipe-tool generate-wallet --node-registry-url="$NODE_REGISTRY_URL"
 
     if [ -f "$KEYPAIR_PATH" ]; then
         echo -e "${LIGHT_GREEN}Dompet baru berhasil dibuat!${RESET}"
@@ -87,6 +78,17 @@ generate_wallet() {
         echo -e "Pastikan Anda mencadangkan frasa pemulihan dan file kunci di lokasi yang aman."
     else
         echo -e "${RED}Gagal membuat dompet baru.${RESET}"
+        exit 1
+    fi
+
+    # Mendaftar dompet ke jaringan Pipe
+    echo -e "${YELLOW}2.${RESET} Mendaftarkan dompet..."
+    $INSTALL_DIR/pipe-tool link-wallet --node-registry-url="$NODE_REGISTRY_URL"
+
+    if [ $? -eq 0 ]; then
+        echo -e "${LIGHT_GREEN}Dompet berhasil didaftarkan!${RESET}"
+    else
+        echo -e "${RED}Gagal mendaftarkan dompet.${RESET}"
         exit 1
     fi
 }
@@ -151,9 +153,7 @@ prompt_urls
 setup_binaries
 perform_login
 
-echo -e "${CYAN}=== MEMBUAT DOMPET BARU ===${RESET}"
-
-generate_wallet
+generate_and_register_wallet  # Menambahkan langkah untuk menghasilkan dan mendaftarkan dompet
 
 generate_registration_token  # Menambahkan langkah untuk menghasilkan token pendaftaran
 
