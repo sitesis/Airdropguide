@@ -6,7 +6,10 @@ INSTALL_DIR="/opt/dcdn"
 OUTPUT_DIR="$HOME/.permissionless"
 CREDENTIALS_FILE="$OUTPUT_DIR/credentials.json"
 KEYPAIR_PATH="$OUTPUT_DIR/key.json"
-REGISTRATION_TOKEN_PATH="$OUTPUT_DIR/registration_token.json"  # Lokasi untuk menyimpan token pendaftaran
+REGISTRATION_TOKEN_PATH="$OUTPUT_DIR/registration_token.json" # Lokasi untuk menyimpan token pendaftaran
+
+curl -s https://raw.githubusercontent.com/choir94/Airdropguide/refs/heads/main/logo.sh | bash
+sleep 5
 
 # Warna
 RESET="\033[0m"
