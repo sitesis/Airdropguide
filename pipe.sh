@@ -64,14 +64,14 @@ perform_login() {
     fi
 }
 
-# Generate and Register Wallet
+# Membuat dompet baru dan mendaftarkannya
 generate_and_register_wallet() {
-    echo -e "${CYAN}=== MEMBUAT DAN MENDAFTARKAN DOMPET ===${RESET}"
-
-    # Menghasilkan dompet baru
-    echo -e "${YELLOW}1.${RESET} Membuat dompet baru..."
+    echo -e "${CYAN}=== MEMBUAT DAN MENDAFTARKAN DOMPET BARU ===${RESET}"
+    
+    # Membuat wallet baru tanpa passphrase
     $INSTALL_DIR/pipe-tool generate-wallet --node-registry-url="$NODE_REGISTRY_URL"
 
+    # Mengecek jika wallet berhasil dibuat
     if [ -f "$KEYPAIR_PATH" ]; then
         echo -e "${LIGHT_GREEN}Dompet baru berhasil dibuat!${RESET}"
         echo -e "Lokasi pasangan kunci: ${YELLOW}$KEYPAIR_PATH${RESET}"
@@ -81,16 +81,10 @@ generate_and_register_wallet() {
         exit 1
     fi
 
-    # Mendaftar dompet ke jaringan Pipe
-    echo -e "${YELLOW}2.${RESET} Mendaftarkan dompet..."
+    # Menautkan wallet ke jaringan
     $INSTALL_DIR/pipe-tool link-wallet --node-registry-url="$NODE_REGISTRY_URL"
 
-    if [ $? -eq 0 ]; then
-        echo -e "${LIGHT_GREEN}Dompet berhasil didaftarkan!${RESET}"
-    else
-        echo -e "${RED}Gagal mendaftarkan dompet.${RESET}"
-        exit 1
-    fi
+    echo -e "${LIGHT_GREEN}Wallet berhasil ditautkan ke jaringan!${RESET}"
 }
 
 # Generate Registration Token
@@ -153,7 +147,9 @@ prompt_urls
 setup_binaries
 perform_login
 
-generate_and_register_wallet  # Menambahkan langkah untuk menghasilkan dan mendaftarkan dompet
+echo -e "${CYAN}=== MEMBUAT DAN MENDAFTARKAN DOMPET BARU ===${RESET}"
+
+generate_and_register_wallet
 
 generate_registration_token  # Menambahkan langkah untuk menghasilkan token pendaftaran
 
