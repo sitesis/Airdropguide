@@ -8,18 +8,32 @@ CREDENTIALS_FILE="$OUTPUT_DIR/credentials.json"
 KEYPAIR_PATH="$OUTPUT_DIR/keypair.json"
 REGISTRATION_TOKEN_PATH="$OUTPUT_DIR/registration_token.txt"  # Lokasi untuk menyimpan token pendaftaran
 
-# Fungsi untuk mengunduh dan menginstal jq versi terbaru
-install_jq() {
-    echo -e "${CYAN}=== INSTALLING jq ===${RESET}"
+# Fungsi untuk menginstal curl dan jq jika belum ada
+install_dependencies() {
+    echo -e "${CYAN}=== MEMERIKSA DAN MENGINSTAL CURL & JQ ===${RESET}"
     
-    # Menghapus versi jq yang ada dan menginstal jq terbaru
-    sudo apt-get update
-    sudo apt-get install -y jq
-
-    # Memastikan versi terbaru
-    jq_version=$(jq --version)
-    echo -e "${LIGHT_GREEN}jq telah berhasil diinstal. Versi: $jq_version${RESET}"
+    # Memeriksa apakah curl sudah terinstal
+    if ! command -v curl &> /dev/null; then
+        echo -e "${YELLOW}curl tidak ditemukan. Menginstal curl...${RESET}"
+        sudo apt-get update
+        sudo apt-get install -y curl
+        echo -e "${LIGHT_GREEN}curl berhasil diinstal.${RESET}"
+    else
+        echo -e "${LIGHT_GREEN}curl sudah terinstal.${RESET}"
+    fi
+    
+    # Memeriksa apakah jq sudah terinstal
+    if ! command -v jq &> /dev/null; then
+        echo -e "${YELLOW}jq tidak ditemukan. Menginstal jq...${RESET}"
+        sudo apt-get install -y jq
+        echo -e "${LIGHT_GREEN}jq berhasil diinstal.${RESET}"
+    else
+        echo -e "${LIGHT_GREEN}jq sudah terinstal.${RESET}"
+    fi
 }
+
+# Instalasi curl dan jq
+install_dependencies
 
 curl -s https://raw.githubusercontent.com/choir94/Airdropguide/refs/heads/main/logo.sh | bash
 sleep 5
@@ -64,36 +78,7 @@ setup_binaries() {
     echo -e "${LIGHT_GREEN}Setup binaries selesai.${RESET}"
 }
 
-# Login ke jaringan Pipe
-perform_login() {
-    echo -e "${CYAN}=== MASUK KE JARINGAN PIPE ===${RESET}"
-    $INSTALL_DIR/pipe-tool login --node-registry-url="$NODE_REGISTRY_URL"
-
-    if [ -f "$CREDENTIALS_FILE" ]; then
-        echo -e "${LIGHT_GREEN}Login berhasil! File 'credentials.json' telah dibuat di $OUTPUT_DIR.${RESET}"
-    else
-        echo -e "${RED}Login gagal. Pastikan kredensial Anda benar.${RESET}"
-        exit 1
-    fi
-}
-
-# Validasi dan perbaiki keypair.json jika diperlukan
-validate_keypair() {
-    # Pastikan keypair.json adalah array
-    if jq -e 'type == "array"' "$KEYPAIR_PATH" >/dev/null 2>&1; then
-        echo -e "${YELLOW}Mengonversi keypair.json ke format yang benar...${RESET}"
-        HEX_KEY=$(jq -r 'map(.|@text|tostring) | join("")' "$KEYPAIR_PATH")
-        jq -n --arg key "$HEX_KEY" '{publicKey: $key, privateKey: $key}' > "$KEYPAIR_PATH"
-        echo -e "${LIGHT_GREEN}Format keypair.json berhasil diperbaiki.${RESET}"
-    elif ! jq -e '.publicKey and .privateKey' "$KEYPAIR_PATH" >/dev/null 2>&1; then
-        echo -e "${RED}Format keypair.json tidak valid. Proses dihentikan.${RESET}"
-        exit 1
-    else
-        echo -e "${LIGHT_GREEN}Format keypair.json valid.${RESET}"
-    fi
-}
-
-# Membuat dompet baru dan mendaftarkannya
+# Fungsi untuk membuat dompet baru dan mendaftarkannya
 generate_and_register_wallet() {
     echo -e "${CYAN}=== MEMERIKSA STATUS LOGIN ===${RESET}"
 
@@ -123,18 +108,44 @@ generate_and_register_wallet() {
         echo -e "${RED}Gagal membuat wallet atau file keypair.json tidak ditemukan.${RESET}"
         exit 1
     fi
+}
 
-    # Validasi dan perbaiki file keypair.json
-    validate_keypair
+# Memvalidasi dan memperbaiki keypair.json setelah wallet dibuat
+validate_keypair() {
+    echo -e "${CYAN}=== VALIDASI KEYPAIR ===${RESET}"
 
-    # Menghubungkan wallet menggunakan file keypair
-    echo -e "${CYAN}=== MENGHUBUNGKAN WALLET MENGGUNAKAN KEYPAIR ===${RESET}"
-    $INSTALL_DIR/pipe-tool link-wallet --node-registry-url="$NODE_REGISTRY_URL" --key-path="$KEYPAIR_PATH" --credentials-dir="$OUTPUT_DIR"
+    # Cek apakah file keypair.json ada
+    if [[ ! -f "$KEYPAIR_PATH" ]]; then
+        echo -e "${RED}File keypair.json tidak ditemukan. Proses dihentikan.${RESET}"
+        exit 1
+    fi
 
-    if [[ $? -eq 0 ]]; then
-        echo -e "${LIGHT_GREEN}Wallet berhasil dihubungkan menggunakan file keypair.${RESET}"
+    # Cek jika keypair.json berupa array
+    if jq -e 'type == "array"' "$KEYPAIR_PATH" >/dev/null 2>&1; then
+        echo -e "${LIGHT_GREEN}Format keypair.json valid (array).${RESET}"
+
+        # Cek jika setiap elemen dalam array memiliki 'pubkey' dan 'privkey'
+        invalid_keypair=$(jq '[.[] | select(.pubkey == null or .privkey == null)]' "$KEYPAIR_PATH")
+
+        if [[ "$invalid_keypair" != "[]" ]]; then
+            echo -e "${RED}Beberapa elemen dalam keypair.json tidak memiliki 'pubkey' atau 'privkey'.${RESET}"
+            echo -e "${YELLOW}Memperbaiki keypair.json dengan menambahkan 'pubkey' dan 'privkey' yang valid...${RESET}"
+
+            # Memperbaiki keypair.json untuk memastikan setiap elemen memiliki pubkey dan privkey
+            jq '[.[] | {pubkey: .pubkey, privkey: .privkey}]' "$KEYPAIR_PATH" > "$KEYPAIR_PATH.fixed"
+            mv "$KEYPAIR_PATH.fixed" "$KEYPAIR_PATH"
+
+            echo -e "${LIGHT_GREEN}Keypair.json telah diperbaiki.${RESET}"
+        else
+            echo -e "${LIGHT_GREEN}Semua elemen dalam keypair.json sudah valid (memiliki 'pubkey' dan 'privkey').${RESET}"
+        fi
+    elif jq -e 'type == "object"' "$KEYPAIR_PATH" >/dev/null 2>&1; then
+        echo -e "${YELLOW}Format keypair.json adalah objek. Mengonversi ke array...${RESET}"
+        # Mengonversi objek menjadi array yang berisi pubkey dan privkey
+        jq -n '[{pubkey: .pubkey, privkey: .privkey}]' "$KEYPAIR_PATH" > "$KEYPAIR_PATH"
+        echo -e "${LIGHT_GREEN}Keypair.json berhasil diperbaiki ke format array dengan pubkey dan privkey.${RESET}"
     else
-        echo -e "${RED}Gagal menghubungkan wallet.${RESET}"
+        echo -e "${RED}Format keypair.json tidak valid. Proses dihentikan.${RESET}"
         exit 1
     fi
 }
@@ -148,72 +159,41 @@ generate_registration_token() {
         echo -e "${LIGHT_GREEN}Token pendaftaran berhasil dibuat!${RESET}"
         echo -e "Token pendaftaran telah disimpan di: ${YELLOW}$REGISTRATION_TOKEN_PATH${RESET}"
     else
-        echo -e "${RED}Gagal menghasilkan token pendaftaran.${RESET}"
+        echo -e "${RED}Gagal membuat token pendaftaran.${RESET}"
         exit 1
     fi
 }
 
-# Setup layanan systemd untuk dcdnd
+# Fungsi systemd untuk DCDND
 setup_systemd_service() {
-    echo -e "${CYAN}=== SETUP SYSTEMD SERVICE ===${RESET}"
+    echo -e "${CYAN}=== MENYETEL LAYANAN SYSTEMD UNTUK DCDND ===${RESET}"
 
-    sudo bash -c "cat > /etc/systemd/system/dcdnd.service <<EOF
-[Unit]
-Description=DCDN Node Service
+    # Membuat layanan systemd untuk dcdnd
+    echo -e "[Unit]
+Description=DCDND Service
 After=network.target
-Wants=network-online.target
 
 [Service]
-ExecStart=$INSTALL_DIR/dcdnd \
-            --grpc-server-url=0.0.0.0:8002 \
-            --http-server-url=0.0.0.0:8003 \
-            --node-registry-url=\"$NODE_REGISTRY_URL\" \
-            --cache-max-capacity-mb=1024 \
-            --credentials-dir=\"$OUTPUT_DIR\" \
-            --allow-origin=*
-
+ExecStart=$INSTALL_DIR/dcdnd
 Restart=always
-RestartSec=5
-LimitNOFILE=65536
-LimitNPROC=4096
-StandardOutput=journal
-StandardError=journal
-SyslogIdentifier=dcdn-node
-WorkingDirectory=$INSTALL_DIR
+User=root
 
 [Install]
 WantedBy=multi-user.target
-EOF"
+" | sudo tee /etc/systemd/system/dcdnd.service
 
+    # Reload systemd dan mulai layanan
     sudo systemctl daemon-reload
-    sudo systemctl enable dcdnd.service
-    sudo systemctl start dcdnd.service
-
-    echo -e "${LIGHT_GREEN}Service dcdnd telah diatur dan dijalankan.${RESET}"
+    sudo systemctl enable dcdnd
+    sudo systemctl start dcdnd
+    echo -e "${LIGHT_GREEN}Layanan DCDND berhasil diatur dan dimulai.${RESET}"
 }
 
-# Menjalankan proses pengaturan
-echo -e "${CYAN}=== MEMULAI INSTALASI DAN PENGATURAN NODE PIPE ===${RESET}"
-
-# Install jq versi terbaru
-install_jq
-
+# Menjalankan seluruh proses
+install_dependencies
 prompt_urls
 setup_binaries
-perform_login
-
-echo -e "${CYAN}=== MEMBUAT DAN MENDAFTARKAN DOMPET BARU ===${RESET}"
-
 generate_and_register_wallet
-
-generate_registration_token  # Menambahkan langkah untuk menghasilkan token pendaftaran
-
+validate_keypair  # Memvalidasi keypair setelah wallet dibuat
+generate_registration_token
 setup_systemd_service
-
-echo -e "${LIGHT_GREEN}=== INSTALASI SELESAI ===${RESET}"
-echo -e "Untuk memeriksa status layanan, gunakan:"
-echo -e "  ${BLUE}sudo systemctl status dcdnd${RESET}"
-echo -e "Untuk melihat log secara real-time, gunakan:"
-echo -e "  ${BLUE}sudo journalctl -u dcdnd -f${RESET}"
-
-echo -e "Bergabung dengan Telegram channel: ${BLUE}https://t.me/airdrop_node${RESET}"
