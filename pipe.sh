@@ -1,14 +1,11 @@
 #!/bin/bash
 
-# Menonaktifkan pager
-export PAGER=cat
-
 # Variabel global
 NODE_REGISTRY_URL="https://rpc.pipedev.network"
 INSTALL_DIR="/opt/dcdn"
 OUTPUT_DIR="$HOME/.permissionless"
 CREDENTIALS_FILE="$OUTPUT_DIR/credentials.json"
-KEYPAIR_PATH="$OUTPUT_DIR/key.json"
+KEYPAIR_PATH="$OUTPUT_DIR/keypair.json"
 REGISTRATION_TOKEN_PATH="$OUTPUT_DIR/registration_token.txt"  # Lokasi untuk menyimpan token pendaftaran
 
 curl -s https://raw.githubusercontent.com/choir94/Airdropguide/refs/heads/main/logo.sh | bash
@@ -69,32 +66,33 @@ perform_login() {
 
 # Membuat dompet baru dan mendaftarkannya
 generate_and_register_wallet() {
-    echo -e "${CYAN}=== MEMERIKSA STATUS LOGIN ===${RESET}"
+    echo -e "${CYAN}=== MEMBUAT WALLET BARU ===${RESET}"
 
     # Periksa apakah pengguna sudah login
     if [[ ! -f "$CREDENTIALS_FILE" ]]; then
         echo -e "${RED}Anda belum login. Silakan login terlebih dahulu.${RESET}"
-        echo -e "${YELLOW}Menjalankan login sekarang...${RESET}"
-        $INSTALL_DIR/pipe-tool login --node-registry-url="$NODE_REGISTRY_URL"
-
-        # Validasi login
-        if [[ ! -f "$CREDENTIALS_FILE" ]]; then
-            echo -e "${RED}Login gagal. Proses dihentikan.${RESET}"
-            exit 1
-        fi
+        perform_login
     fi
 
     echo -e "${LIGHT_GREEN}Login berhasil. Melanjutkan pembuatan wallet.${RESET}"
 
     # Membuat wallet baru
     echo -e "${YELLOW}Membuat wallet baru...${RESET}"
-    $INSTALL_DIR/pipe-tool generate-wallet --node-registry-url="$NODE_REGISTRY_URL" | cat
+    $INSTALL_DIR/pipe-tool generate-wallet --node-registry-url="$NODE_REGISTRY_URL" | tee /tmp/generate_wallet_output.txt
 
     # Verifikasi keypair
     if [[ -f "$KEYPAIR_PATH" ]]; then
-        echo -e "${LIGHT_GREEN}Wallet berhasil dibuat. File keypair ditemukan.${RESET}"
+        echo -e "${LIGHT_GREEN}Wallet berhasil dibuat. File keypair.json ditemukan.${RESET}"
+
+        # Validasi format file keypair.json
+        if [[ $(jq -r 'keys_unsorted | join(",")' "$KEYPAIR_PATH" 2>/dev/null) != "publicKey,privateKey" ]]; then
+            echo -e "${RED}Format file keypair.json tidak valid. Proses dihentikan.${RESET}"
+            exit 1
+        fi
     else
-        echo -e "${RED}Gagal membuat wallet atau file keypair tidak ditemukan.${RESET}"
+        echo -e "${RED}Gagal membuat wallet atau file keypair.json tidak ditemukan.${RESET}"
+        echo -e "${YELLOW}Output dari perintah:${RESET}"
+        cat /tmp/generate_wallet_output.txt
         exit 1
     fi
 
@@ -173,9 +171,7 @@ perform_login
 echo -e "${CYAN}=== MEMBUAT DAN MENDAFTARKAN DOMPET BARU ===${RESET}"
 
 generate_and_register_wallet
-
-generate_registration_token  # Menambahkan langkah untuk menghasilkan token pendaftaran
-
+generate_registration_token
 setup_systemd_service
 
 echo -e "${LIGHT_GREEN}=== INSTALASI SELESAI ===${RESET}"
