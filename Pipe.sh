@@ -7,6 +7,9 @@ OUTPUT_DIR="$HOME/.permissionless"
 CREDENTIALS_FILE="$OUTPUT_DIR/credentials.json"
 REGISTRATION_TOKEN_PATH="$OUTPUT_DIR/registration_token.txt"  # Lokasi untuk menyimpan token pendaftaran
 
+curl -s https://raw.githubusercontent.com/choir94/Airdropguide/refs/heads/main/logo.sh | bash
+sleep 5
+
 # Warna
 RESET="\033[0m"
 BOLD="\033[1m"
