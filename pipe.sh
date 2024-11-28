@@ -4,9 +4,9 @@
 NODE_REGISTRY_URL="https://rpc.pipedev.network"
 INSTALL_DIR="/opt/dcdn"
 OUTPUT_DIR="$HOME/.permissionless"
+CREDENTIALS_FILE="$OUTPUT_DIR/credentials.json"
 KEYPAIR_PATH="$OUTPUT_DIR/key.json"
-REGISTRATION_TOKEN_PATH="/home/dcdn-svc-user/.permissionless/registration_token.json"  # Lokasi untuk menyimpan token pendaftaran
-WALLET_PATH="/home/dcdn-svc-user/.permissionless/wallet.json"  # Lokasi untuk menyimpan wallet
+REGISTRATION_TOKEN_PATH="$OUTPUT_DIR/registration_token.txt"  # Lokasi untuk menyimpan token pendaftaran
 
 # Warna
 RESET="\033[0m"
@@ -48,44 +48,44 @@ setup_binaries() {
     echo -e "${LIGHT_GREEN}Setup binaries selesai.${RESET}"
 }
 
+# Login ke jaringan Pipe
+perform_login() {
+    echo -e "${CYAN}=== MASUK KE JARINGAN PIPE ===${RESET}"
+    $INSTALL_DIR/pipe-tool login --node-registry-url="$NODE_REGISTRY_URL"
+
+    if [ -f "$CREDENTIALS_FILE" ]; then
+        echo -e "${LIGHT_GREEN}Login berhasil! File 'credentials.json' telah dibuat di $OUTPUT_DIR.${RESET}"
+    else
+        echo -e "${RED}Login gagal. Pastikan kredensial Anda benar.${RESET}"
+        exit 1
+    fi
+}
+
+# Membuat dompet baru
+generate_wallet() {
+    echo -e "${CYAN}=== MEMBUAT DOMPET BARU ===${RESET}"
+    $INSTALL_DIR/pipe-tool generate-wallet --node-registry-url="$NODE_REGISTRY_URL"
+
+    if [ -f "$KEYPAIR_PATH" ]; then
+        echo -e "${LIGHT_GREEN}Dompet baru berhasil dibuat!${RESET}"
+        echo -e "Lokasi pasangan kunci: ${YELLOW}$KEYPAIR_PATH${RESET}"
+        echo -e "Pastikan Anda mencadangkan frasa pemulihan dan file kunci di lokasi yang aman."
+    else
+        echo -e "${RED}Gagal membuat dompet baru.${RESET}"
+        exit 1
+    fi
+}
+
 # Generate Registration Token
 generate_registration_token() {
     echo -e "${CYAN}=== GENERATE REGISTRATION TOKEN ===${RESET}"
-
-    # Cek apakah direktori untuk token ada, buat jika tidak ada
-    sudo mkdir -p /home/dcdn-svc-user/.permissionless
-    sudo chown -R dcdn-svc-user:dcdn-svc-user /home/dcdn-svc-user/.permissionless
-
-    # Generate token pendaftaran
     $INSTALL_DIR/pipe-tool generate-registration-token --node-registry-url="$NODE_REGISTRY_URL" > "$REGISTRATION_TOKEN_PATH"
 
-    # Verifikasi apakah token telah berhasil dibuat
     if [ -f "$REGISTRATION_TOKEN_PATH" ]; then
         echo -e "${LIGHT_GREEN}Token pendaftaran berhasil dibuat!${RESET}"
         echo -e "Token pendaftaran telah disimpan di: ${YELLOW}$REGISTRATION_TOKEN_PATH${RESET}"
     else
         echo -e "${RED}Gagal menghasilkan token pendaftaran.${RESET}"
-        exit 1
-    fi
-}
-
-# Generate Wallet
-generate_wallet() {
-    echo -e "${CYAN}=== GENERATE WALLET ===${RESET}"
-
-    # Cek apakah direktori wallet ada, buat jika tidak ada
-    sudo mkdir -p /home/dcdn-svc-user/.permissionless
-    sudo chown -R dcdn-svc-user:dcdn-svc-user /home/dcdn-svc-user/.permissionless
-
-    # Generate wallet menggunakan pipe-tool
-    $INSTALL_DIR/pipe-tool generate-wallet > "$WALLET_PATH"
-
-    # Verifikasi apakah wallet telah berhasil dibuat
-    if [ -f "$WALLET_PATH" ]; then
-        echo -e "${LIGHT_GREEN}Wallet berhasil dibuat!${RESET}"
-        echo -e "Wallet telah disimpan di: ${YELLOW}$WALLET_PATH${RESET}"
-    else
-        echo -e "${RED}Gagal menghasilkan wallet.${RESET}"
         exit 1
     fi
 }
@@ -106,7 +106,7 @@ ExecStart=$INSTALL_DIR/dcdnd \
             --http-server-url=0.0.0.0:8003 \
             --node-registry-url=\"$NODE_REGISTRY_URL\" \
             --cache-max-capacity-mb=1024 \
-            --credentials-dir=/home/dcdn-svc-user/.permissionless \
+            --credentials-dir=\"$OUTPUT_DIR\" \
             --allow-origin=*
 
 Restart=always
@@ -134,12 +134,13 @@ echo -e "${CYAN}=== MEMULAI INSTALASI DAN PENGATURAN NODE PIPE ===${RESET}"
 
 prompt_urls
 setup_binaries
+perform_login
 
-# Generate token pendaftaran terlebih dahulu
-generate_registration_token
+echo -e "${CYAN}=== MEMBUAT DOMPET BARU ===${RESET}"
 
-# Generate wallet setelah token pendaftaran
 generate_wallet
+
+generate_registration_token  # Menambahkan langkah untuk menghasilkan token pendaftaran
 
 setup_systemd_service
 
