@@ -66,25 +66,45 @@ perform_login() {
 
 # Membuat dompet baru dan mendaftarkannya
 generate_and_register_wallet() {
-    echo -e "${CYAN}=== MEMBUAT DAN MENDAFTARKAN DOMPET BARU ===${RESET}"
-    
-    # Membuat wallet baru tanpa passphrase
+    echo -e "${CYAN}=== MEMERIKSA STATUS LOGIN ===${RESET}"
+
+    # Periksa apakah pengguna sudah login
+    if [[ ! -f "$CREDENTIALS_FILE" ]]; then
+        echo -e "${RED}Anda belum login. Silakan login terlebih dahulu.${RESET}"
+        echo -e "${YELLOW}Menjalankan login sekarang...${RESET}"
+        $INSTALL_DIR/pipe-tool login --node-registry-url="$NODE_REGISTRY_URL"
+
+        # Validasi login
+        if [[ ! -f "$CREDENTIALS_FILE" ]]; then
+            echo -e "${RED}Login gagal. Proses dihentikan.${RESET}"
+            exit 1
+        fi
+    fi
+
+    echo -e "${LIGHT_GREEN}Login berhasil. Melanjutkan pembuatan wallet.${RESET}"
+
+    # Membuat wallet baru
+    echo -e "${YELLOW}Membuat wallet baru...${RESET}"
     $INSTALL_DIR/pipe-tool generate-wallet --node-registry-url="$NODE_REGISTRY_URL"
 
-    # Mengecek jika wallet berhasil dibuat
-    if [ -f "$KEYPAIR_PATH" ]; then
-        echo -e "${LIGHT_GREEN}Dompet baru berhasil dibuat!${RESET}"
-        echo -e "Lokasi pasangan kunci: ${YELLOW}$KEYPAIR_PATH${RESET}"
-        echo -e "Pastikan Anda mencadangkan frasa pemulihan dan file kunci di lokasi yang aman."
+    # Verifikasi keypair
+    if [[ -f "$KEYPAIR_PATH" ]]; then
+        echo -e "${LIGHT_GREEN}Wallet berhasil dibuat. File keypair ditemukan.${RESET}"
     else
-        echo -e "${RED}Gagal membuat dompet baru.${RESET}"
+        echo -e "${RED}Gagal membuat wallet atau file keypair tidak ditemukan.${RESET}"
         exit 1
     fi
 
-    # Menautkan wallet ke jaringan
-    $INSTALL_DIR/pipe-tool link-wallet --node-registry-url="$NODE_REGISTRY_URL"
+    # Menghubungkan wallet menggunakan file keypair
+    echo -e "${CYAN}=== MENGHUBUNGKAN WALLET MENGGUNAKAN KEYPAIR ===${RESET}"
+    $INSTALL_DIR/pipe-tool link-wallet --node-registry-url="$NODE_REGISTRY_URL" --keypair="$KEYPAIR_PATH"
 
-    echo -e "${LIGHT_GREEN}Wallet berhasil ditautkan ke jaringan!${RESET}"
+    if [[ $? -eq 0 ]]; then
+        echo -e "${LIGHT_GREEN}Wallet berhasil dihubungkan menggunakan file keypair.${RESET}"
+    else
+        echo -e "${RED}Gagal menghubungkan wallet.${RESET}"
+        exit 1
+    fi
 }
 
 # Generate Registration Token
