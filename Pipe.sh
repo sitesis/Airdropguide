@@ -61,21 +61,6 @@ perform_login() {
     fi
 }
 
-# Membuat dompet baru
-generate_wallet() {
-    echo -e "${CYAN}=== MEMBUAT DOMPET BARU ===${RESET}"
-    $INSTALL_DIR/pipe-tool generate-wallet --node-registry-url="$NODE_REGISTRY_URL"
-
-    if [ -f "$KEYPAIR_PATH" ]; then
-        echo -e "${LIGHT_GREEN}Dompet baru berhasil dibuat!${RESET}"
-        echo -e "Lokasi pasangan kunci: ${YELLOW}$KEYPAIR_PATH${RESET}"
-        echo -e "Pastikan Anda mencadangkan frasa pemulihan dan file kunci di lokasi yang aman."
-    else
-        echo -e "${RED}Gagal membuat dompet baru.${RESET}"
-        exit 1
-    fi
-}
-
 # Generate Registration Token
 generate_registration_token() {
     echo -e "${CYAN}=== GENERATE REGISTRATION TOKEN ===${RESET}"
@@ -129,6 +114,21 @@ EOF"
     echo -e "${LIGHT_GREEN}Service dcdnd telah diatur dan dijalankan.${RESET}"
 }
 
+# Membuat dompet baru
+generate_wallet() {
+    echo -e "${CYAN}=== MEMBUAT DOMPET BARU ===${RESET}"
+    $INSTALL_DIR/pipe-tool generate-wallet --node-registry-url="$NODE_REGISTRY_URL"
+
+    if [ -f "$KEYPAIR_PATH" ]; then
+        echo -e "${LIGHT_GREEN}Dompet baru berhasil dibuat!${RESET}"
+        echo -e "Lokasi pasangan kunci: ${YELLOW}$KEYPAIR_PATH${RESET}"
+        echo -e "Pastikan Anda mencadangkan frasa pemulihan dan file kunci di lokasi yang aman."
+    else
+        echo -e "${RED}Gagal membuat dompet baru.${RESET}"
+        exit 1
+    fi
+}
+
 # Menjalankan proses pengaturan
 echo -e "${CYAN}=== MEMULAI INSTALASI DAN PENGATURAN NODE PIPE ===${RESET}"
 
@@ -136,13 +136,13 @@ prompt_urls
 setup_binaries
 perform_login
 
-echo -e "${CYAN}=== MEMBUAT DOMPET BARU ===${RESET}"
-
-generate_wallet
-
 generate_registration_token  # Menambahkan langkah untuk menghasilkan token pendaftaran
 
 setup_systemd_service
+
+echo -e "${CYAN}=== MEMBUAT DOMPET BARU ===${RESET}"
+
+generate_wallet  # Memindahkan generate wallet ke akhir
 
 echo -e "${LIGHT_GREEN}=== INSTALASI SELESAI ===${RESET}"
 echo -e "Untuk memeriksa status layanan, gunakan:"
