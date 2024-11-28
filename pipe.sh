@@ -6,15 +6,12 @@ INSTALL_DIR="/opt/dcdn"
 OUTPUT_DIR="$HOME/.permissionless"
 CREDENTIALS_FILE="$OUTPUT_DIR/credentials.json"
 KEYPAIR_PATH="$OUTPUT_DIR/keypair.json"
-REGISTRATION_TOKEN_PATH="$OUTPUT_DIR/registration_token.txt"  # Lokasi untuk menyimpan token pendaftaran
-
-curl -s https://raw.githubusercontent.com/choir94/Airdropguide/refs/heads/main/logo.sh | bash
-sleep 5
+REGISTRATION_TOKEN_PATH="$OUTPUT_DIR/registration_token.txt"
 
 # Warna
 RESET="\033[0m"
 BOLD="\033[1m"
-LIGHT_GREEN="\033[1;32m"   # Light green
+LIGHT_GREEN="\033[1;32m"
 CYAN="\033[36m"
 YELLOW="\033[33m"
 RED="\033[31m"
@@ -26,7 +23,6 @@ prompt_urls() {
     read -p "Masukkan URL untuk pipe-tool: " PIPE_TOOL_URL
     read -p "Masukkan URL untuk dcdnd: " DCDND_URL
 
-    # Memastikan URL tidak kosong
     if [ -z "$PIPE_TOOL_URL" ] || [ -z "$DCDND_URL" ]; then
         echo -e "${RED}URL tidak boleh kosong. Proses dibatalkan.${RESET}"
         exit 1
@@ -64,44 +60,43 @@ perform_login() {
     fi
 }
 
-# Membuat dompet baru dan mendaftarkannya
+# Validasi dan konversi keypair.json
+validate_and_fix_keypair() {
+    if jq -e 'type == "array"' "$KEYPAIR_PATH" >/dev/null 2>&1; then
+        echo -e "${YELLOW}File keypair.json berisi array. Mengonversi ke format publicKey dan privateKey...${RESET}"
+        HEX_KEY=$(jq -r '. | map(tohex) | join("")' "$KEYPAIR_PATH")
+        jq -n --arg key "$HEX_KEY" '{publicKey: $key, privateKey: $key}' > "$KEYPAIR_PATH"
+        echo -e "${LIGHT_GREEN}Format file keypair.json berhasil diperbaiki.${RESET}"
+    elif ! jq -e '.publicKey and .privateKey' "$KEYPAIR_PATH" >/dev/null 2>&1; then
+        echo -e "${RED}Format file keypair.json tidak valid. Proses dihentikan.${RESET}"
+        exit 1
+    else
+        echo -e "${LIGHT_GREEN}Format file keypair.json valid.${RESET}"
+    fi
+}
+
+# Membuat wallet baru dan mendaftarkannya
 generate_and_register_wallet() {
     echo -e "${CYAN}=== MEMBUAT WALLET BARU ===${RESET}"
 
-    # Periksa apakah pengguna sudah login
     if [[ ! -f "$CREDENTIALS_FILE" ]]; then
         echo -e "${RED}Anda belum login. Silakan login terlebih dahulu.${RESET}"
-        perform_login
-    fi
-
-    echo -e "${LIGHT_GREEN}Login berhasil. Melanjutkan pembuatan wallet.${RESET}"
-
-    # Membuat wallet baru
-    echo -e "${YELLOW}Membuat wallet baru...${RESET}"
-    $INSTALL_DIR/pipe-tool generate-wallet --node-registry-url="$NODE_REGISTRY_URL" | tee /tmp/generate_wallet_output.txt
-
-    # Verifikasi keypair
-    if [[ -f "$KEYPAIR_PATH" ]]; then
-        echo -e "${LIGHT_GREEN}Wallet berhasil dibuat. File keypair.json ditemukan.${RESET}"
-
-        # Validasi format file keypair.json
-        if [[ $(jq -r 'keys_unsorted | join(",")' "$KEYPAIR_PATH" 2>/dev/null) != "publicKey,privateKey" ]]; then
-            echo -e "${RED}Format file keypair.json tidak valid. Proses dihentikan.${RESET}"
-            exit 1
-        fi
-    else
-        echo -e "${RED}Gagal membuat wallet atau file keypair.json tidak ditemukan.${RESET}"
-        echo -e "${YELLOW}Output dari perintah:${RESET}"
-        cat /tmp/generate_wallet_output.txt
         exit 1
     fi
 
-    # Menghubungkan wallet menggunakan file keypair
-    echo -e "${CYAN}=== MENGHUBUNGKAN WALLET MENGGUNAKAN KEYPAIR ===${RESET}"
-    $INSTALL_DIR/pipe-tool link-wallet --node-registry-url="$NODE_REGISTRY_URL" --keypair="$KEYPAIR_PATH"
+    $INSTALL_DIR/pipe-tool generate-wallet --node-registry-url="$NODE_REGISTRY_URL"
 
+    if [[ -f "$KEYPAIR_PATH" ]]; then
+        echo -e "${LIGHT_GREEN}Wallet berhasil dibuat. File keypair.json ditemukan.${RESET}"
+        validate_and_fix_keypair
+    else
+        echo -e "${RED}Gagal membuat wallet atau file keypair.json tidak ditemukan.${RESET}"
+        exit 1
+    fi
+
+    $INSTALL_DIR/pipe-tool link-wallet --node-registry-url="$NODE_REGISTRY_URL" --keypair="$KEYPAIR_PATH"
     if [[ $? -eq 0 ]]; then
-        echo -e "${LIGHT_GREEN}Wallet berhasil dihubungkan menggunakan file keypair.${RESET}"
+        echo -e "${LIGHT_GREEN}Wallet berhasil dihubungkan.${RESET}"
     else
         echo -e "${RED}Gagal menghubungkan wallet.${RESET}"
         exit 1
@@ -114,8 +109,7 @@ generate_registration_token() {
     $INSTALL_DIR/pipe-tool generate-registration-token --node-registry-url="$NODE_REGISTRY_URL" > "$REGISTRATION_TOKEN_PATH"
 
     if [ -f "$REGISTRATION_TOKEN_PATH" ]; then
-        echo -e "${LIGHT_GREEN}Token pendaftaran berhasil dibuat!${RESET}"
-        echo -e "Token pendaftaran telah disimpan di: ${YELLOW}$REGISTRATION_TOKEN_PATH${RESET}"
+        echo -e "${LIGHT_GREEN}Token pendaftaran berhasil dibuat.${RESET}"
     else
         echo -e "${RED}Gagal menghasilkan token pendaftaran.${RESET}"
         exit 1
@@ -167,19 +161,8 @@ echo -e "${CYAN}=== MEMULAI INSTALASI DAN PENGATURAN NODE PIPE ===${RESET}"
 prompt_urls
 setup_binaries
 perform_login
-
-echo -e "${CYAN}=== MEMBUAT DAN MENDAFTARKAN DOMPET BARU ===${RESET}"
-
 generate_and_register_wallet
 generate_registration_token
 setup_systemd_service
 
 echo -e "${LIGHT_GREEN}=== INSTALASI SELESAI ===${RESET}"
-echo -e "Untuk memeriksa status layanan, gunakan:"
-echo -e "  ${BLUE}sudo systemctl status dcdnd${RESET}"
-echo -e "Untuk melihat log secara real-time, gunakan:"
-echo -e "  ${BLUE}sudo journalctl -f -u dcdnd.service${RESET}"
-
-# Bergabung dengan channel Telegram Airdrop Node
-echo -e "${CYAN}Untuk bergabung dengan channel Telegram Airdrop Node, klik link berikut:${RESET}"
-echo -e "${LIGHT_GREEN}https://t.me/airdrop_node${RESET}"
