@@ -6,7 +6,7 @@ INSTALL_DIR="/opt/dcdn"
 OUTPUT_DIR="$HOME/.permissionless"
 CREDENTIALS_FILE="$OUTPUT_DIR/credentials.json"
 KEYPAIR_PATH="$OUTPUT_DIR/key.json"
-REGISTRATION_TOKEN_PATH="$OUTPUT_DIR/registration_token.json" # Lokasi untuk menyimpan token pendaftaran
+REGISTRATION_TOKEN_PATH="$OUTPUT_DIR/registration_token.json"  # Lokasi untuk menyimpan token pendaftaran
 
 curl -s https://raw.githubusercontent.com/choir94/Airdropguide/refs/heads/main/logo.sh | bash
 sleep 5
@@ -142,6 +142,19 @@ EOF"
     echo -e "${LIGHT_GREEN}Service dcdnd telah diatur dan dijalankan.${RESET}"
 }
 
+# Memverifikasi status node
+check_node_status() {
+    echo -e "${CYAN}=== MEMERIKSA STATUS NODE ===${RESET}"
+
+    NODE_STATUS=$($INSTALL_DIR/pipe-tool list-nodes --node-registry-url="$NODE_REGISTRY_URL")
+    
+    if [[ "$NODE_STATUS" == *"active"* ]]; then
+        echo -e "${LIGHT_GREEN}Node aktif dan berjalan dengan aman!${RESET}"
+    else
+        echo -e "${RED}Node tidak aktif. Periksa konfigurasi dan status layanan.${RESET}"
+    fi
+}
+
 # Menjalankan proses pengaturan
 echo -e "${CYAN}=== MEMULAI INSTALASI DAN PENGATURAN NODE PIPE ===${RESET}"
 
@@ -155,6 +168,9 @@ echo -e "${CYAN}=== MEMBUAT DOMPET BARU ===${RESET}"
 generate_wallet
 
 setup_systemd_service
+
+# Verifikasi status node setelah semua proses selesai
+check_node_status
 
 echo -e "${LIGHT_GREEN}=== INSTALASI SELESAI ===${RESET}"
 echo -e "Untuk memeriksa status layanan, gunakan:"
