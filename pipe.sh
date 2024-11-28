@@ -8,22 +8,6 @@ CREDENTIALS_FILE="$OUTPUT_DIR/credentials.json"
 KEYPAIR_PATH="$OUTPUT_DIR/keypair.json"
 REGISTRATION_TOKEN_PATH="$OUTPUT_DIR/registration_token.txt"  # Lokasi untuk menyimpan token pendaftaran
 
-# Fungsi untuk mengunduh dan menginstal jq versi terbaru
-install_jq() {
-    echo -e "${CYAN}=== INSTALLING jq ===${RESET}"
-    
-    # Menghapus versi jq yang ada dan menginstal jq terbaru
-    sudo apt-get update
-    sudo apt-get install -y jq
-
-    # Memastikan versi terbaru
-    jq_version=$(jq --version)
-    echo -e "${LIGHT_GREEN}jq telah berhasil diinstal. Versi: $jq_version${RESET}"
-}
-
-curl -s https://raw.githubusercontent.com/choir94/Airdropguide/refs/heads/main/logo.sh | bash
-sleep 5
-
 # Warna
 RESET="\033[0m"
 BOLD="\033[1m"
@@ -32,6 +16,24 @@ CYAN="\033[36m"
 YELLOW="\033[33m"
 RED="\033[31m"
 BLUE="\033[34m"
+
+# Fungsi untuk mengunduh dan menginstal jq versi terbaru
+install_jq() {
+    echo -e "${CYAN}=== INSTALLING jq ===${RESET}"
+    
+    # Menghapus versi jq yang ada (jika ada) dan menginstal jq terbaru
+    sudo apt-get update
+    sudo apt-get install -y jq
+
+    # Memastikan bahwa jq telah terinstal dengan benar
+    jq_version=$(jq --version)
+    if [ $? -eq 0 ]; then
+        echo -e "${LIGHT_GREEN}jq berhasil diinstal. Versi yang terpasang: $jq_version${RESET}"
+    else
+        echo -e "${RED}Gagal menginstal jq.${RESET}"
+        exit 1
+    fi
+}
 
 # Meminta URL dari pengguna
 prompt_urls() {
@@ -197,23 +199,28 @@ echo -e "${CYAN}=== MEMULAI INSTALASI DAN PENGATURAN NODE PIPE ===${RESET}"
 # Install jq versi terbaru
 install_jq
 
+# Mengambil URL dari pengguna
 prompt_urls
+
+# Menyiapkan binaries
 setup_binaries
+
+# Login ke jaringan Pipe
 perform_login
 
 echo -e "${CYAN}=== MEMBUAT DAN MENDAFTARKAN DOMPET BARU ===${RESET}"
 
+# Generate dan daftarkan wallet
 generate_and_register_wallet
 
-generate_registration_token  # Menambahkan langkah untuk menghasilkan token pendaftaran
+# Generate token pendaftaran
+generate_registration_token
 
+# Setup systemd untuk dcdnd
 setup_systemd_service
 
 echo -e "${LIGHT_GREEN}=== INSTALASI SELESAI ===${RESET}"
 echo -e "Untuk memeriksa status layanan, gunakan:"
 echo -e "  ${BLUE}sudo systemctl status dcdnd${RESET}"
-echo -e "Untuk melihat log secara real-time, gunakan:"
-echo -e "  ${BLUE}sudo journalctl -f -u dcdnd.service${RESET}"
-
-# Bergabung dengan channel Telegram Airdrop Node
-echo -e "Bergabung dengan Telegram channel: ${BLUE}https://t.me/airdrop_node${RESET}"
+echo -e "Untuk memeriksa log, gunakan:"
+echo -e "  ${BLUE}journalctl -u dcdnd -f${RESET}"
