@@ -5,7 +5,6 @@ NODE_REGISTRY_URL="https://rpc.pipedev.network"
 INSTALL_DIR="/opt/dcdn"
 OUTPUT_DIR="$HOME/.permissionless"
 CREDENTIALS_FILE="$OUTPUT_DIR/credentials.json"
-KEYPAIR_PATH="$OUTPUT_DIR/key.json"
 REGISTRATION_TOKEN_PATH="$OUTPUT_DIR/registration_token.txt"  # Lokasi untuk menyimpan token pendaftaran
 
 # Warna
@@ -114,19 +113,27 @@ EOF"
     echo -e "${LIGHT_GREEN}Service dcdnd telah diatur dan dijalankan.${RESET}"
 }
 
-# Membuat dompet baru
+# Generate Wallet tanpa keypair
 generate_wallet() {
-    echo -e "${CYAN}=== MEMBUAT DOMPET BARU ===${RESET}"
+    echo -e "${CYAN}=== MEMBUAT DOMPET BARU TANPA KEYPART ===${RESET}"
     $INSTALL_DIR/pipe-tool generate-wallet --node-registry-url="$NODE_REGISTRY_URL"
 
-    if [ -f "$KEYPAIR_PATH" ]; then
-        echo -e "${LIGHT_GREEN}Dompet baru berhasil dibuat!${RESET}"
-        echo -e "Lokasi pasangan kunci: ${YELLOW}$KEYPAIR_PATH${RESET}"
-        echo -e "Pastikan Anda mencadangkan frasa pemulihan dan file kunci di lokasi yang aman."
-    else
-        echo -e "${RED}Gagal membuat dompet baru.${RESET}"
-        exit 1
-    fi
+    echo -e "${LIGHT_GREEN}Dompet baru berhasil dibuat!${RESET}"
+    echo -e "Pastikan Anda mencadangkan frasa pemulihan dengan aman."
+}
+
+# Link Wallet
+link_wallet() {
+    echo -e "${CYAN}=== LINK DOMPET KE JARINGAN PIPE ===${RESET}"
+    $INSTALL_DIR/pipe-tool link-wallet --node-registry-url="$NODE_REGISTRY_URL"
+
+    echo -e "${LIGHT_GREEN}Dompet berhasil dihubungkan dengan jaringan Pipe!${RESET}"
+}
+
+# Cek Status Node yang Sedang Berjalan
+check_node_status() {
+    echo -e "${CYAN}=== CEK STATUS NODE YANG SEDANG BERJALAN ===${RESET}"
+    $INSTALL_DIR/pipe-tool list-nodes --node-registry-url="$NODE_REGISTRY_URL"
 }
 
 # Menjalankan proses pengaturan
@@ -140,9 +147,15 @@ generate_registration_token  # Menambahkan langkah untuk menghasilkan token pend
 
 setup_systemd_service
 
-echo -e "${CYAN}=== MEMBUAT DOMPET BARU ===${RESET}"
-
+# Membuat dompet baru tanpa keypair di akhir
+echo -e "${CYAN}=== MEMBUAT DOMPET BARU TANPA KEYPART ===${RESET}"
 generate_wallet  # Memindahkan generate wallet ke akhir
+
+# Menambahkan langkah untuk link dompet
+link_wallet
+
+# Cek status node yang sedang berjalan
+check_node_status
 
 echo -e "${LIGHT_GREEN}=== INSTALASI SELESAI ===${RESET}"
 echo -e "Untuk memeriksa status layanan, gunakan:"
