@@ -1,50 +1,60 @@
 #!/bin/bash
-echo "####################################################"
-echo "####################################################"
-echo "##                                               ###"
-echo "##                AIRDROP NODE                   ###"
-echo "## Join My Telegram: https://t.me/airdrop_node   ###"
-echo "##                                               ###"
-echo "####################################################"
-echo "####################################################"
-sleep 2
 
-check_node() {
-    if ! command -v node &> /dev/null; then
-        return 1
-    fi
-    return 0
-}
+curl -s https://raw.githubusercontent.com/choir94/Airdropguide/refs/heads/main/logo.sh | bash
+sleep 5
 
-if ! check_node; then
-    echo "Node.js not found. Installing Node.js..."
-    apt update && apt upgrade -y
-    curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
-    export NVM_DIR="$([ -z "${XDG_CONFIG_HOME-}" ] && printf %s "${HOME}/.nvm" || printf %s "${XDG_CONFIG_HOME}/nvm")"
-    [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-    nvm install --lts
+# Warna
+GREEN='\033[0;32m'
+CYAN='\033[0;36m'
+YELLOW='\033[1;33m'
+RED='\033[0;31m'
+RESET='\033[0m'
+
+# Header
+clear
+echo -e "${CYAN}=================================================${RESET}"
+echo -e "${GREEN}         Auto Installer for Rivalz Node          ${RESET}"
+echo -e "${CYAN}                  By AirdropNode                 ${RESET}"
+echo -e "${CYAN}=================================================${RESET}\n"
+
+# Update dan upgrade sistem
+echo -e "${YELLOW}Updating and upgrading system...${RESET}\n"
+sudo apt update && sudo apt upgrade -y
+
+# Instal Node.js versi 20
+echo -e "\n${YELLOW}Installing Node.js v20...${RESET}\n"
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+sudo apt install -y nodejs
+
+# Instal Rivalz Node CLI
+echo -e "\n${YELLOW}Installing Rivalz Node CLI...${RESET}\n"
+npm i -g rivalz-node-cli
+
+# Memulai screen session
+echo -e "\n${YELLOW}Starting a new screen session for Rivalz Node...${RESET}\n"
+screen -dmS rivalz bash -c 'rivalz run'
+
+# Menyediakan opsi untuk cek log
+echo -e "\n${YELLOW}Would you like to view the logs now? (y/n)${RESET}"
+read -p "Your choice: " choice
+
+if [[ $choice == "y" || $choice == "Y" ]]; then
+    echo -e "\n${CYAN}Attaching to the screen session...${RESET}"
+    sleep 1
+    screen -r rivalz
+else
+    echo -e "\n${GREEN}Logs can be viewed later by running: ${CYAN}screen -r rivalz${RESET}\n"
 fi
 
-echo "Installing rivalz-node-cli..."
-npm install -g rivalz-node-cli
-
-cat <<EOL
-Before running 'rivalz run', please submit the following details:
-1. Your EVM Address
-2. The number of CPU cores you want to use for rClient (preferably 50% of your total cores, e.g., if you have 4 cores, use 2 cores)
-3. The amount of RAM you want to use for rClient (preferably 60% or 70% of your total RAM)
-4. Choose SSD (serial number can be skipped)
-5. Disk size (choose 300GB or less)
-
-Have you read the instructions? (y/n)
-EOL
-
-read -p "Enter your choice: " choice
-
-while [[ "$choice" != "y" ]]; do
-    echo "Please read the instructions again."
-    read -p "Have you read the instructions? (y/n): " choice
-done
-
-echo "Running 'rivalz run'..."
-rivalz run
+# Penutup
+echo -e "\n${CYAN}=================================================${RESET}"
+echo -e "${GREEN}        Installation Complete! Next Steps:       ${RESET}"
+echo -e "${CYAN}=================================================${RESET}\n"
+echo -e "${YELLOW}1.${RESET} Input your ${CYAN}Metamask address${RESET}, ${CYAN}CPU cores${RESET}, and ${CYAN}RAM specs${RESET}."
+echo -e "${YELLOW}2.${RESET} Wait for ${CYAN}~5-10 minutes${RESET} for the node to sync."
+echo -e "${YELLOW}3.${RESET} Open the Rivalz Testnet Web and click ${CYAN}'Validate'${RESET}."
+echo -e "${YELLOW}   Link: ${CYAN}https://rivalz.ai/?r=Choirc8${RESET}\n"
+echo -e "${CYAN}=================================================${RESET}"
+echo -e "${GREEN}For more details, check the official documentation:${RESET}"
+echo -e "${CYAN}https://docs.rivalz.ai/testnet/testnet-guide/download-and-run-rclient/rclient-cli-guide${RESET}"
+echo -e "${CYAN}=================================================${RESET}\n"
