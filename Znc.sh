@@ -1,5 +1,11 @@
 #!/bin/bash
 
+# Menentukan folder utama untuk instalasi ZenChain
+ZENCHAIN_DIR=~/zenchain
+CHAIN_DATA_DIR="$ZENCHAIN_DIR/chain-data"
+DOCKER_COMPOSE_FILE="$ZENCHAIN_DIR/docker-compose.yml"
+LOGS_DIR="$ZENCHAIN_DIR/logs"
+
 # Dapatkan IP Publik VPS
 IP_VPS=$(curl -s ifconfig.me)
 
@@ -43,22 +49,20 @@ read ETH_ADDRESS
 echo "Masukkan nama validator Anda:"
 read VALIDATOR_NAME
 
-# Langkah 6: Tentukan folder data chain
-CHAIN_DATA_DIR=~/zenchain
-
-# Membuat folder jika belum ada
-echo "Membuat folder untuk data chain..."
+# Langkah 6: Memastikan folder direktori untuk ZenChain ada
+echo "Memastikan direktori untuk ZenChain ada..."
 mkdir -p $CHAIN_DATA_DIR
+mkdir -p $LOGS_DIR
 
-# Memastikan bahwa folder memiliki izin yang tepat
+# Memastikan folder memiliki izin yang benar
 echo "Memastikan folder memiliki izin yang benar..."
-chmod 755 $CHAIN_DATA_DIR
-chown $USER:$USER $CHAIN_DATA_DIR
+sudo chmod -R 755 $ZENCHAIN_DIR
+sudo chown -R $USER:$USER $ZENCHAIN_DIR
 
 # Langkah 7: Membuat file docker-compose.yml untuk ZenChain
 echo "Membuat file docker-compose.yml..."
 
-cat > $CHAIN_DATA_DIR/docker-compose.yml <<EOL
+cat > $DOCKER_COMPOSE_FILE <<EOL
 version: '3'
 
 services:
@@ -70,6 +74,7 @@ services:
       - "$IP_VPS:9944:9944"  # Menggunakan IP VPS otomatis
     volumes:
       - $CHAIN_DATA_DIR:/chain-data
+      - $LOGS_DIR:/logs
     command:
       - "./usr/bin/zenchain-node"
       - "--base-path=/chain-data"
@@ -84,7 +89,7 @@ echo "File docker-compose.yml telah dibuat dengan IP VPS Anda dan nama validator
 
 # Langkah 8: Memasuki direktori yang sesuai dan menjalankan Docker Compose
 echo "Memasuki direktori ZenChain dan menjalankan Docker Compose..."
-cd $CHAIN_DATA_DIR || { echo "Gagal mengakses direktori $CHAIN_DATA_DIR"; exit 1; }
+cd $ZENCHAIN_DIR || { echo "Gagal mengakses direktori $ZENCHAIN_DIR"; exit 1; }
 
 # Menjalankan Docker Compose untuk memulai ZenChain Node
 docker-compose up -d
@@ -120,13 +125,13 @@ echo "Transaksi untuk setKeys telah dikirim. Output transaksi: $TRANSACTION_OUTP
 echo "Menonaktifkan --unsafe-rpc-external dan memulai ulang node..."
 
 # Pastikan kita berada di direktori yang benar sebelum memulai ulang Docker Compose
-if [ -d "$CHAIN_DATA_DIR" ]; then
-    cd $CHAIN_DATA_DIR || { echo "Gagal mengakses direktori $CHAIN_DATA_DIR"; exit 1; }
+if [ -d "$ZENCHAIN_DIR" ]; then
+    cd $ZENCHAIN_DIR || { echo "Gagal mengakses direktori $ZENCHAIN_DIR"; exit 1; }
     docker-compose down
     docker-compose up -d
     echo "Node telah dimulai ulang dengan konfigurasi yang aman."
 else
-    echo "Direktori $CHAIN_DATA_DIR tidak ditemukan. Pastikan Anda berada di folder yang benar."
+    echo "Direktori $ZENCHAIN_DIR tidak ditemukan. Pastikan Anda berada di folder yang benar."
     exit 1
 fi
 
