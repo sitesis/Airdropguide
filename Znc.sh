@@ -26,10 +26,17 @@ if ! command -v docker &>/dev/null; then
   exit 1
 fi
 
-# Check if jq is installed
+# Check if jq is installed, if not, install it
 if ! command -v jq &>/dev/null; then
-  echo "jq is not installed. Please install jq and try again."
-  exit 1
+  echo "jq is not installed. Installing jq..."
+  if [ -f /etc/debian_version ]; then
+    sudo apt update && sudo apt install jq -y
+  elif [ -f /etc/redhat-release ]; then
+    sudo yum install jq -y
+  else
+    echo "Unsupported OS. Please install jq manually."
+    exit 1
+  fi
 fi
 
 # Create chain data directory if not exists
