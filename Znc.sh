@@ -119,10 +119,16 @@ echo "Transaksi untuk setKeys telah dikirim. Output transaksi: $TRANSACTION_OUTP
 # Langkah 11: Restart node tanpa unsafe-rpc-external
 echo "Menonaktifkan --unsafe-rpc-external dan memulai ulang node..."
 
-docker-compose down
-docker-compose up -d
-
-echo "Node telah dimulai ulang dengan konfigurasi yang aman."
+# Pastikan kita berada di direktori yang benar sebelum memulai ulang Docker Compose
+if [ -d "$CHAIN_DATA_DIR" ]; then
+    cd $CHAIN_DATA_DIR || { echo "Gagal mengakses direktori $CHAIN_DATA_DIR"; exit 1; }
+    docker-compose down
+    docker-compose up -d
+    echo "Node telah dimulai ulang dengan konfigurasi yang aman."
+else
+    echo "Direktori $CHAIN_DATA_DIR tidak ditemukan. Pastikan Anda berada di folder yang benar."
+    exit 1
+fi
 
 # Langkah 12: Verifikasi Node
 echo "Memverifikasi apakah ZenChain Node sudah berjalan..."
