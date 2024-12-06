@@ -120,10 +120,27 @@ get_session_keys() {
     fi
 }
 
-# Melihat log Docker container
+# Melihat logs dari kontainer Docker Zenchain
 view_logs() {
-    echo -e "${YELLOW}Melihat log Docker container...${NC}"
+    echo -e "${YELLOW}Melihat logs dari Docker container Zenchain...${NC}"
     docker logs -f zenchain
+}
+
+# Menanyakan apakah ingin melihat logs setelah setup selesai
+view_logs_option() {
+    echo -e "${YELLOW}Apakah Anda ingin melihat logs dari ZenChain Node? (y/n)${NC}"
+    read -p "Pilih opsi: " VIEW_LOGS
+    if [[ "$VIEW_LOGS" == "y" || "$VIEW_LOGS" == "Y" ]]; then
+        view_logs
+    else
+        echo -e "${GREEN}Proses selesai. Session Keys telah disimpan di session_keys.txt.${NC}"
+    fi
+}
+
+# Menampilkan ajakan bergabung dengan Channel Telegram
+join_telegram_channel() {
+    echo -e "${GREEN}Terima kasih telah mengikuti proses ini. Jangan lupa untuk bergabung dengan Channel Telegram AirdropNode untuk update lebih lanjut: ${NC}"
+    echo -e "${GREEN}👉 ${YELLOW}https://t.me/airdrop_node${NC}"
 }
 
 # Menjalankan semua langkah
@@ -134,4 +151,9 @@ create_docker_compose_file
 run_docker_compose
 wait_for_rpc
 get_session_keys
-view_logs
+
+# Menampilkan opsi untuk melihat logs
+view_logs_option
+
+# Menampilkan ajakan bergabung Channel Telegram
+join_telegram_channel
