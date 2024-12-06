@@ -55,22 +55,10 @@ prompt_validator_name() {
     fi
 }
 
-# Membuat direktori untuk data dan konfigurasi
-create_directories() {
-    echo -e "${YELLOW}Membuat direktori yang diperlukan...${NC}"
-    mkdir -p "/root/zenchain-validator/chain-data"
-    mkdir -p "/root/zenchain-validator/zenchain-config"
-    
-    # Memberikan izin akses penuh pada direktori yang dibuat
-    chmod -R 755 "/root/zenchain-validator"
-    
-    echo -e "${GREEN}Direktori berhasil dibuat dan izin diberikan:${NC} /root/zenchain-validator/chain-data dan /root/zenchain-validator/zenchain-config\n"
-}
-
-# Membuat file docker-compose.yml
+# Membuat file docker-compose.yml di direktori kerja saat ini
 create_docker_compose_file() {
     echo -e "${YELLOW}Membuat file docker-compose.yml...${NC}"
-    cat <<EOF >/root/zenchain-validator/docker-compose.yml
+    cat <<EOF >./docker-compose.yml
 version: '3.8'
 services:
   zenchain:
@@ -79,8 +67,8 @@ services:
     ports:
       - "9944:9944"
     volumes:
-      - "/root/zenchain-validator/chain-data:/chain-data"
-      - "/root/zenchain-validator/zenchain-config:/config"
+      - ./chain-data:/chain-data
+      - ./zenchain-config:/config
     command: >
       ./usr/bin/zenchain-node
       --base-path=/chain-data
@@ -92,26 +80,38 @@ services:
       --bootnodes=/dns4/node-7242611732906999808-0.p2p.onfinality.io/tcp/26266/p2p/12D3KooWLAH3GejHmmchsvJpwDYkvacrBeAQbJrip5oZSymx5yrE
       --chain=zenchain_testnet
 EOF
-    echo -e "${GREEN}File docker-compose.yml berhasil dibuat di /root/zenchain-validator/${NC}\n"
+    echo -e "${GREEN}File docker-compose.yml berhasil dibuat di direktori saat ini.${NC}\n"
 }
 
 # Menjalankan Docker Compose dari folder yang sesuai
 start_docker_compose() {
     echo -e "${YELLOW}Menjalankan ZenChain Node dengan Docker Compose...${NC}"
-    cd /root/zenchain-validator || { echo -e "${RED}Gagal masuk ke direktori zenchain-validator.${NC}"; exit 1; }
     docker-compose up -d
     if [ $? -eq 0 ]; then
         echo -e "${GREEN}ZenChain Node berhasil dijalankan.${NC}\n"
     else
         echo -e "${RED}Gagal menjalankan ZenChain Node.${NC}\n"
+        restart_docker_compose
+    fi
+}
+
+# Mengulang perintah docker-compose jika gagal
+restart_docker_compose() {
+    echo -e "${YELLOW}Gagal menjalankan ZenChain Node. Mencoba untuk memulai ulang container...${NC}"
+    docker-compose down
+    docker-compose up -d
+    if [ $? -eq 0 ]; then
+        echo -e "${GREEN}ZenChain Node berhasil dijalankan setelah restart.${NC}\n"
+    else
+        echo -e "${RED}Gagal menjalankan ZenChain Node setelah restart.${NC}\n"
         exit 1
     fi
 }
 
 # Mendapatkan session keys
 get_session_keys() {
-    echo -e "${YELLOW}Menunggu 10 detik untuk memastikan RPC aktif...${NC}\n"
-    sleep 10
+    echo -e "${YELLOW}Menunggu 60 detik untuk memastikan RPC aktif...${NC}\n"
+    sleep 60
     echo -e "${YELLOW}Mendapatkan Session Keys...${NC}"
     SESSION_KEYS=$(curl -s -H "Content-Type: application/json" \
         -d '{"id":1, "jsonrpc":"2.0", "method": "author_rotateKeys", "params":[]}' \
@@ -123,8 +123,8 @@ get_session_keys() {
         echo -e "${CYAN}Apakah Anda ingin menyimpan Session Keys ke file? (y/n)${NC}"
         read -p "> " SAVE_KEYS
         if [[ "$SAVE_KEYS" == "y" || "$SAVE_KEYS" == "Y" ]]; then
-            echo $SESSION_KEYS > /root/session_keys.txt
-            echo -e "${GREEN}Session Keys disimpan di file '/root/session_keys.txt'.${NC}\n"
+            echo $SESSION_KEYS > session_keys.txt
+            echo -e "${GREEN}Session Keys disimpan di file 'session_keys.txt'.${NC}\n"
         else
             echo -e "${YELLOW}Session Keys tidak disimpan.${NC}\n"
         fi
@@ -160,7 +160,6 @@ invite_to_telegram_channel() {
 # Eksekusi script
 install_docker
 install_docker_compose
-create_directories
 prompt_validator_name
 create_docker_compose_file
 start_docker_compose
