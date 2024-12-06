@@ -120,8 +120,14 @@ get_session_keys() {
     if [ $? -eq 0 ]; then
         echo -e "${GREEN}Session Keys berhasil didapatkan:${NC}\n"
         echo $SESSION_KEYS
-        echo $SESSION_KEYS > session_keys.txt
-        echo -e "${GREEN}Session Keys disimpan di file 'session_keys.txt'.${NC}\n"
+        echo -e "${CYAN}Apakah Anda ingin menyimpan Session Keys ke file? (y/n)${NC}"
+        read -p "> " SAVE_KEYS
+        if [[ "$SAVE_KEYS" == "y" || "$SAVE_KEYS" == "Y" ]]; then
+            echo $SESSION_KEYS > session_keys.txt
+            echo -e "${GREEN}Session Keys disimpan di file 'session_keys.txt'.${NC}\n"
+        else
+            echo -e "${YELLOW}Session Keys tidak disimpan.${NC}\n"
+        fi
     else
         echo -e "${RED}Gagal mendapatkan Session Keys. Pastikan port 9944 terbuka.${NC}\n"
     fi
