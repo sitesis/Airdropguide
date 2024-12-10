@@ -1,81 +1,100 @@
 #!/bin/bash
 
-curl -s https://raw.githubusercontent.com/choir94/Airdropguide/refs/heads/main/logo.sh | bash
-sleep 5
-
-NORMAL=$(tput sgr0)
-RED='\033[1;31m'
-
-
-show() {
-    case $2 in
-        "error")
-            echo -e "${RED}❌ $1${NORMAL}"
-            ;;
-        "progress")
-            echo -e "${RED}⏳ $1${NORMAL}"
-            ;;
-        *)
-            echo -e "${RED}✅ $1${NORMAL}"
-            ;;
-    esac
-}
-
 SERVICE_NAME="nexus"
 SERVICE_FILE="/etc/systemd/system/$SERVICE_NAME.service"
 
-show "Nginstal Rust..." "progress"
-if ! source <(wget -O - https://raw.githubusercontent.com/choir94/Airdropguide/refs/heads/main/rust.sh); then
-    show "Gagal nginstal Rust." "error"
+# --- Warna untuk Pesan ---
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+BLUE='\033[0;34m'
+RESET='\033[0m'
+
+# --- Update dan Instalasi Paket ---
+echo -e "\n${BLUE}[INFO]${RESET} Memperbarui daftar paket dan menginstal build-essential serta curl..."
+if ! sudo apt update && sudo apt install build-essential curl -y; then
+    echo -e "\n${RED}[ERROR]${RESET} Gagal menginstal paket yang diperlukan."
     exit 1
 fi
 
-show "Ngupdate dhaptar paket..." "progress"
+# --- Instalasi Rust ---
+echo -e "\n${BLUE}[INFO]${RESET} Menginstal Rust menggunakan rustup..."
+if ! curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y; then
+    echo -e "\n${RED}[ERROR]${RESET} Gagal menginstal Rust."
+    exit 1
+fi
+
+source $HOME/.cargo/env
+
+# Menambahkan Rust ke PATH secara permanen
+echo 'export PATH="$HOME/.cargo/bin:$PATH"' >> ~/.bashrc && source ~/.bashrc
+
+# Verifikasi Instalasi Rust
+echo -e "\n${BLUE}[INFO]${RESET} Verifikasi Instalasi Rust..."
+echo -e "\n${GREEN}[INFO]${RESET} Versi Rust:"
+rustc --version
+echo -e "\n${GREEN}[INFO]${RESET} Versi Cargo:"
+cargo --version
+
+# --- Memperbarui Daftar Paket ---
+echo -e "\n${BLUE}[INFO]${RESET} Memperbarui daftar paket..."
 if ! sudo apt update; then
-    show "Gagal ngupdate dhaptar paket." "error"
+    echo -e "\n${RED}[ERROR]${RESET} Gagal memperbarui daftar paket."
     exit 1
 fi
 
+# --- Memastikan Git Terinstal ---
 if ! command -v git &> /dev/null; then
-    show "Git ora diinstal. Nginstal git..." "progress"
+    echo -e "\n${YELLOW}[INFO]${RESET} Git belum terinstal. Menginstal Git..."
     if ! sudo apt install git -y; then
-        show "Gagal nginstal git." "error"
+        echo -e "\n${RED}[ERROR]${RESET} Gagal menginstal git."
         exit 1
     fi
 else
-    show "Git wis diinstal."
+    echo -e "\n${GREEN}[INFO]${RESET} Git sudah terinstal."
 fi
 
+# --- Menghapus Repository Lama (Jika Ada) ---
 if [ -d "$HOME/network-api" ]; then
-    show "Mbusak repositori sing wis ana..." "progress"
+    echo -e "\n${YELLOW}[INFO]${RESET} Menghapus repository yang ada..."
     rm -rf "$HOME/network-api"
 fi
 
-sleep 3
-
-show "Nggandha repositori Nexus-XYZ network API..." "progress"
+# --- Mengkloning Repository Nexus-XYZ ---
+echo -e "\n${BLUE}[INFO]${RESET} Mengkloning repository Nexus-XYZ network API..."
 if ! git clone https://github.com/nexus-xyz/network-api.git "$HOME/network-api"; then
-    show "Gagal nggandha repositori." "error"
+    echo -e "\n${RED}[ERROR]${RESET} Gagal mengkloning repository."
     exit 1
 fi
 
 cd $HOME/network-api/clients/cli
 
-show "Nginstal dependensi sing dibutuhake..." "progress"
-if ! sudo apt install pkg-config libssl-dev -y; then
-    show "Gagal nginstal dependensi." "error"
+# --- Instalasi Dependensi ---
+echo -e "\n${BLUE}[INFO]${RESET} Menginstal dependensi yang diperlukan..."
+if ! sudo apt install pkg-config libssl-dev protobuf-compiler -y; then
+    echo -e "\n${RED}[ERROR]${RESET} Gagal menginstal dependensi."
     exit 1
 fi
 
+# --- Memeriksa Status Layanan ---
 if systemctl is-active --quiet nexus.service; then
-    show "nexus.service saiki mlaku. Mandhegake lan mateni..."
+    echo -e "\n${YELLOW}[INFO]${RESET} nexus.service sedang berjalan. Menghentikan dan menonaktifkannya..."
     sudo systemctl stop nexus.service
     sudo systemctl disable nexus.service
 else
-    show "nexus.service ora mlaku."
+    echo -e "\n${GREEN}[INFO]${RESET} nexus.service tidak sedang berjalan."
 fi
 
-show "Nggawe layanan systemd..." "progress"
+# --- Meminta Masukan Prover ID (Jika Kosong, Membuat ID Baru) ---
+read -p "Masukkan Prover ID (Kosongkan untuk membuat otomatis): " PROVER_ID
+if [ -z "$PROVER_ID" ]; then
+    echo -e "\n${YELLOW}[INFO]${RESET} Prover ID tidak dimasukkan. Membuat ID baru secara otomatis..."
+    PROVER_ID=$(uuidgen)  # Membuat Prover ID baru secara otomatis
+    echo -e "\n${GREEN}[INFO]${RESET} Prover ID yang dihasilkan: $PROVER_ID"
+fi
+
+# --- Membuat File Layanan systemd ---
+echo -e "\n${BLUE}[INFO]${RESET} Membuat file layanan systemd..."
 if ! sudo bash -c "cat > $SERVICE_FILE <<EOF
 [Unit]
 Description=Nexus XYZ Prover Service
@@ -85,41 +104,36 @@ After=network.target
 User=$USER
 WorkingDirectory=$HOME/network-api/clients/cli
 Environment=NONINTERACTIVE=1
-ExecStart=$HOME/.cargo/bin/cargo run --release --bin prover -- beta.orchestrator.nexus.xyz
+ExecStart=$HOME/.cargo/bin/cargo run --release --bin prover -- beta.orchestrator.nexus.xyz --prover-id $PROVER_ID
 Restart=always
 RestartSec=10
 
 [Install]
 WantedBy=multi-user.target
 EOF"; then
-    show "Gagal nggawe file layanan systemd." "error"
+    echo -e "\n${RED}[ERROR]${RESET} Gagal membuat file layanan systemd."
     exit 1
 fi
 
-show "Nggeload ulang systemd lan miwiti layanan..." "progress"
+# --- Memuat Ulang systemd dan Memulai Layanan ---
+echo -e "\n${BLUE}[INFO]${RESET} Memuat ulang systemd dan memulai layanan..."
 if ! sudo systemctl daemon-reload; then
-    show "Gagal nggeload ulang systemd." "error"
+    echo -e "\n${RED}[ERROR]${RESET} Gagal memuat ulang systemd."
     exit 1
 fi
 
 if ! sudo systemctl start $SERVICE_NAME.service; then
-    show "Gagal miwiti layanan." "error"
+    echo -e "\n${RED}[ERROR]${RESET} Gagal memulai layanan."
     exit 1
 fi
 
 if ! sudo systemctl enable $SERVICE_NAME.service; then
-    show "Gagal ngaktifake layanan." "error"
+    echo -e "\n${RED}[ERROR]${RESET} Gagal mengaktifkan layanan."
     exit 1
 fi
 
-show "Status layanan:" "progress"
-if ! sudo systemctl status $SERVICE_NAME.service; then
-    show "Gagal njupuk status layanan." "error"
-fi
+echo -e "\n${GREEN}[INFO]${RESET} Instalasi Nexus Prover dan pengaturan layanan selesai!"
+echo -e "\n${BLUE}[INFO]${RESET} Menampilkan log Nexus Prover secara langsung..."
 
-show "Instalasi Nexus Prover lan setup layanan rampung!"
-echo -e "\nKamu dapat cek status prover menggunakan iki:"
-echo "systemctl status nexus.service"
-echo -e "\nCek logs nganggo iki:"
-echo "journalctl -u nexus.service -f -n 50"
-echo -e "\n👉 **[Join Airdrop Node](https://t.me/airdrop_node)** 👈"
+# --- Menampilkan Log Secara Langsung ---
+sudo journalctl -u nexus.service -fn 50 --follow
