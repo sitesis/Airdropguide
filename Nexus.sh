@@ -1,5 +1,8 @@
 #!/bin/bash
 
+curl -s https://raw.githubusercontent.com/choir94/Airdropguide/refs/heads/main/logo.sh | bash
+sleep 5
+
 SERVICE_NAME="nexus"
 SERVICE_FILE="/etc/systemd/system/$SERVICE_NAME.service"
 
@@ -133,7 +136,14 @@ if ! sudo systemctl enable $SERVICE_NAME.service; then
 fi
 
 echo -e "\n${GREEN}[INFO]${RESET} Instalasi Nexus Prover dan pengaturan layanan selesai!"
-echo -e "\n${BLUE}[INFO]${RESET} Menampilkan log Nexus Prover secara langsung..."
 
-# --- Menampilkan Log Secara Langsung ---
-sudo journalctl -u nexus.service -fn 50 --follow
+# --- Gabung Channel Telegram ---
+echo -e "\n${BLUE}[INFO]${RESET} Bergabung dengan channel Telegram Airdrop Node..."
+echo -e "\n${GREEN}[INFO]${RESET} Silakan gabung ke channel Telegram: https://t.me/airdrop_node"
+
+# --- Pilihan untuk Melihat Logs ---
+read -p "Apakah Anda ingin melihat logs? (y/n): " CHOICE
+if [[ "$CHOICE" =~ ^[Yy]$ ]]; then
+    echo -e "\n${BLUE}[INFO]${RESET} Menampilkan logs untuk Nexus service..."
+    sudo journalctl -u $SERVICE_NAME.service -f
+fi
