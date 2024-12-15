@@ -46,3 +46,8 @@ fi
 print_line
 echo -e "${YELLOW}🖥️  Membuat screen dengan nama 'airdropnode_kuzco' dan menjalankan 'kuzco init'...${RESET}"
 screen -S airdropnode_kuzco bash -c 'kuzco init'
+
+# Menampilkan pesan sukses setelah instalasi
+echo "🎉 Proses instalasi selesai!"
+echo "🔗 Gunakan perintah berikut untuk melihat proses:"
+echo "screen -r airdropnode_kuzco"
