@@ -1,5 +1,6 @@
 #!/bin/bash
 
+# Menjalankan logo.sh dari GitHub
 curl -s https://raw.githubusercontent.com/choir94/Airdropguide/refs/heads/main/logo.sh | bash
 sleep 5
 
@@ -41,13 +42,7 @@ else
     echo -e "${GREEN}✅ 'screen' sudah terinstal.${RESET}"
 fi
 
-# Membuat screen dengan nama airdropnode_kuzco dan menjalankan kuzco init di dalamnya
+# Membuat screen dengan nama airdropnode_kuzco dan langsung masuk ke sesi
 print_line
 echo -e "${YELLOW}🖥️  Membuat screen dengan nama 'airdropnode_kuzco' dan menjalankan 'kuzco init'...${RESET}"
-screen -dmS airdropnode_kuzco bash -c 'kuzco init'
-echo -e "${GREEN}✅ Screen 'airdropnode_kuzco' berhasil dibuat dan 'kuzco init' dijalankan.${RESET}"
-
-# Masuk ke dalam sesi screen
-print_line
-echo -e "${CYAN}🔗 Masuk ke dalam sesi 'screen'...${RESET}"
-screen -r airdropnode_kuzco
+screen -S airdropnode_kuzco bash -c 'kuzco init'
