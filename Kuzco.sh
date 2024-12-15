@@ -47,8 +47,7 @@ echo -e "${YELLOW}🖥️  Membuat screen dengan nama 'airdropnode_kuzco' dan me
 screen -dmS airdropnode_kuzco bash -c 'kuzco init'
 echo -e "${GREEN}✅ Screen 'airdropnode_kuzco' berhasil dibuat dan 'kuzco init' dijalankan.${RESET}"
 
+# Masuk ke dalam sesi screen
 print_line
-echo -e "${CYAN}🎉 Proses instalasi selesai!${RESET}"
-echo -e "${YELLOW}🔗 Gunakan perintah berikut untuk melihat proses:${RESET}"
-echo -e "${GREEN}screen -r airdropnode_kuzco${RESET}"
-print_line
+echo -e "${CYAN}🔗 Masuk ke dalam sesi 'screen'...${RESET}"
+screen -r airdropnode_kuzco
