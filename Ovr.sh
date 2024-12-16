@@ -8,37 +8,82 @@ sudo apt update && sudo apt upgrade -y
 echo -e "\033[1;35mUpdate dan upgrade selesai.\033[0m"
 
 # ------------------------------------------------------
-# 2. Instalasi dependensi
+# 2. Instalasi dependensi untuk Docker
 # ------------------------------------------------------
-echo -e "\033[1;36mMemasang curl dan jq...\033[0m"
-sudo apt install curl jq -y
-
-echo -e "\033[1;36mMemasang Docker...\033[0m"
-sudo apt install -y docker.io
-
-echo -e "\033[1;36mMemasang Docker Compose...\033[0m"
-sudo apt install -y docker-compose
+echo -e "\033[1;36mMemasang dependensi yang diperlukan...\033[0m"
+sudo apt install apt-transport-https ca-certificates curl software-properties-common -y
 
 # ------------------------------------------------------
-# 3. Verifikasi Instalasi
+# 3. Menambahkan Docker's Official GPG Key
+# ------------------------------------------------------
+echo -e "\033[1;36mMenambahkan GPG Key Docker...\033[0m"
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+
+# ------------------------------------------------------
+# 4. Menambahkan Docker Repository ke sistem
+# ------------------------------------------------------
+echo -e "\033[1;36mMenambahkan repositori Docker ke sistem...\033[0m"
+sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+
+# ------------------------------------------------------
+# 5. Memperbarui indeks paket
+# ------------------------------------------------------
+echo -e "\033[1;36mMemperbarui indeks paket setelah menambahkan repositori Docker...\033[0m"
+sudo apt update
+
+# ------------------------------------------------------
+# 6. Instalasi Docker CE (Community Edition)
+# ------------------------------------------------------
+echo -e "\033[1;36mMemasang Docker Community Edition...\033[0m"
+sudo apt install docker-ce -y
+
+# ------------------------------------------------------
+# 7. Verifikasi Instalasi Docker
 # ------------------------------------------------------
 echo -e "\033[1;34mMemeriksa versi Docker...\033[0m"
 docker -v
 
-echo -e "\033[1;34mMemeriksa versi Docker Compose...\033[0m"
-docker-compose -v
+# ------------------------------------------------------
+# 8. Memeriksa Status Docker
+# ------------------------------------------------------
+echo -e "\033[1;34mMemeriksa status Docker...\033[0m"
+sudo systemctl status docker --no-pager | head -n 10
 
 # ------------------------------------------------------
-# 4. Pengaturan Grup Docker
+# 9. Menambahkan Pengguna ke Grup Docker
 # ------------------------------------------------------
 echo -e "\033[1;33mMenambahkan pengguna ke grup Docker...\033[0m"
 sudo usermod -aG docker $USER
 newgrp docker
 
-# Memeriksa status Docker dan Docker Compose
-echo -e "\033[1;33mMemeriksa status Docker dan Docker Compose...\033[0m"
-systemctl status docker
-docker-compose --version
+# ------------------------------------------------------
+# 10. Menginstal Docker Compose
+# ------------------------------------------------------
+echo -e "\033[1;36mMemasang Docker Compose...\033[0m"
+sudo curl -L "https://github.com/docker/compose/releases/download/$(curl -s https://api.github.com/repos/docker/compose/releases/latest | jq -r .tag_name)/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+sudo chmod +x /usr/local/bin/docker-compose
+
+# ------------------------------------------------------
+# 11. Verifikasi Instalasi Docker Compose
+# ------------------------------------------------------
+echo -e "\033[1;34mMemeriksa versi Docker Compose...\033[0m"
+docker-compose -v
+
+# ------------------------------------------------------
+# 12. Memeriksa dan Mengatur Docker untuk Start Otomatis
+# ------------------------------------------------------
+echo -e "\033[1;32mMengatur Docker agar mulai otomatis setelah reboot...\033[0m"
+sudo systemctl enable docker
+
+# ------------------------------------------------------
+# 13. Verifikasi Docker dan Docker Compose
+# ------------------------------------------------------
+echo -e "\033[1;32mVerifikasi instalasi Docker dan Docker Compose selesai!\033[0m"
+docker -v
+docker-compose -v
+
+echo -e "\033[1;32mInstalasi Docker dan Docker Compose berhasil!\033[0m"
+
 
 # ------------------------------------------------------
 # 5. Mengatur IP Publik untuk Discovery
