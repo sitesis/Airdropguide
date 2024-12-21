@@ -76,7 +76,14 @@ run_inichain_miner() {
     echo "🚀 Menjalankan InitVerse Miner dalam screen..."
     echo "========================================"
     read -p "Masukkan alamat dompet Anda: " WALLET_ADDRESS
-    WORKER_NAME="Worker001"
+    read -p "Masukkan nama Worker (misal: Worker001): " WORKER_NAME
+
+    # Validasi input
+    if [[ -z "$WALLET_ADDRESS" || -z "$WORKER_NAME" ]]; then
+        echo "❌ Alamat dompet atau nama Worker tidak boleh kosong."
+        exit 1
+    fi
+
     POOL_URL="stratum+tcp://${WALLET_ADDRESS}.${WORKER_NAME}@pool-core-testnet.inichain.com:32672"
 
     screen -dmS $SCREEN_NAME ./$INIMINER_FILE --pool $POOL_URL
