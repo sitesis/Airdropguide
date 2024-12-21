@@ -96,14 +96,13 @@ else
     echo -e "${GREEN}${CHECK} screen sudah terpasang.${RESET}\n"
 fi
 
-# Jalankan mining-cli di dalam sesi screen dengan nama airdropnode_intmax
+# Jalankan mining-cli di dalam sesi screen dengan nama airdropnode_intmax dan langsung masuk ke sesi screen
 echo -e "${CYAN}${INFO} ${YELLOW}Menjalankan mining-cli di dalam sesi screen bernama airdropnode_intmax...${RESET}\n"
-screen -dmS airdropnode_intmax ./mining-cli
+screen -S airdropnode_intmax -dm ./mining-cli
+screen -r airdropnode_intmax
 
 # Pesan selesai
 echo -e "\n${CYAN}${INFO} ${YELLOW}Skrip selesai! Proses mining-cli berjalan di dalam screen session 'airdropnode_intmax'.${RESET}"
-echo -e "${BLUE}Untuk kembali ke sesi screen, gunakan perintah: screen -r airdropnode_intmax${RESET}"
-echo -e "${BLUE}Untuk memeriksa sesi screen yang berjalan, gunakan perintah: screen -ls${RESET}\n"
 
 # Informasi tentang pembuat skrip
 echo -e "\n${CYAN}${INFO} ${YELLOW}Dibuat oleh Airdrop Node. Gabung di Telegram: ${RESET} ${BLUE}https://t.me/airdrop_node${RESET}\n"
