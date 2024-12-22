@@ -3,7 +3,7 @@
 curl -s https://raw.githubusercontent.com/choir94/Airdropguide/refs/heads/main/logo.sh | bash
 sleep 5
 
-# Cyberfly Node Setup Script with Screen Session
+# Cyberfly Node Setup Script without Screen
 # =======================================
 # Script Di buat Oleh Airdrop Node
 # =======================================
@@ -50,7 +50,7 @@ fi
 # Update sistem dan instalasi dasar
 print_header "Update Sistem dan Instalasi Dependensi"
 apt update && apt upgrade -y || print_error "Gagal melakukan update sistem!"
-apt install -y git curl screen || print_error "Gagal menginstal dependensi dasar!"
+apt install -y git curl || print_error "Gagal menginstal dependensi dasar!"
 
 # Clone repository Cyberfly
 print_header "Mengunduh Repository Cyberfly Node"
@@ -65,15 +65,15 @@ git pull || print_error "Gagal memperbarui repository Cyberfly!"
 print_header "Menyiapkan Script untuk Menjalankan Node"
 chmod +x start_node.sh || print_error "Gagal memberikan izin eksekusi pada script!"
 
-# Menjalankan node menggunakan screen
-print_header "Menjalankan Node Cyberfly dalam Screen Session"
-screen -dmS airdropnode_kadena ./start_node.sh k:"$kadena_wallet_address" "$node_priv_key" || print_error "Gagal menjalankan Cyberfly Node dalam screen session!"
+# Menjalankan node secara langsung
+print_header "Menjalankan Node Cyberfly"
+./start_node.sh k:"$kadena_wallet_address" "$node_priv_key" || print_error "Gagal menjalankan Cyberfly Node!"
 
 # Pesan akhir
-print_success "Node Cyberfly berhasil dijalankan di screen dengan nama 'airdropnode_kadena'!"
+print_success "Node Cyberfly berhasil dijalankan!"
 print_success "Pastikan Anda mencadangkan Node Private Key Anda: $node_priv_key"
 
 echo "=============================================="
-echo " Untuk melihat log node, jalankan perintah berikut:"
-echo " screen -r airdropnode_kadena"
+echo "Node telah dijalankan dengan sukses!"
+echo "Join Airdrop Node Telegram: https://t.me/airdrop_node untuk update terbaru"
 echo "=============================================="
