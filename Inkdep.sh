@@ -130,7 +130,7 @@ EOL
         DEPLOY_OUTPUT=$(forge create "$SCRIPT_DIR/src/AirdropNode.sol:AirdropNode" \
             --rpc-url "$RPC_URL" \
             --private-key "$PRIVATE_KEY" \
-            -- --broadcast)  # Menambahkan --broadcast setelah --
+            --chain-id 763373)  # Menghapus --broadcast
 
         if [[ $? -ne 0 ]]; then
             echo -e "${RED}Deploy kontrak $i gagal.${RESET}"
