@@ -1,79 +1,74 @@
 #!/bin/bash
 
-# Define colors
+# Warna untuk output
 BLUE='\033[0;34m'
 WHITE='\033[0;97m'
 RED='\033[0;31m'
 YELLOW='\033[1;33m'
 RESET='\033[0m'
 
+# Direktori skrip saat ini
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR" || exit
 
-# Install logo script
+# Tampilkan logo
 curl -s https://raw.githubusercontent.com/choir94/Airdropguide/refs/heads/main/logo.sh | bash
-sleep 5  # Pause for 5 seconds to display logo
+sleep 5  # Pause 5 detik untuk menampilkan logo
 
+# Fungsi instalasi dependensi
 install_dependencies() {
-    CONTRACT_NAME="AirdropNode"
+    echo -e "${YELLOW}Menginstal dependensi...${RESET}"
 
-    # Initialize Git if not already done
+    # Inisialisasi Git jika belum ada
     if [ ! -d ".git" ]; then
-        echo -e "${YELLOW}Initializing Git repository...${RESET}"
+        echo -e "${YELLOW}Menginisialisasi repository Git...${RESET}"
         git init
     fi
 
-    # Install Foundry if not already installed using the updated Foundry.sh URL
+    # Instal Foundry jika belum terinstal
     if ! command -v forge &> /dev/null; then
-        echo -e "${YELLOW}Foundry is not installed. Installing now...${RESET}"
+        echo -e "${YELLOW}Foundry belum terinstal. Menginstal Foundry...${RESET}"
         source <(wget -O - https://raw.githubusercontent.com/choir94/Airdropguide/refs/heads/main/Foundry.sh)
     fi
 
-    # Install OpenZeppelin Contracts if not already installed
+    # Instal OpenZeppelin Contracts jika belum ada
     if [ ! -d "$SCRIPT_DIR/lib/openzeppelin-contracts" ]; then
-        echo -e "${YELLOW}Installing OpenZeppelin Contracts...${RESET}"
+        echo -e "${YELLOW}Menginstal OpenZeppelin Contracts...${RESET}"
         git clone https://github.com/OpenZeppelin/openzeppelin-contracts.git "$SCRIPT_DIR/lib/openzeppelin-contracts"
     else
-        echo -e "${WHITE}OpenZeppelin Contracts already installed.${RESET}"
+        echo -e "${WHITE}OpenZeppelin Contracts sudah terinstal.${RESET}"
     fi
 }
 
+# Fungsi input detail yang diperlukan
 input_required_details() {
     echo -e "${YELLOW}-----------------------------------${RESET}"
 
-    # Remove existing .env if it exists
-    if [ -f "$SCRIPT_DIR/token_deployment/.env" ]; then
-        rm "$SCRIPT_DIR/token_deployment/.env"
-    fi
+    # Hapus file .env lama jika ada
+    [ -f "$SCRIPT_DIR/token_deployment/.env" ] && rm "$SCRIPT_DIR/token_deployment/.env"
 
-    # Prompt for token name input
-    echo -e "${YELLOW}Enter Token Name (default: AirdropNode):${RESET}"
-    read TOKEN_NAME
+    # Input nama token
+    read -p "Masukkan Nama Token (default: AirdropNode): " TOKEN_NAME
     TOKEN_NAME="${TOKEN_NAME:-AirdropNode}"
 
-    # Prompt for token symbol input
-    echo -e "${YELLOW}Enter Token Symbol (default: NODE):${RESET}"
-    read TOKEN_SYMBOL
+    # Input simbol token
+    read -p "Masukkan Simbol Token (default: NODE): " TOKEN_SYMBOL
     TOKEN_SYMBOL="${TOKEN_SYMBOL:-NODE}"
 
-    # Prompt for the number of contracts to deploy
-    echo -e "${YELLOW}Enter number of contract addresses to deploy (default: 1):${RESET}"
-    read NUM_CONTRACTS
+    # Input jumlah kontrak
+    read -p "Jumlah kontrak yang akan dideploy (default: 1): " NUM_CONTRACTS
     NUM_CONTRACTS="${NUM_CONTRACTS:-1}"
 
-    # Prompt for private key input
-    echo -e "${YELLOW}Enter your Private Key:${RESET}"
-    read PRIVATE_KEY
+    # Input private key
+    read -p "Masukkan Private Key Anda: " PRIVATE_KEY
 
-    # Prompt for RPC URL input
-    echo -e "${YELLOW}Enter the RPC URL:${RESET}"
-    read RPC_URL
+    # Input RPC URL
+    read -p "Masukkan RPC URL: " RPC_URL
 
-    # Prompt for explorer scan URL input
-    echo -e "${YELLOW}Enter the Explorer Scan URL (e.g., https://testnet.explorer.hemi.xyz/):${RESET}"
-    read EXPLORER_URL
+    # Input Explorer URL
+    read -p "Masukkan Explorer URL (misal: https://blockscout-testnet.expchain.ai): " EXPLORER_URL
 
-    # Create .env file with provided details
+    # Simpan input ke file .env
     mkdir -p "$SCRIPT_DIR/token_deployment"
     cat <<EOL > "$SCRIPT_DIR/token_deployment/.env"
 PRIVATE_KEY="$PRIVATE_KEY"
@@ -84,10 +79,7 @@ RPC_URL="$RPC_URL"
 EXPLORER_URL="$EXPLORER_URL"
 EOL
 
-    # Source the .env file
-    source "$SCRIPT_DIR/token_deployment/.env"
-
-    # Update foundry.toml with the provided RPC URL
+    # Konfigurasi foundry.toml
     cat <<EOL > "$SCRIPT_DIR/foundry.toml"
 [profile.default]
 src = "src"
@@ -98,27 +90,18 @@ libs = ["lib"]
 rpc_url = "$RPC_URL"
 EOL
 
-    echo "Updated files with your given data."
+    echo -e "${YELLOW}Data berhasil disimpan dan konfigurasi diperbarui.${RESET}"
 }
 
-flatten_contract() {
-    echo -e "${YELLOW}Flattening the contract...${RESET}"
-
-    # Flatten the contract into a single file
-    forge flatten src/AirdropNode.sol > src/AirdropNodeFlattened.sol
-
-    echo -e "${WHITE}Flattened contract saved to src/AirdropNodeFlattened.sol${RESET}"
-}
-
+# Fungsi untuk kompilasi dan deploy kontrak
 deploy_contract() {
     echo -e "${YELLOW}-----------------------------------${RESET}"
-    # Source the .env file again for the latest environment variables
     source "$SCRIPT_DIR/token_deployment/.env"
 
-    # Create the contract source directory if it doesn't exist
+    # Buat direktori src jika belum ada
     mkdir -p "$SCRIPT_DIR/src"
 
-    # Write the contract code to a file
+    # Tulis kode kontrak
     cat <<EOL > "$SCRIPT_DIR/src/AirdropNode.sol"
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
@@ -127,49 +110,40 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 contract AirdropNode is ERC20 {
     constructor() ERC20("$TOKEN_NAME", "$TOKEN_SYMBOL") {
-        _mint(msg.sender, 1000 * (10 ** decimals())); // Default supply of 1000 tokens
+        _mint(msg.sender, 1000 * (10 ** decimals()));
     }
 }
 EOL
 
-    # Compile the contract
-    echo "Compiling contract..."
-    forge build
+    # Kompilasi kontrak
+    echo -e "${BLUE}Mengompilasi kontrak...${RESET}"
+    forge build || { echo -e "${RED}Kompilasi gagal.${RESET}"; exit 1; }
 
-    if [[ $? -ne 0 ]]; then
-        echo -e "${RED}Contract compilation failed.${RESET}"
-        exit 1
-    fi
-
-    # Deploy the contract based on the number of contracts
+    # Deploy kontrak
     for i in $(seq 1 "$NUM_CONTRACTS"); do
-        echo "Deploying contract $i of $NUM_CONTRACTS..."
+        echo -e "${BLUE}Mendeploy kontrak $i dari $NUM_CONTRACTS...${RESET}"
 
         DEPLOY_OUTPUT=$(forge create "$SCRIPT_DIR/src/AirdropNode.sol:AirdropNode" \
             --rpc-url "$RPC_URL" \
             --private-key "$PRIVATE_KEY")
 
         if [[ $? -ne 0 ]]; then
-            echo -e "${RED}Deployment of contract $i failed.${RESET}"
+            echo -e "${RED}Deploy kontrak $i gagal.${RESET}"
             continue
         fi
 
-        # Extract and display the deployed contract address
+        # Ambil alamat kontrak
         CONTRACT_ADDRESS=$(echo "$DEPLOY_OUTPUT" | grep -oP 'Deployed to: \K(0x[a-fA-F0-9]{40})')
-        echo -e "${YELLOW}Contract $i deployed successfully at address: $CONTRACT_ADDRESS${RESET}"
-
-        # Generate and display the user-provided Explorer URL for the contract
-        EXPLORER_URL="$EXPLORER_URL/address/$CONTRACT_ADDRESS"
-        echo -e "${WHITE}You can view your contract at: $EXPLORER_URL${RESET}"
+        echo -e "${YELLOW}Kontrak $i berhasil di-deploy di alamat: $CONTRACT_ADDRESS${RESET}"
+        echo -e "${WHITE}Lihat kontrak di: ${BLUE}$EXPLORER_URL/address/$CONTRACT_ADDRESS${RESET}"
     done
 }
 
-# Main execution flow
+# Eksekusi fungsi utama
 install_dependencies
 input_required_details
-flatten_contract
 deploy_contract
 
-# Final Telegram invitation
+# Pesan akhir
 echo -e "${YELLOW}-----------------------------------${RESET}"
-echo -e "${BLUE}Join our Telegram channel for updates and support: https://t.me/airdrop_node${RESET}"
+echo -e "${BLUE}Gabung di channel Telegram untuk update dan bantuan: https://t.me/airdrop_node${RESET}"
