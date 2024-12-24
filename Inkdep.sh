@@ -1,60 +1,70 @@
 #!/bin/bash
 
-# Variabel untuk input
-echo "Masukkan private key Anda:"
-read PRIVATE_KEY
-echo "Masukkan Blockscout API Key Anda:"
-read BLOCKSCOUT_API_KEY
+# Meminta input private key dan BlockScout API key
+echo "Masukkan private key Anda (jangan dibagikan ke siapapun):"
+read -sp "Private Key: " PRIVATE_KEY
+echo
 
-# Instalasi dependensi sistem
-echo "Menginstal dependensi sistem..."
-sudo apt update
-sudo apt install -y curl git build-essential
+echo "Masukkan BlockScout API key Anda (untuk verifikasi kontrak):"
+read -sp "BlockScout API Key: " BLOCKSCOUT_API_KEY
+echo
 
-# Instalasi Node.js jika belum terpasang
-echo "Memeriksa Node.js..."
-if ! command -v node &>/dev/null; then
-    echo "Node.js tidak ditemukan. Menginstal Node.js..."
-    curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
-    sudo apt install -y nodejs
-else
-    echo "Node.js sudah terpasang."
-fi
+# Install Node.js versi 20
+echo "Memastikan Node.js versi 20..."
+curl -sL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+sudo apt-get install -y nodejs
 
-# Instalasi Hardhat
-echo "Menginstal Hardhat..."
-mkdir -p ~/AirdropNodeProject
-cd ~/AirdropNodeProject
+# Periksa versi Node.js
+NODE_VERSION=$(node -v)
+echo "Node.js version: $NODE_VERSION"
+
+# Install dependensi proyek
+echo "Menginstall dependensi proyek..."
+mkdir -p inkdeploy
+cd inkdeploy
 npm init -y
-npm install --save-dev hardhat
+npm install --save-dev hardhat @nomicfoundation/hardhat-toolbox dotenv @openzeppelin/contracts
 
-# Membuat konfigurasi Hardhat
-echo "Membuat konfigurasi Hardhat..."
-npx hardhat
+# Inisialisasi proyek Hardhat
+echo "Inisialisasi proyek Hardhat..."
+npx hardhat init --force
 
-# Menambahkan dependensi yang dibutuhkan
-npm install @openzeppelin/contracts dotenv
+# Membuat kontrak ERC20
+echo "Membuat kontrak ERC20 InkToken.sol..."
+cat <<EOL > contracts/InkToken.sol
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.19;
 
-# Menambahkan konfigurasi Solidity di hardhat.config.js
-echo "Mengonfigurasi hardhat.config.js..."
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+
+contract InkToken is ERC20 {
+    constructor(uint256 initialSupply) ERC20("InkToken", "INK") {
+        _mint(msg.sender, initialSupply);
+    }
+}
+EOL
+
+# Membuat file .env untuk konfigurasi
+echo "Membuat file .env untuk konfigurasi..."
+cat <<EOL > .env
+PRIVATE_KEY=$PRIVATE_KEY
+INK_SEPOLIA_URL=https://rpc-gel-sepolia.inkonchain.com/
+BLOCKSCOUT_API_KEY=$BLOCKSCOUT_API_KEY
+EOL
+
+# Membuat konfigurasi Hardhat di hardhat.config.js
+echo "Memperbarui konfigurasi Hardhat di hardhat.config.js..."
 cat <<EOL > hardhat.config.js
 require("@nomicfoundation/hardhat-toolbox");
 require("dotenv").config();
 
+/** @type import('hardhat/config').HardhatUserConfig */
 module.exports = {
-  solidity: {
-    version: "0.8.20", // Sesuaikan dengan versi Solidity
-    settings: {
-      optimizer: {
-        enabled: true,
-        runs: 200,
-      },
-    },
-  },
+  solidity: "0.8.19",
   networks: {
     inksepolia: {
-      url: process.env.INK_SEPOLIA_URL || "https://sepolia.infura.io/v3/\${process.env.API_KEY}",
-      accounts: [\${process.env.PRIVATE_KEY}],
+      url: process.env.INK_SEPOLIA_URL || "",
+      accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
     },
   },
   etherscan: {
@@ -66,8 +76,8 @@ module.exports = {
         network: "inksepolia",
         chainId: 763373,
         urls: {
-          apiURL: "https://explorer-sepolia.inkonchain.com/api/v2",  # Sesuaikan dengan URL yang diberikan
-          browserURL: "https://explorer-sepolia.inkonchain.com/",  # Sesuaikan dengan URL yang diberikan
+          apiURL: "https://explorer-sepolia.inkonchain.com/api/v2",
+          browserURL: "https://explorer-sepolia.inkonchain.com/",
         },
       },
     ],
@@ -75,55 +85,39 @@ module.exports = {
 };
 EOL
 
-# Menambahkan file .env untuk variabel lingkungan
-echo "Membuat file .env..."
-cat <<EOL > .env
-PRIVATE_KEY=$PRIVATE_KEY
-BLOCKSCOUT_API_KEY=$BLOCKSCOUT_API_KEY
-INK_SEPOLIA_URL=https://sepolia.infura.io/v3/$API_KEY
-EOL
-
-# Menambahkan kontrak AirdropNodeToken.sol
-echo "Membuat kontrak AirdropNodeToken.sol..."
-mkdir -p contracts
-cat <<EOL > contracts/AirdropNodeToken.sol
-// SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
-
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-
-contract AirdropNodeToken is ERC20 {
-    constructor() ERC20("AirdropNodeToken", "ANT") {
-        _mint(msg.sender, 5000000e18); // Mint 5 juta token
-    }
-}
-EOL
-
-# Menambahkan skrip deploy.js
-echo "Membuat skrip deploy.js..."
-mkdir -p scripts
+# Membuat skrip deploy.js untuk menyebarkan kontrak
+echo "Membuat skrip deploy.js untuk penyebaran kontrak..."
 cat <<EOL > scripts/deploy.js
 async function main() {
-  const [deployer] = await ethers.getSigners();
-  console.log("Deploying contracts with the account:", deployer.address);
+  // Mendapatkan factory untuk kontrak InkToken
+  const InkToken = await ethers.getContractFactory("InkToken");
 
-  const AirdropNodeToken = await ethers.getContractFactory("AirdropNodeToken");
-  const token = await AirdropNodeToken.deploy();
-  console.log("Token deployed to:", token.address);
+  // Men-deploy kontrak dengan menyediakan jumlah token awal (misalnya 1 juta token)
+  const initialSupply = ethers.utils.parseUnits("1000000", 18);  // 1 juta token dengan 18 desimal
+  const token = await InkToken.deploy(initialSupply);
+
+  // Menunggu hingga kontrak ter-deploy
+  await token.deployed();
+
+  // Menampilkan alamat kontrak yang telah ter-deploy
+  console.log("InkToken deployed to:", token.address);
 }
 
-main().catch((error) => {
-  console.error(error);
-  process.exitCode = 1;
-});
+main()
+  .then(() => process.exit(0))
+  .catch((error) => {
+    console.error(error);
+    process.exit(1);
+  });
 EOL
 
-# Menjalankan kompilasi Hardhat
-echo "Kompilasi proyek..."
-npx hardhat compile
-
-# Menjalankan deployment
-echo "Menjalankan deployment..."
+# Menyebarkan kontrak ke jaringan Sepolia Ink
+echo "Menyebarkan kontrak ke jaringan Sepolia Ink..."
 npx hardhat run scripts/deploy.js --network inksepolia
 
-echo "Proyek telah disiapkan dan kontrak telah dideploy!"
+# Memverifikasi kontrak di BlockScout
+DEPLOYED_CONTRACT_ADDRESS=$(cat scripts/deploy.js | grep "InkToken deployed to:" | awk '{print $4}')
+echo "Memverifikasi kontrak di BlockScout..."
+npx hardhat verify --network inksepolia $DEPLOYED_CONTRACT_ADDRESS
+
+echo "Proses selesai!"
