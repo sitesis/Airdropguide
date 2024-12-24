@@ -53,7 +53,10 @@ echo -e "\e[32mProyek Hardhat telah dibuat dengan konfigurasi kosong.\e[0m"
 mkdir contracts && mkdir scripts
 echo -e "\e[32mFolder 'contracts' dan 'scripts' telah dibuat.\e[0m"
 
-# Membuat file AirdropNodeToken.sol
+# Meminta nama token dari pengguna
+read -p "Masukkan nama token Anda: " TOKEN_NAME
+
+# Membuat file kontrak dengan nama token yang diberikan
 cat <<EOL > contracts/AirdropNodeToken.sol
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
@@ -61,12 +64,12 @@ pragma solidity ^0.8.20;
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 contract AirdropNodeToken is ERC20 {
-    constructor() ERC20("AirdropNode", "AND") {
+    constructor() ERC20("$TOKEN_NAME", "${TOKEN_NAME^^}") {
         _mint(msg.sender, 5000000e18); // Mint 5 juta AirdropNode token untuk alamat deployer
     }
 }
 EOL
-echo -e "\e[32mFile 'AirdropNodeToken.sol' telah dibuat di folder 'contracts'.\e[0m"
+echo -e "\e[32mFile 'AirdropNodeToken.sol' telah dibuat di folder 'contracts' dengan nama token $TOKEN_NAME.\e[0m"
 
 # Mengompilasi kontrak
 npx hardhat compile
@@ -76,13 +79,15 @@ echo -e "\e[32mKontrak telah dikompilasi.\e[0m"
 touch .env
 echo -e "\e[32mFile '.env' telah dibuat di direktori proyek.\e[0m"
 
-# Memastikan private key ada di file .env
-if [ -z "$PRIVATE_KEY" ]; then
-    echo "PRIVATE_KEY=<your_private_key_here>" > .env
-    echo -e "\e[31mPrivate key belum ada di .env. Harap isi dengan private key Anda.\e[0m"
-else
-    echo -e "\e[32mPrivate key sudah diatur dari file .env.\e[0m"
-fi
+# Memasukkan private key ke dalam .env
+read -p "Masukkan Private Key Anda (tanpa '0x'): " PRIVATE_KEY
+echo "PRIVATE_KEY=$PRIVATE_KEY" > .env
+echo -e "\e[32mPrivate Key telah dimasukkan ke file .env.\e[0m"
+
+# Memasukkan API Key untuk Blockscout
+read -p "Masukkan API Key untuk Blockscout: " BLOCKSCOUT_API_KEY
+echo "BLOCKSCOUT_API_KEY=$BLOCKSCOUT_API_KEY" >> .env
+echo -e "\e[32mAPI Key untuk Blockscout telah dimasukkan ke file .env.\e[0m"
 
 # Membuat file .gitignore
 cat <<EOL > .gitignore
