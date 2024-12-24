@@ -41,9 +41,9 @@ cd "$PROJECT_DIR" || exit
 npm init -y
 echo -e "\e[32mProyek NPM telah diinisialisasi.\e[0m"
 
-# Install Hardhat, Ethers.js, OpenZeppelin, dan dotenv
-npm install --save-dev hardhat @nomiclabs/hardhat-ethers ethers @openzeppelin/contracts dotenv
-echo -e "\e[32mHardhat, Ethers.js, OpenZeppelin, dan dotenv telah diinstal.\e[0m"
+# Install Hardhat, Ethers.js, OpenZeppelin, dotenv, dan Hardhat toolbox
+npm install --save-dev hardhat @nomicfoundation/hardhat-toolbox ethers @openzeppelin/contracts dotenv
+echo -e "\e[32mHardhat, Ethers.js, OpenZeppelin, dotenv, dan Hardhat toolbox telah diinstal.\e[0m"
 
 # Inisialisasi proyek Hardhat
 npx hardhat init -y
@@ -62,7 +62,7 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 contract AirdropNodeToken is ERC20 {
     constructor() ERC20("AirdropNode", "AND") {
-        _mint(msg.sender, 1000000e18); // Mint 1 juta AirdropNode token untuk alamat deployer
+        _mint(msg.sender, 5000000e18); // Mint 5 juta AirdropNode token untuk alamat deployer
     }
 }
 EOL
@@ -76,10 +76,13 @@ echo -e "\e[32mKontrak telah dikompilasi.\e[0m"
 touch .env
 echo -e "\e[32mFile '.env' telah dibuat di direktori proyek.\e[0m"
 
-# Meminta input private key dari pengguna
-read -p "Masukkan private key Anda: " PRIVATE_KEY
-echo "PRIVATE_KEY=$PRIVATE_KEY" > .env
-echo -e "\e[32mPrivate key Anda telah disimpan di file .env.\e[0m"
+# Memastikan private key ada di file .env
+if [ -z "$PRIVATE_KEY" ]; then
+    echo "PRIVATE_KEY=<your_private_key_here>" > .env
+    echo -e "\e[31mPrivate key belum ada di .env. Harap isi dengan private key Anda.\e[0m"
+else
+    echo -e "\e[32mPrivate key sudah diatur dari file .env.\e[0m"
+fi
 
 # Membuat file .gitignore
 cat <<EOL > .gitignore
@@ -109,48 +112,59 @@ echo -e "\e[32mFile '.gitignore' telah dibuat dengan contoh kode.\e[0m"
 
 # Membuat file hardhat.config.js
 cat <<EOL > hardhat.config.js
-/** @type import('hardhat/config').HardhatUserConfig */
-require('dotenv').config();
-require("@nomiclabs/hardhat-ethers");
-
-const PK = process.env.PRIVATE_KEY;
+require("@nomicfoundation/hardhat-toolbox");
+require("dotenv").config();
 
 module.exports = {
-  solidity: "0.8.20",
+  solidity: "0.8.19",
   networks: {
-    soneium: {
-      url: "https://rpc.minato.soneium.org",  // URL RPC untuk Soneium yang diperbarui
-      accounts: [PK],
+    inksepolia: {
+      url: process.env.INK_SEPOLIA_URL || "https://sepolia.infura.io/v3/<your_project_id>",
+      accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
     },
+  },
+  etherscan: {
+    apiKey: {
+      inksepolia: process.env.BLOCKSCOUT_API_KEY,
+    },
+    customChains: [
+      {
+        network: "inksepolia",
+        chainId: 763373,
+        urls: {
+          apiURL: "https://explorer-sepolia.inkonchain.com/api/v2",
+          browserURL: "https://explorer-sepolia.inkonchain.com/",
+        },
+      },
+    ],
   },
 };
 EOL
-echo -e "\e[32mFile 'hardhat.config.js' telah diisi dengan konfigurasi Hardhat untuk Soneium.\e[0m"
+echo -e "\e[32mFile 'hardhat.config.js' telah diisi dengan konfigurasi Hardhat untuk Ink Sepolia.\e[0m"
 
 # Membuat file deploy.js di folder scripts
 cat <<EOL > scripts/deploy.js
-const { ethers } = require("hardhat");
-
 async function main() {
-    const [deployer] = await ethers.getSigners();
-    const initialSupply = ethers.utils.parseUnits("1000000", "ether");
+  const InkContract = await ethers.getContractFactory("AirdropNodeToken");
+  const contract = await InkContract.deploy();
 
-    const Token = await ethers.getContractFactory("AirdropNodeToken");
-    const token = await Token.deploy();
+  await contract.deployed();
 
-    console.log("Token dideploy ke:", token.address);
+  console.log("AirdropNodeToken deployed to:", contract.address);
 }
 
-main().catch((error) => {
+main()
+  .then(() => process.exit(0))
+  .catch((error) => {
     console.error(error);
     process.exit(1);
-});
+  });
 EOL
 echo -e "\e[32mFile 'deploy.js' telah dibuat di folder 'scripts'.\e[0m"
 
-# Menjalankan skrip deploy
+# Menjalankan skrip deploy ke Ink Sepolia
 echo -e "\e[33mMenjalankan skrip deploy...\e[0m"
-DEPLOY_OUTPUT=$(npx hardhat run --network soneium scripts/deploy.js)
+DEPLOY_OUTPUT=$(npx hardhat run scripts/deploy.js --network inksepolia)
 
 # Menampilkan output deploy
 echo "$DEPLOY_OUTPUT"
@@ -161,9 +175,19 @@ echo -e "\nProyek AirdropNode telah disiapkan dan kontrak telah dideploy!"
 # Mendapatkan alamat token dari output deploy
 TOKEN_ADDRESS=$(echo "$DEPLOY_OUTPUT" | grep -oE '0x[a-fA-F0-9]{40}')
 
+# Verifikasi kontrak setelah deployment
+if [ -n "$TOKEN_ADDRESS" ]; then
+    echo -e "\nVerifikasi kontrak di Ink Sepolia dengan perintah berikut:"
+    echo "npx hardhat verify --network inksepolia $TOKEN_ADDRESS"
+    # Menjalankan verifikasi kontrak
+    npx hardhat verify --network inksepolia "$TOKEN_ADDRESS"
+else
+    echo "Tidak dapat menemukan alamat token yang sudah dideploy."
+fi
+
 # Menampilkan pesan untuk memeriksa alamat di explorer
 if [ -n "$TOKEN_ADDRESS" ]; then
-    echo -e "Silakan periksa alamat token Anda di explorer: https://soneium-minato.blockscout.com/address/$TOKEN_ADDRESS"
+    echo -e "Silakan periksa alamat token Anda di explorer: https://explorer-sepolia.inkonchain.com/address/$TOKEN_ADDRESS"
 else
     echo "Tidak dapat menemukan alamat token yang sudah dideploy."
 fi
