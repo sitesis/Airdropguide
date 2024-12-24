@@ -1,120 +1,197 @@
 #!/bin/bash
 
-# Memasang Foundry
-echo "Memasang Foundry..."
-curl -L https://foundry.paradigm.xyz | bash
-foundryup
+# Menampilkan logo
+curl -s https://raw.githubusercontent.com/choir94/Airdropguide/refs/heads/main/logo.sh | bash
+sleep 5
 
-# Membuat proyek baru
-echo "Masukkan nama proyek Anda (misalnya: my_project):"
-read PROJECT_NAME
-echo "Membuat proyek Foundry baru dengan nama: $PROJECT_NAME"
-forge init $PROJECT_NAME
-cd $PROJECT_NAME
+# Mengecek apakah Node.js sudah terinstal
+if command -v node >/dev/null 2>&1; then
+    echo -e "\e[32mNode.js sudah terinstal: $(node -v)\e[0m"
+else
+    # Update daftar paket
+    sudo apt update
 
-# Menghapus kontrak default dan membuat kontrak baru
-echo "Menghapus kontrak default dan membuat kontrak baru..."
-rm -rf src/Counter.sol script/Counter.s.sol test/Counter.t.sol
+    # Install curl jika belum terinstal
+    sudo apt install -y curl
 
-cat > src/InkContract.sol <<EOL
+    # Download dan install Node.js versi terbaru
+    curl -fsSL https://deb.nodesource.com/setup_current.x | sudo -E bash -
+    sudo apt install -y nodejs
+
+    # Verifikasi instalasi
+    echo -e "\e[32mNode.js dan npm versi terbaru telah terinstal.\e[0m"
+    node -v
+    npm -v
+fi
+
+# Membuat direktori proyek
+PROJECT_DIR=~/AirdropNodeProject
+
+if [ ! -d "$PROJECT_DIR" ]; then
+    mkdir "$PROJECT_DIR"
+    echo -e "\e[32mDirektori $PROJECT_DIR telah dibuat.\e[0m"
+else
+    echo -e "\e[32mDirektori $PROJECT_DIR sudah ada.\e[0m"
+fi
+
+# Masuk ke direktori proyek
+cd "$PROJECT_DIR" || exit
+
+# Inisialisasi proyek NPM
+npm init -y
+echo -e "\e[32mProyek NPM telah diinisialisasi.\e[0m"
+
+# Install Hardhat, Ethers.js, OpenZeppelin, dotenv, dan Hardhat toolbox
+npm install --save-dev hardhat @nomicfoundation/hardhat-toolbox ethers @openzeppelin/contracts dotenv
+echo -e "\e[32mHardhat, Ethers.js, OpenZeppelin, dotenv, dan Hardhat toolbox telah diinstal.\e[0m"
+
+# Inisialisasi proyek Hardhat
+npx hardhat init -y
+echo -e "\e[32mProyek Hardhat telah dibuat dengan konfigurasi kosong.\e[0m"
+
+# Membuat folder contracts dan scripts
+mkdir contracts && mkdir scripts
+echo -e "\e[32mFolder 'contracts' dan 'scripts' telah dibuat.\e[0m"
+
+# Membuat file AirdropNodeToken.sol
+cat <<EOL > contracts/AirdropNodeToken.sol
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.19;
+pragma solidity ^0.8.20;
 
-contract InkContract {
-    string public greeting = "Hello, Ink!";
-    
-    function setGreeting(string memory _greeting) public {
-        greeting = _greeting;
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+
+contract AirdropNodeToken is ERC20 {
+    constructor() ERC20("AirdropNode", "AND") {
+        _mint(msg.sender, 5000000e18); // Mint 5 juta AirdropNode token untuk alamat deployer
     }
 }
 EOL
+echo -e "\e[32mFile 'AirdropNodeToken.sol' telah dibuat di folder 'contracts'.\e[0m"
 
-# Menyiapkan pengujian untuk kontrak
-cat > test/InkContract.t.sol <<EOL
-// SPDX-License-Identifier: MIT
-pragma solidity ^0.8.19;
+# Mengompilasi kontrak
+npx hardhat compile
+echo -e "\e[32mKontrak telah dikompilasi.\e[0m"
 
-import {Test} from "forge-std/Test.sol";
-import {InkContract} from "../src/InkContract.sol";
+# Membuat file .env
+touch .env
+echo -e "\e[32mFile '.env' telah dibuat di direktori proyek.\e[0m"
 
-contract InkContractTest is Test {
-    InkContract public ink;
+# Memastikan private key ada di file .env
+if [ -z "$PRIVATE_KEY" ]; then
+    echo "PRIVATE_KEY=<your_private_key_here>" > .env
+    echo -e "\e[31mPrivate key belum ada di .env. Harap isi dengan private key Anda.\e[0m"
+else
+    echo -e "\e[32mPrivate key sudah diatur dari file .env.\e[0m"
+fi
 
-    function setUp() public {
-        ink = new InkContract();
-    }
+# Membuat file .gitignore
+cat <<EOL > .gitignore
+# Sample .gitignore code
+# Node modules
+node_modules/
 
-    function test_DefaultGreeting() public view {
-        assertEq(ink.greeting(), "Hello, Ink!");
-    }
+# Environment variables
+.env
 
-    function test_SetGreeting() public {
-        string memory newGreeting = "New greeting!";
-        ink.setGreeting(newGreeting);
-        assertEq(ink.greeting(), newGreeting);
-    }
+# Coverage files
+coverage/
+coverage.json
 
-    function testFuzz_SetGreeting(string memory randomGreeting) public {
-        ink.setGreeting(randomGreeting);
-        assertEq(ink.greeting(), randomGreeting);
-    }
+# Typechain generated files
+typechain/
+typechain-types/
+
+# Hardhat files
+cache/
+artifacts/
+
+# Build files
+build/
+EOL
+echo -e "\e[32mFile '.gitignore' telah dibuat dengan contoh kode.\e[0m"
+
+# Membuat file hardhat.config.js
+cat <<EOL > hardhat.config.js
+require("@nomicfoundation/hardhat-toolbox");
+require("dotenv").config();
+
+module.exports = {
+  solidity: "0.8.19",
+  networks: {
+    inksepolia: {
+      url: process.env.INK_SEPOLIA_URL || "https://sepolia.infura.io/v3/<your_project_id>",
+      accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
+    },
+  },
+  etherscan: {
+    apiKey: {
+      inksepolia: process.env.BLOCKSCOUT_API_KEY,
+    },
+    customChains: [
+      {
+        network: "inksepolia",
+        chainId: 763373,
+        urls: {
+          apiURL: "https://explorer-sepolia.inkonchain.com/api/v2",
+          browserURL: "https://explorer-sepolia.inkonchain.com/",
+        },
+      },
+    ],
+  },
+};
+EOL
+echo -e "\e[32mFile 'hardhat.config.js' telah diisi dengan konfigurasi Hardhat untuk Ink Sepolia.\e[0m"
+
+# Membuat file deploy.js di folder scripts
+cat <<EOL > scripts/deploy.js
+async function main() {
+  const InkContract = await ethers.getContractFactory("AirdropNodeToken");
+  const contract = await InkContract.deploy();
+
+  await contract.deployed();
+
+  console.log("AirdropNodeToken deployed to:", contract.address);
 }
+
+main()
+  .then(() => process.exit(0))
+  .catch((error) => {
+    console.error(error);
+    process.exit(1);
+  });
 EOL
+echo -e "\e[32mFile 'deploy.js' telah dibuat di folder 'scripts'.\e[0m"
 
-# Membangun proyek
-echo "Membangun proyek Foundry..."
-forge build
+# Menjalankan skrip deploy ke Ink Sepolia
+echo -e "\e[33mMenjalankan skrip deploy...\e[0m"
+DEPLOY_OUTPUT=$(npx hardhat run scripts/deploy.js --network inksepolia)
 
-# Menjalankan pengujian
-echo "Menjalankan pengujian..."
-forge test
+# Menampilkan output deploy
+echo "$DEPLOY_OUTPUT"
 
-# Menyiapkan file .env untuk penyebaran
-echo "Masukkan private key Anda:"
-read PRIVATE_KEY
-echo "Masukkan RPC URL (misalnya: https://rpc-gel-sepolia.inkonchain.com/):"
-read RPC_URL
-echo "Masukkan API key BlockScout Anda:"
-read BLOCKSCOUT_API_KEY
+# Menampilkan informasi penting
+echo -e "\nProyek AirdropNode telah disiapkan dan kontrak telah dideploy!"
 
-cat > .env <<EOL
-PRIVATE_KEY=$PRIVATE_KEY
-RPC_URL=$RPC_URL
-BLOCKSCOUT_API_KEY=$BLOCKSCOUT_API_KEY
-EOL
+# Mendapatkan alamat token dari output deploy
+TOKEN_ADDRESS=$(echo "$DEPLOY_OUTPUT" | grep -oE '0x[a-fA-F0-9]{40}')
 
-# Membuat skrip penyebaran
-echo "Membuat skrip penyebaran..."
-cat > script/Deploy.s.sol <<EOL
-// SPDX-License-Identifier: MIT
-pragma solidity ^0.8.19;
-import "forge-std/Script.sol";
-import "../src/InkContract.sol";
+# Verifikasi kontrak setelah deployment
+if [ -n "$TOKEN_ADDRESS" ]; then
+    echo -e "\nVerifikasi kontrak di Ink Sepolia dengan perintah berikut:"
+    echo "npx hardhat verify --network inksepolia $TOKEN_ADDRESS"
+    # Menjalankan verifikasi kontrak
+    npx hardhat verify --network inksepolia "$TOKEN_ADDRESS"
+else
+    echo "Tidak dapat menemukan alamat token yang sudah dideploy."
+fi
 
-contract DeployScript is Script {
-    function run() external {
-        uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
+# Menampilkan pesan untuk memeriksa alamat di explorer
+if [ -n "$TOKEN_ADDRESS" ]; then
+    echo -e "Silakan periksa alamat token Anda di explorer: https://explorer-sepolia.inkonchain.com/address/$TOKEN_ADDRESS"
+else
+    echo "Tidak dapat menemukan alamat token yang sudah dideploy."
+fi
 
-        vm.startBroadcast(deployerPrivateKey);
-
-        new InkContract();
-
-        vm.stopBroadcast();
-    }
-}
-EOL
-
-# Menjalankan penyebaran
-echo "Menjalankan penyebaran ke jaringan Sepolia..."
-source .env
-forge script script/Deploy.s.sol:DeployScript --rpc-url $RPC_URL --broadcast --verify
-
-# Verifikasi kontrak
-echo "Verifikasi kontrak di BlockScout..."
-echo "Masukkan alamat kontrak yang telah dideploy:"
-read DEPLOYED_CONTRACT_ADDRESS
-forge verify-contract $DEPLOYED_CONTRACT_ADDRESS src/InkContract.sol:InkContract \
-    --chain-id 763373 \
-    --etherscan-api-key $BLOCKSCOUT_API_KEY
-
-echo "Instalasi dan penyebaran kontrak selesai!"
+# Menampilkan pesan untuk bergabung dengan Airdrop Node
+echo -e "\n🎉 **Selesai!** 🎉"
+echo -e "\n👉 **[Gabung Airdrop Node](https://t.me/airdrop_node)** 👈"
