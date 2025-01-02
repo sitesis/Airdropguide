@@ -1,86 +1,73 @@
 #!/bin/bash
 
-LOG_FILE="/tmp/aios_install.log"
-exec > >(tee -i $LOG_FILE) 2>&1
+# Warna
+merah='\033[1;31m'
+hijau='\033[1;32m'
+biru='\033[1;34m'
+normal='\033[0m'
 
-# Fungsi logging
-log() {
-    local level="$1"
-    local message="$2"
-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [$level] $message"
-}
+# Cek Docker
+if ! command -v docker &> /dev/null; then
+  echo -e "${merah} Docker belum terinstal. Menginstal... ${normal}"
+  
+  # Instalasi Docker
+  sudo apt update -y
+  sudo apt install docker.io -y
+  sudo systemctl start docker
+  sudo systemctl enable docker
+  sudo usermod -aG docker $USER
+  
+  echo -e "${hijau} Docker berhasil diinstal! ${normal}"
+else
+  echo -e "${hijau} Docker sudah terinstal. Melanjutkan... ${normal}"
+fi
 
-# Deteksi distribusi Linux
-detect_linux_distro() {
-    if [ -f /etc/os-release ]; then
-        . /etc/os-release
-        echo "$ID"
-    else
-        log "ERROR" "Tidak dapat mendeteksi distribusi Linux."
-        exit 1
-    fi
-}
+# Unduh Gambar Docker
+echo -e "${biru}==============================================${normal}"
+echo -e "${hijau} Mengunduh Gambar Docker Sophon Testnet ${normal}"
+echo -e "${biru}==============================================${normal}"
+docker pull sophonhub/sophon-light-node:latest-stg
 
-# Update dan instalasi paket dasar
-install_prerequisites() {
-    local distro=$(detect_linux_distro)
-    log "INFO" "Menginstal paket dasar untuk $distro..."
+# Konfigurasi
+echo -e "${biru}==============================================${normal}"
+echo -e "${hijau} Masukkan Nilai Konfigurasi ${normal}"
+echo -e "${biru}==============================================${normal}"
 
-    if [[ "$distro" == "ubuntu" || "$distro" == "debian" ]]; then
-        sudo apt update && sudo apt install -y curl wget tar
-    elif [[ "$distro" == "centos" || "$distro" == "rhel" ]]; then
-        sudo yum install -y curl wget tar
-    else
-        log "ERROR" "Distribusi $distro tidak didukung."
-        exit 1
-    fi
-}
+DEFAULT_IP=$(hostname -I | awk '{print $1}')  # Ambil IP pertama dari hostname -I
 
-# Instalasi CUDA jika GPU NVIDIA tersedia
-install_cuda() {
-    log "INFO" "Memeriksa keberadaan GPU NVIDIA..."
-    if command -v nvidia-smi &>/dev/null; then
-        log "INFO" "GPU NVIDIA terdeteksi. Menginstal CUDA toolkit..."
-        local distro=$(detect_linux_distro)
-        if [[ "$distro" == "ubuntu" || "$distro" == "debian" ]]; then
-            sudo apt install -y nvidia-cuda-toolkit
-        elif [[ "$distro" == "centos" || "$distro" == "rhel" ]]; then
-            sudo yum install -y nvidia-cuda-toolkit
-        fi
-    else
-        log "WARN" "GPU NVIDIA tidak terdeteksi. Melewatkan instalasi CUDA."
-    fi
-}
+read -p "Masukkan Alamat Dompet Operator: " OPERATOR_ADDRESS
+read -p "Masukkan Alamat Tujuan Hadiah: " DESTINATION_ADDRESS
+read -p "Masukkan Persentase Biaya Hadiah (0-100): " PERCENTAGE
+read -p "Masukkan Alamat IP VPS [default: $DEFAULT_IP]: " PUBLIC_DOMAIN
+PUBLIC_DOMAIN=${PUBLIC_DOMAIN:-$DEFAULT_IP}  # Gunakan nilai default jika kosong
+read -p "Masukkan Port (default: 7007): " PORT
+PORT=${PORT:-7007}  # Gunakan 7007 jika kosong
 
-# Mendapatkan URL untuk aios-cli
-get_aios_cli_url() {
-    local base_url="https://github.com/aios-labs/aios-cli/releases/latest/download"
-    echo "$base_url/aios-cli-linux-amd64.tar.gz"
-}
+# Jalankan Node
+echo -e "${biru}==============================================${normal}"
+echo -e "${hijau} Jalankan Node Sophon Testnet ${normal}"
+echo -e "${biru}==============================================${normal}"
+docker run -d --name sophon-light-node \
+  --restart on-failure:5 \
+  -e OPERATOR_ADDRESS=$OPERATOR_ADDRESS \
+  -e DESTINATION_ADDRESS=$DESTINATION_ADDRESS \
+  -e PERCENTAGE=$PERCENTAGE \
+  -e PUBLIC_DOMAIN=$PUBLIC_DOMAIN:$PORT \
+  -e PORT=$PORT \
+  -p $PORT:$PORT \
+  sophonhub/sophon-light-node:latest-stg
 
-# Unduh dan instalasi aios-cli
-install_aios_cli() {
-    local url=$(get_aios_cli_url)
-    local filename="aios-cli.tar.gz"
+# Selesai
+echo -e "${hijau} Node Sophon Testnet berhasil dijalankan! ${normal}"
+echo -e "${biru}==============================================${normal}"
+echo -e "Cek status node: docker ps -a"
+echo -e "Log node: docker logs -f sophon-light-node"
+echo -e "Berhenti node: docker stop sophon-light-node"
+echo -e "Hapus node: docker rm sophon-light-node"
+echo -e "${biru}==============================================${normal}"
 
-    log "INFO" "Mengunduh aios-cli dari $url..."
-    curl -L -o "$filename" "$url" || { log "ERROR" "Gagal mengunduh aios-cli."; exit 1; }
-
-    log "INFO" "Ekstrak dan instal aios-cli..."
-    tar -xzf "$filename"
-    sudo mv aios-cli /usr/local/bin/ || { log "ERROR" "Gagal memindahkan aios-cli ke /usr/local/bin."; exit 1; }
-    rm -f "$filename"
-
-    log "SUCCESS" "aios-cli berhasil diinstal."
-}
-
-# Menjalankan fungsi utama
-main() {
-    log "INFO" "Memulai instalasi di Linux VPS..."
-    install_prerequisites
-    install_cuda
-    install_aios_cli
-    log "SUCCESS" "Instalasi selesai. Anda dapat menggunakan 'aios-cli' sekarang."
-}
-
-main
+# Bergabung ke Channel Telegram
+echo -e "${biru}==============================================${normal}"
+echo -e "${hijau} Jangan lupa bergabung ke channel Telegram kami untuk informasi lebih lanjut! ${normal}"
+echo -e "${biru}==============================================${normal}"
+echo -e "Link channel Telegram: https://t.me/airdrop_node"
