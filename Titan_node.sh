@@ -22,6 +22,14 @@ echo "============================================"
 echo -e "\n>> Mengupdate sistem..."
 sudo apt update -y
 
+# Memeriksa apakah unzip sudah terinstal, jika belum maka instal
+if ! command -v unzip &> /dev/null; then
+  echo -e "\n>> Menginstall unzip..."
+  sudo apt install unzip -y
+else
+  echo -e "\n>> unzip sudah terinstal."
+fi
+
 # Install snapd
 echo -e "\n>> Menginstall snapd..."
 sudo apt install snapd -y
