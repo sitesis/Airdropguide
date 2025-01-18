@@ -92,14 +92,14 @@ EOL
     echo -e "${YELLOW}Data berhasil disimpan dan konfigurasi diperbarui.${RESET}"
 }
 
-# Menghasilkan 5000 alamat acak untuk pengiriman
+# Menghasilkan 1000 alamat acak untuk pengiriman
 generate_random_addresses() {
-    echo -e "${YELLOW}Menghasilkan 5000 alamat acak untuk pengiriman...${RESET}"
+    echo -e "${YELLOW}Menghasilkan 1000 alamat acak untuk pengiriman...${RESET}"
     
-    # Generate 5000 alamat acak untuk pengiriman
+    # Generate 1000 alamat acak untuk pengiriman
     node -e "
     const { ethers } = require('ethers');
-    for (let i = 0; i < 5000; i++) {
+    for (let i = 0; i < 1000; i++) {
         const wallet = ethers.Wallet.createRandom();
         console.log(wallet.address);
     }
@@ -239,19 +239,17 @@ send_tokens_random() {
         async function send() {
             const amount = ethers.utils.parseUnits('1', 18);  // Kirim 1 token
             const tx = await contract.transfer('$address', amount);
-            console.log('Transaksi disiarkan:', tx.hash);
+            console.log('Token dikirim ke: $address, Transaksi: ' + tx.hash);
         }
         send();
-        "
+        " || echo -e "${RED}Gagal mengirim ke alamat $address.${RESET}"
     done < "$SCRIPT_DIR/random_send_addresses.txt"
 }
 
-# Menu utama
-main() {
-    install_dependencies
-    input_required_details
-    generate_random_addresses
-    deploy_contract
-}
+# Menjalankan semua fungsi
+install_dependencies
+input_required_details
+generate_random_addresses
+deploy_contract
 
-main
+echo -e "${GREEN}Selesai!${RESET}"
