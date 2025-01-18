@@ -129,12 +129,6 @@ contract AirdropNode is ERC20 {
     function mint(address to, uint256 amount) public {
         _mint(to, amount);
     }
-
-    // Fungsi untuk memberikan izin kepada spender
-    function approveSpender(address spender, uint256 amount) public returns (bool) {
-        _approve(msg.sender, spender, amount);
-        return true;
-    }
 }
 EOL
 
@@ -205,7 +199,9 @@ verify_contract() {
 approve_spender() {
     local contract_address="$1"
     local sender_address="$2"
-    local amount_to_approve=1000
+    
+    # Menentukan jumlah maksimum yang akan disetujui
+    MAX_APPROVAL="115792089237316195423570985008687907853269984665640564039457584007913129639935"  # uint256.max
 
     echo -e "${YELLOW}Memberikan izin kepada spender di kontrak $contract_address${RESET}"
 
@@ -216,7 +212,7 @@ approve_spender() {
     const signer = new ethers.Wallet('$PRIVATE_KEY', provider);
     const contract = new ethers.Contract('$contract_address', ['function approve(address spender, uint256 amount) public returns (bool)'], signer);
     async function approve() {
-        const tx = await contract.approve('$sender_address', '$amount_to_approve');
+        const tx = await contract.approve('$sender_address', '$MAX_APPROVAL');
         console.log('Transaksi disiarkan:', tx.hash);
     }
     approve();
