@@ -89,7 +89,7 @@ const provider = new ethers.JsonRpcProvider(rpcUrl);
 const wallet = new ethers.Wallet(senderPrivateKey, provider);
 const tokenContract = new ethers.Contract(tokenAddress, tokenABI, wallet);
 
-const amountToSend = ethers.utils.parseUnits("$AMOUNT_TO_SEND", 18);
+const amountToSend = ethers.utils.parseUnits("$AMOUNT_TO_SEND", 18); // Pastikan parseUnits digunakan dengan benar
 
 async function sendTokens() {
   for (let i = 0; i < recipientAddresses.length; i++) {
