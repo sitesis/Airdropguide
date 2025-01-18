@@ -1,11 +1,20 @@
 #!/bin/bash
 
+# Definisi warna untuk output terminal
+YELLOW='\033[1;33m'
+GREEN='\033[0;32m'
+RESET='\033[0m'
+
 # URL RPC dan alamat kontrak token
 RPC_URL="https://assam-rpc.tea.xyz/"
 TOKEN_ADDRESS="0x8c8aE3254285621E85513d92149373F89a74e918"
 
+# Meminta pengguna untuk memasukkan private key pengirim
+echo -e "${YELLOW}Masukkan Private Key Pengirim:${RESET}"
+read -s SENDER_PRIVATE_KEY  # -s untuk menyembunyikan input private key
+
 # File tempat menyimpan alamat
-ADDRESS_FILE="random_addresses.txt"
+ADDRESS_FILE="random_send_addresses.txt"
 
 # ABI Token Contract (disesuaikan dengan yang Anda berikan)
 TOKEN_ABI='[
@@ -33,39 +42,41 @@ TOKEN_ABI='[
 # Jumlah token yang ingin dikirim (misal 1 token)
 AMOUNT_TO_SEND="1000000000000000000"  # 1 token dengan 18 desimal
 
-# Meminta input private key dari pengguna
-echo "Masukkan private key pengirim:"
-read -s SENDER_PRIVATE_KEY
+# Fungsi untuk memeriksa dependensi
+check_dependencies() {
+    if ! command -v node &> /dev/null; then
+        echo -e "${YELLOW}Node.js tidak ditemukan, silakan instal terlebih dahulu.${RESET}"
+        exit 1
+    fi
+
+    if ! npm list -g ethers &> /dev/null; then
+        echo -e "${YELLOW}Ethers.js tidak terinstal, menginstal ethers.js...${RESET}"
+        npm install -g ethers
+    fi
+}
 
 # Fungsi untuk menghasilkan 1000 alamat acak
 generate_random_addresses() {
-  echo "Menghasilkan 1000 alamat acak..."
-  for i in $(seq 1 1000); do
-    # Menghasilkan alamat acak menggunakan openssl dan keccak-256
-    ADDRESS=$(openssl rand -hex 32 | keccak-256sum | head -n 1 | awk '{print "0x" substr($1, 1, 40)}')
-    echo $ADDRESS >> $ADDRESS_FILE
-  done
-  echo "Alamat acak telah disimpan di $ADDRESS_FILE."
+    echo -e "${YELLOW}Menghasilkan 1000 alamat acak untuk pengiriman...${RESET}"
+    
+    # Generate 1000 alamat acak untuk pengiriman
+    node -e "
+    const { ethers } = require('ethers');
+    for (let i = 0; i < 1000; i++) {
+        const wallet = ethers.Wallet.createRandom();
+        console.log(wallet.address);
+    }
+    " > "$ADDRESS_FILE"
+
+    echo -e "${GREEN}Alamat acak telah disimpan ke $ADDRESS_FILE${RESET}"
 }
 
 # Fungsi untuk mengirim token ke semua alamat yang dihasilkan
 send_tokens() {
-  echo "Mengirim token ke alamat-alamat..."
+    echo -e "${YELLOW}Mengirim token ke alamat-alamat yang dihasilkan...${RESET}"
 
-  # Memeriksa dan menginstal dependensi jika belum ada
-  if ! command -v node &> /dev/null; then
-    echo "Node.js tidak ditemukan, menginstal Node.js..."
-    sudo apt update
-    sudo apt install -y nodejs npm
-  fi
-
-  if ! npm list -g ethers &> /dev/null; then
-    echo "Ethers.js belum terinstal, menginstal ethers.js..."
-    npm install ethers
-  fi
-
-  # Menggunakan ethers.js untuk mengirim token (panggil node JS dari bash)
-  node <<EOF
+    # Membaca alamat dari file dan mengirim token
+    node <<EOF
 const { ethers } = require("ethers");
 
 const rpcUrl = "$RPC_URL";
@@ -98,6 +109,9 @@ sendTokens();
 EOF
 }
 
-# Langsung menjalankan proses generate alamat dan kirim token
+# Memeriksa dependensi terlebih dahulu
+check_dependencies
+
+# Menjalankan fungsi untuk menghasilkan alamat dan mengirim token
 generate_random_addresses
 send_tokens
