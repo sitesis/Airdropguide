@@ -180,15 +180,15 @@ send_tokens() {
     local num_addresses="$2"
     local AMOUNT=0.1  # Mengirimkan 0.1 token
 
-    # Buat 100 alamat acak
+    # Menggunakan ethers.js untuk menghasilkan alamat acak
     echo -e "${YELLOW}Mengirim token ke 100 alamat acak...${RESET}"
     for i in $(seq 1 "$num_addresses"); do
-        # Generate alamat acak (menggunakan utilitas atau API untuk generate alamat)
-        RANDOM_ADDRESS=$(forge generate-random-address)
+        # Generate alamat acak menggunakan ethers.js
+        RANDOM_ADDRESS=$(npx ethers generate-address)
 
         # Kirim token
         echo -e "${BLUE}Mengirim $AMOUNT token ke alamat $RANDOM_ADDRESS...${RESET}"
-        forge send "$contract_address" \
+        npx ethers send "$contract_address" \
             --to "$RANDOM_ADDRESS" \
             --amount "$AMOUNT" \
             --rpc-url "$RPC_URL" \
