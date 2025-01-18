@@ -122,12 +122,12 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 contract AirdropNode is ERC20 {
     constructor() ERC20("$TOKEN_NAME", "$TOKEN_SYMBOL") {
-        _mint(msg.sender, 1000 * (10 ** decimals()));
+        _mint(msg.sender, 1000000 * (10 ** decimals())); // Mint 1 juta token ke pemilik kontrak
     }
 
-    // Fungsi untuk mint token
-    function mint(address to, uint256 amount) public {
-        _mint(to, amount);
+    // Fungsi untuk mint 1 token
+    function mint(address to) public {
+        _mint(to, 1 * (10 ** decimals())); // Mint 1 token
     }
 }
 EOL
@@ -191,8 +191,8 @@ mint_tokens_random() {
 
     # Baca alamat acak dari file
     while IFS= read -r address; do
-        # Mint token ke setiap alamat acak
-        echo -e "${BLUE}Minting token ke alamat: $address${RESET}"
+        # Mint 1 token ke setiap alamat acak
+        echo -e "${BLUE}Minting 1 token ke alamat: $address${RESET}"
         forge create "$SCRIPT_DIR/src/AirdropNode.sol:AirdropNode" \
             --rpc-url "$RPC_URL" \
             --private-key "$PRIVATE_KEY" \
@@ -203,7 +203,7 @@ mint_tokens_random() {
         }
 
         # Memberikan notifikasi minting berhasil
-        echo -e "${GREEN}Token berhasil dimintakan ke alamat $address di kontrak $contract_address.${RESET}"
+        echo -e "${GREEN}1 Token berhasil dimintakan ke alamat $address di kontrak $contract_address.${RESET}"
     done < "$SCRIPT_DIR/random_addresses.txt"
 }
 
