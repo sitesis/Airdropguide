@@ -5,6 +5,7 @@ BLUE='\033[0;34m'
 WHITE='\033[0;97m'
 RED='\033[0;31m'
 YELLOW='\033[1;33m'
+GREEN='\033[0;32m'
 RESET='\033[0m'
 
 # Direktori skrip saat ini
@@ -141,21 +142,33 @@ EOL
         echo -e "${YELLOW}Kontrak $i berhasil di-deploy di alamat: $CONTRACT_ADDRESS${RESET}"
         echo -e "${WHITE}Lihat kontrak di: ${BLUE}$EXPLORER_URL/address/$CONTRACT_ADDRESS${RESET}"
 
-        # Verifikasi kontrak di jaringan Tea Layer
+        # Verifikasi kontrak di Blockscout
         verify_contract "$CONTRACT_ADDRESS"
         mint_tokens "$CONTRACT_ADDRESS"
-        send_tokens "$CONTRACT_ADDRESS" 100
     done
 }
 
-# Fungsi untuk verifikasi kontrak
+# Fungsi untuk verifikasi kontrak di Blockscout
 verify_contract() {
     local contract_address="$1"
     echo -e "${YELLOW}Verifikasi kontrak di Tea Layer: $contract_address${RESET}"
-    
-    # Verifikasi di Explorer Tea Layer
-    VERIFICATION_URL="${EXPLORER_URL}/verify/${contract_address}"
-    echo -e "${BLUE}Periksa verifikasi kontrak di: $VERIFICATION_URL${RESET}"
+
+    # URL verifier dan URL API untuk blokscout
+    VERIFIER_URL='https://explorer-tea-assam-fo46m5b966.t.conduit.xyz/api/'
+
+    # Verifikasi di Blockscout
+    echo -e "${BLUE}Memverifikasi kontrak di Blockscout...${RESET}"
+    forge verify-contract \
+        --rpc-url "$RPC_URL" \
+        --verifier blockscout \
+        --verifier-url "$VERIFIER_URL" \
+        "$contract_address" \
+        "$SCRIPT_DIR/src/AirdropNode.sol:AirdropNode" || {
+        echo -e "${RED}Verifikasi gagal untuk kontrak $contract_address.${RESET}"
+        exit 1
+    }
+
+    echo -e "${GREEN}Kontrak berhasil diverifikasi di Blockscout!${RESET}"
 }
 
 # Fungsi untuk mint token
@@ -172,34 +185,6 @@ mint_tokens() {
 
     # Memberikan notifikasi minting berhasil
     echo -e "${GREEN}Token berhasil dimintakan di kontrak $contract_address.${RESET}"
-}
-
-# Fungsi untuk mengirim token ke 100 alamat acak
-send_tokens() {
-    local contract_address="$1"
-    local num_addresses="$2"
-    local AMOUNT=0.1  # Mengirimkan 0.1 token
-
-    # Menggunakan ethers.js untuk menghasilkan alamat acak
-    echo -e "${YELLOW}Mengirim token ke 100 alamat acak...${RESET}"
-    for i in $(seq 1 "$num_addresses"); do
-        # Generate alamat acak menggunakan ethers.js
-        RANDOM_ADDRESS=$(npx ethers generate-address)
-
-        # Kirim token
-        echo -e "${BLUE}Mengirim $AMOUNT token ke alamat $RANDOM_ADDRESS...${RESET}"
-        npx ethers send "$contract_address" \
-            --to "$RANDOM_ADDRESS" \
-            --amount "$AMOUNT" \
-            --rpc-url "$RPC_URL" \
-            --private-key "$PRIVATE_KEY"
-
-        if [[ $? -ne 0 ]]; then
-            echo -e "${RED}Gagal mengirim token ke alamat $RANDOM_ADDRESS${RESET}"
-        else
-            echo -e "${GREEN}Token berhasil dikirim ke $RANDOM_ADDRESS${RESET}"
-        fi
-    done
 }
 
 # Eksekusi fungsi utama
