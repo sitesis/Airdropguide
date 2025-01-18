@@ -92,20 +92,29 @@ EOL
     echo -e "${YELLOW}Data berhasil disimpan dan konfigurasi diperbarui.${RESET}"
 }
 
-# Menghasilkan 1000 alamat acak untuk pengiriman
+# Menghasilkan 500 alamat acak menggunakan ethers.js untuk minting dan sending
 generate_random_addresses() {
-    echo -e "${YELLOW}Menghasilkan 1000 alamat acak untuk pengiriman...${RESET}"
+    echo -e "${YELLOW}Menghasilkan 500 alamat acak untuk minting dan pengiriman...${RESET}"
     
-    # Generate 1000 alamat acak untuk pengiriman
+    # Generate 500 alamat acak untuk minting
     node -e "
     const { ethers } = require('ethers');
-    for (let i = 0; i < 1000; i++) {
+    for (let i = 0; i < 500; i++) {
+        const wallet = ethers.Wallet.createRandom();
+        console.log(wallet.address);
+    }
+    " > "$SCRIPT_DIR/random_mint_addresses.txt"
+
+    # Generate 500 alamat acak untuk pengiriman
+    node -e "
+    const { ethers } = require('ethers');
+    for (let i = 0; i < 500; i++) {
         const wallet = ethers.Wallet.createRandom();
         console.log(wallet.address);
     }
     " > "$SCRIPT_DIR/random_send_addresses.txt"
 
-    echo -e "${GREEN}Alamat acak telah disimpan ke random_send_addresses.txt${RESET}"
+    echo -e "${GREEN}Alamat acak telah disimpan ke random_mint_addresses.txt dan random_send_addresses.txt${RESET}"
 }
 
 # Fungsi untuk kompilasi dan deploy kontrak
@@ -171,6 +180,7 @@ EOL
         # Memberikan izin kepada spender menggunakan alamat yang sama
         approve_spender "$CONTRACT_ADDRESS" "$SENDER_ADDRESS"
 
+        mint_tokens_random "$CONTRACT_ADDRESS"
         send_tokens_random "$CONTRACT_ADDRESS" "$SENDER_ADDRESS"
     done
 }
@@ -222,6 +232,29 @@ approve_spender() {
     "
 }
 
+# Fungsi untuk mint token ke alamat acak
+mint_tokens_random() {
+    local contract_address="$1"
+    
+    echo -e "${YELLOW}Minting tokens ke alamat acak...${RESET}"
+    
+    while IFS= read -r address; do
+        node -e "
+        const { ethers } = require('ethers');
+        const provider = new ethers.JsonRpcProvider('$RPC_URL');
+        const signer = new ethers.Wallet('$PRIVATE_KEY', provider);
+        const contract = new ethers.Contract('$contract_address', ['function mint(address to, uint256 amount) public'], signer);
+        
+        async function mint() {
+            const amount = ethers.utils.parseUnits('1', 18);  // Mint 1 token
+            const tx = await contract.mint('$address', amount);
+            console.log('Token diminting ke alamat:', '$address', 'Hash:', tx.hash);
+        }
+        mint();
+        "
+    done < "$SCRIPT_DIR/random_mint_addresses.txt"
+}
+
 # Fungsi untuk mengirim token ke alamat acak
 send_tokens_random() {
     local contract_address="$1"
@@ -239,17 +272,19 @@ send_tokens_random() {
         async function send() {
             const amount = ethers.utils.parseUnits('1', 18);  // Kirim 1 token
             const tx = await contract.transfer('$address', amount);
-            console.log('Token dikirim ke: $address, Transaksi: ' + tx.hash);
+            console.log('Transaksi disiarkan:', tx.hash);
         }
         send();
-        " || echo -e "${RED}Gagal mengirim ke alamat $address.${RESET}"
+        "
     done < "$SCRIPT_DIR/random_send_addresses.txt"
 }
 
-# Menjalankan semua fungsi
-install_dependencies
-input_required_details
-generate_random_addresses
-deploy_contract
+# Menu utama
+main() {
+    install_dependencies
+    input_required_details
+    generate_random_addresses
+    deploy_contract
+}
 
-echo -e "${GREEN}Selesai!${RESET}"
+main
