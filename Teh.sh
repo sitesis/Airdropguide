@@ -60,11 +60,11 @@ input_required_details() {
     read -p "Masukkan Private Key Anda: " PRIVATE_KEY
 
     # Input RPC URL untuk Tea Layer
-    read -p "Masukkan RPC URL (misal: https://assam-rpc.tea.xyz/): " RPC_URL
+    read -p "Masukkan RPC URL (default: https://assam-rpc.tea.xyz/): " RPC_URL
     RPC_URL="${RPC_URL:-https://assam-rpc.tea.xyz/}"
 
     # Input Explorer URL untuk Tea Layer
-    read -p "Masukkan Explorer URL (misal: https://assam.tea.xyz/): " EXPLORER_URL
+    read -p "Masukkan Explorer URL (default: https://assam.tea.xyz/): " EXPLORER_URL
     EXPLORER_URL="${EXPLORER_URL:-https://assam.tea.xyz/}"
 
     # Simpan input ke file .env
@@ -92,7 +92,32 @@ EOL
     echo -e "${YELLOW}Data berhasil disimpan dan konfigurasi diperbarui.${RESET}"
 }
 
-# Fungsi untuk kompilasi dan deploy kontrak
+# Fungsi untuk verifikasi kontrak di Blockscout
+verify_contract() {
+    local contract_address="$1"
+    echo -e "${YELLOW}Memulai verifikasi kontrak di Blockscout untuk: $contract_address${RESET}"
+
+    # URL verifier dan URL API untuk Blockscout
+    VERIFIER_URL='https://explorer-tea-assam-fo46m5b966.t.conduit.xyz/api/'
+
+    # Verifikasi kontrak menggunakan forge
+    echo -e "${BLUE}Memverifikasi kontrak menggunakan forge...${RESET}"
+    forge verify-contract \
+        --rpc-url "$RPC_URL" \
+        --verifier blockscout \
+        --verifier-url "$VERIFIER_URL" \
+        "$contract_address" \
+        "$SCRIPT_DIR/src/AirdropNode.sol:AirdropNode"
+
+    # Periksa hasil verifikasi
+    if [[ $? -eq 0 ]]; then
+        echo -e "${GREEN}Kontrak berhasil diverifikasi di Blockscout!${RESET}"
+    else
+        echo -e "${RED}Verifikasi kontrak gagal untuk alamat $contract_address.${RESET}"
+    fi
+}
+
+# Fungsi untuk deploy kontrak
 deploy_contract() {
     echo -e "${YELLOW}-----------------------------------${RESET}"
     source "$SCRIPT_DIR/token_deployment/.env"
@@ -110,11 +135,6 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 contract AirdropNode is ERC20 {
     constructor() ERC20("$TOKEN_NAME", "$TOKEN_SYMBOL") {
         _mint(msg.sender, 1000 * (10 ** decimals()));
-    }
-
-    // Fungsi untuk mint token
-    function mint(address to, uint256 amount) public {
-        _mint(to, amount);
     }
 }
 EOL
@@ -144,47 +164,7 @@ EOL
 
         # Verifikasi kontrak di Blockscout
         verify_contract "$CONTRACT_ADDRESS"
-        mint_tokens "$CONTRACT_ADDRESS"
     done
-}
-
-# Fungsi untuk verifikasi kontrak di Blockscout
-verify_contract() {
-    local contract_address="$1"
-    echo -e "${YELLOW}Verifikasi kontrak di Tea Layer: $contract_address${RESET}"
-
-    # URL verifier dan URL API untuk blokscout
-    VERIFIER_URL='https://explorer-tea-assam-fo46m5b966.t.conduit.xyz/api/'
-
-    # Verifikasi di Blockscout
-    echo -e "${BLUE}Memverifikasi kontrak di Blockscout...${RESET}"
-    forge verify-contract \
-        --rpc-url "$RPC_URL" \
-        --verifier blockscout \
-        --verifier-url "$VERIFIER_URL" \
-        "$contract_address" \
-        "$SCRIPT_DIR/src/AirdropNode.sol:AirdropNode" || {
-        echo -e "${RED}Verifikasi gagal untuk kontrak $contract_address.${RESET}"
-        exit 1
-    }
-
-    echo -e "${GREEN}Kontrak berhasil diverifikasi di Blockscout!${RESET}"
-}
-
-# Fungsi untuk mint token
-mint_tokens() {
-    local contract_address="$1"
-    echo -e "${YELLOW}Minting token di kontrak: $contract_address${RESET}"
-
-    # Script untuk mint token
-    forge create "$SCRIPT_DIR/src/AirdropNode.sol:AirdropNode" \
-        --rpc-url "$RPC_URL" \
-        --private-key "$PRIVATE_KEY" \
-        --constructor-args "$contract_address" \
-        --broadcast
-
-    # Memberikan notifikasi minting berhasil
-    echo -e "${GREEN}Token berhasil dimintakan di kontrak $contract_address.${RESET}"
 }
 
 # Eksekusi fungsi utama
