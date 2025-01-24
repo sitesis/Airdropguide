@@ -1,6 +1,5 @@
 #!/bin/bash
-curl -s https://raw.githubusercontent.com/choir94/Airdropguide/refs/heads/main/logo.sh | bash
-sleep 5
+
 # Warna output
 GREEN='\033[0;32m'
 CYAN='\033[0;36m'
@@ -103,34 +102,19 @@ fi
 
 echo ""
 
-# Langkah 6: Menampilkan Wallet Address
-info_message "Menampilkan Wallet Address"
-
-# Menjalankan perintah untuk mengekstrak wallet address dari keystore
-WALLET_ADDRESS=$(docker run -v "$HOME/privasea/config:/app/config" \
-privasea/acceleration-node-beta:latest ./node-calc address_from_keystore $HOME/privasea/config/wallet_keystore)
-
-if [ -z "$WALLET_ADDRESS" ]; then
-    error_message "Gagal mengekstrak wallet address"
-    exit 1
-fi
-
-echo -e "${CYAN}Wallet Address: ${NC}$WALLET_ADDRESS"
-echo ""
-
-# Langkah 7: Pilihan untuk melanjutkan atau tidak
+# Langkah 6: Pilihan untuk melanjutkan atau tidak
 read -p "Apakah Anda ingin melanjutkan untuk menjalankan node (y/n)? " choice
 if [[ "$choice" != "y" ]]; then
     echo -e "${CYAN}Proses dibatalkan.${NC}"
     exit 0
 fi
 
-# Langkah 8: Meminta password untuk keystore
+# Langkah 7: Meminta password untuk keystore
 info_message "Masukkan password untuk keystore (untuk mengakses node):"
 read -s KEystorePassword
 echo ""
 
-# Langkah 9: Jalankan node
+# Langkah 8: Jalankan node
 info_message "Menjalankan Privasea Acceleration Node"
 if docker run -d -v "$HOME/privasea/config:/app/config" \
 -e KEYSTORE_PASSWORD=$KEystorePassword \
