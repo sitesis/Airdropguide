@@ -1,5 +1,6 @@
 #!/bin/bash
-
+curl -s https://raw.githubusercontent.com/choir94/Airdropguide/refs/heads/main/logo.sh | bash
+sleep 5
 # Warna output
 GREEN='\033[0;32m'
 CYAN='\033[0;36m'
