@@ -1,0 +1,91 @@
+#!/bin/bash
+
+# Hentikan eksekusi jika ada error
+set -e
+
+# Fungsi: Menampilkan header
+print_header() {
+  echo -e "\n============================================================"
+  echo -e "                   INSTALLASI INITIA WEAVE                  "
+  echo -e "============================================================\n"
+}
+
+# Fungsi: Perbarui dan instal dependensi
+install_dependencies() {
+  echo -e "\n[1/6] Memperbarui sistem dan menginstal dependensi...\n"
+  sudo apt update -y && sudo apt upgrade -y
+  sudo apt install -y htop ca-certificates zlib1g-dev libncurses5-dev libgdbm-dev libnss3-dev \
+  tmux iptables curl nvme-cli git wget make jq libleveldb-dev build-essential pkg-config \
+  ncdu tar clang bsdmainutils lsb-release libssl-dev libreadline-dev libffi-dev gcc screen unzip lz4
+}
+
+# Fungsi: Instal Go
+install_go() {
+  local GO_VERSION="1.23.0"
+  echo -e "\n[2/6] Menginstal Go versi $GO_VERSION...\n"
+  wget "https://golang.org/dl/go${GO_VERSION}.linux-amd64.tar.gz"
+  sudo rm -rf /usr/local/go
+  sudo tar -C /usr/local -xzf "go${GO_VERSION}.linux-amd64.tar.gz"
+  rm "go${GO_VERSION}.linux-amd64.tar.gz"
+
+  # Konfigurasi PATH untuk Go
+  [ ! -f ~/.bash_profile ] && touch ~/.bash_profile
+  echo "export PATH=\$PATH:/usr/local/go/bin:~/go/bin" >> ~/.bash_profile
+  source ~/.bash_profile
+  mkdir -p ~/go/bin
+}
+
+# Fungsi: Clone dan instal Initia Weave
+install_weave() {
+  echo -e "\n[3/6] Mengunduh dan menginstal Initia Weave...\n"
+  git clone https://github.com/initia-labs/weave.git
+  cd weave
+  git checkout tags/v0.1.1
+  make install
+  cd ..
+}
+
+# Fungsi: Membuat dompet
+setup_wallet() {
+  echo -e "\n[4/6] Membuat dompet baru dengan Initia Weave...\n"
+  weave gas-station setup
+  echo -e "\nSimpan kata-kata kunci (seed phrase) dengan aman."
+  echo -e "Ketik 'lanjutkan' untuk melanjutkan setelah mencatat seed phrase.\n"
+}
+
+# Fungsi: Inisialisasi dan jalankan node
+start_node() {
+  echo -e "\n[5/6] Memulai inisialisasi Weave...\n"
+  weave init
+  echo -e "\nPilih L1 node yang sesuai.\n"
+
+  echo -e "\n[6/6] Membuka sesi screen untuk menjalankan node Initia...\n"
+  screen -S initia -dm bash -c "weave initia start"
+  echo -e "Node sedang berjalan di sesi screen bernama 'initia'.\n"
+}
+
+# Fungsi: Menampilkan saldo dompet
+show_balance() {
+  echo -e "\nMenampilkan saldo dompet...\n"
+  weave gas-station show
+}
+
+# Menu utama
+main() {
+  print_header
+  install_dependencies
+  install_go
+  install_weave
+  setup_wallet
+  show_balance
+  start_node
+
+  echo -e "\n============================================================"
+  echo -e "           INSTALASI DAN KONFIGURASI INITIA WEAVE           "
+  echo -e "                Script By Airdrop Node                     "
+  echo -e "                                                            "
+  echo -e "============================================================\n"
+}
+
+# Jalankan fungsi utama
+main
