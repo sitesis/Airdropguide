@@ -19,6 +19,15 @@ install_dependencies() {
   ncdu tar clang bsdmainutils lsb-release libssl-dev libreadline-dev libffi-dev gcc screen unzip lz4
 }
 
+# Fungsi: Memeriksa apakah Go sudah terinstal
+check_go_installed() {
+  if command -v go &> /dev/null; then
+    echo -e "\n[2/6] Go sudah terinstal. Melewati instalasi Go...\n"
+  else
+    install_go
+  fi
+}
+
 # Fungsi: Instal Go
 install_go() {
   local GO_VERSION="1.23.0"
@@ -74,7 +83,7 @@ show_balance() {
 main() {
   print_header
   install_dependencies
-  install_go
+  check_go_installed
   install_weave
   setup_wallet
   show_balance
@@ -82,8 +91,8 @@ main() {
 
   echo -e "\n============================================================"
   echo -e "           INSTALASI DAN KONFIGURASI INITIA WEAVE           "
-  echo -e "                Script By Airdrop Node                     "
-  echo -e "                                                            "
+  echo -e "                SELESAI DENGAN SUKSES!                     "
+  echo -e "                  Script By Airdrop Node                   "
   echo -e "============================================================\n"
 }
 
