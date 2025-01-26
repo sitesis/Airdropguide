@@ -14,19 +14,6 @@ INIMINER_FILE="iniminer-linux-x64"
 # ==============================================
 # Fungsi: Memperbarui Sistem dan Menginstal Screen
 # ==============================================
-update_system_and_install_screen() {
-    echo
-    echo "========================================"
-    echo "🔄 Memperbarui sistem dan menginstal screen..."
-    echo "========================================"
-    apt update && sudo apt upgrade -y
-    if [ $? -eq 0 ]; then
-        echo "✅ Sistem diperbarui dan screen berhasil diinstal."
-    else
-        echo "❌ Gagal memperbarui sistem atau menginstal screen."
-        exit 1
-    fi
-    echo
 }
 
 # ==============================================
