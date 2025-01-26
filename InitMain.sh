@@ -19,7 +19,7 @@ update_system_and_install_screen() {
     echo "========================================"
     echo "🔄 Memperbarui sistem dan menginstal screen..."
     echo "========================================"
-    sudo apt update && sudo apt upgrade -y
+    apt update && sudo apt upgrade -y
     if [ $? -eq 0 ]; then
         echo "✅ Sistem diperbarui dan screen berhasil diinstal."
     else
