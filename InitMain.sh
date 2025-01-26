@@ -88,11 +88,10 @@ run_inichain_miner() {
             ;;
     esac
 
-    screen -dmS $SCREEN_NAME ./$INIMINER_FILE --pool $POOL_URL
+    ./$INIMINER_FILE --pool $POOL_URL
     if [ $? -eq 0 ]; then
         echo "✅ InitVerse Miner sedang berjalan dalam sesi screen bernama '$SCREEN_NAME'."
-        echo "ℹ️  Gunakan perintah berikut untuk memantau:"
-        echo "   screen -r $SCREEN_NAME"
+        echo "ℹ️  Gunakan perintah berikut untuk memantau:
     else
         echo "❌ Gagal menjalankan InitVerse Miner."
         exit 1
