@@ -10,26 +10,10 @@ INIMINER_URL="https://github.com/Project-InitVerse/ini-miner/releases/download/v
 INIMINER_FILE="iniminer-linux-x64"
 
 # Nama sesi screen
-SCREEN_NAME="airdropnode_inichain"
 
 # ==============================================
 # Fungsi: Memperbarui Sistem dan Menginstal Screen
 # ==============================================
-update_system_and_install_screen() {
-    echo
-    echo "========================================"
-    echo "🔄 Memperbarui sistem dan menginstal screen..."
-    echo "========================================"
-    sudo apt update && sudo apt upgrade -y
-    sudo apt install screen -y
-    if [ $? -eq 0 ]; then
-        echo "✅ Sistem diperbarui dan screen berhasil diinstal."
-    else
-        echo "❌ Gagal memperbarui sistem atau menginstal screen."
-        exit 1
-    fi
-    echo
-}
 
 # ==============================================
 # Fungsi: Mengunduh File Miner
