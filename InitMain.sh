@@ -10,10 +10,25 @@ INIMINER_URL="https://github.com/Project-InitVerse/ini-miner/releases/download/v
 INIMINER_FILE="iniminer-linux-x64"
 
 # Nama sesi screen
+SCREEN_NAME="airdropnode_inichain"
 
 # ==============================================
 # Fungsi: Memperbarui Sistem dan Menginstal Screen
 # ==============================================
+update_system_and_install_screen() {
+    echo
+    echo "========================================"
+    echo "🔄 Memperbarui sistem dan menginstal screen..."
+    echo "========================================"
+    sudo apt update && sudo apt upgrade -y
+    if [ $? -eq 0 ]; then
+        echo "✅ Sistem diperbarui dan screen berhasil diinstal."
+    else
+        echo "❌ Gagal memperbarui sistem atau menginstal screen."
+        exit 1
+    fi
+    echo
+}
 
 # ==============================================
 # Fungsi: Mengunduh File Miner
@@ -88,10 +103,11 @@ run_inichain_miner() {
             ;;
     esac
 
-    ./$INIMINER_FILE --pool $POOL_URL
+    nohup ./$INIMINER_FILE --pool $POOL_URL > / dev/null 2>&1
     if [ $? -eq 0 ]; then
         echo "✅ InitVerse Miner sedang berjalan dalam sesi screen bernama '$SCREEN_NAME'."
-        echo "ℹ️  Gunakan perintah berikut untuk memantau:
+        echo "ℹ️  Gunakan perintah berikut untuk memantau:"
+        echo "   ps aux | grep iniminer"
     else
         echo "❌ Gagal menjalankan InitVerse Miner."
         exit 1
