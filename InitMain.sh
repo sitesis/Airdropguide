@@ -10,7 +10,6 @@ INIMINER_URL="https://github.com/Project-InitVerse/ini-miner/releases/download/v
 INIMINER_FILE="iniminer-linux-x64"
 
 # Nama sesi screen
-SCREEN_NAME="airdropnode_inichain"
 
 # ==============================================
 # Fungsi: Memperbarui Sistem dan Menginstal Screen
